@@ -1,0 +1,53 @@
+.PHONY: build
+build: build/inaugurator.vmlinuz build/inaugurator.initrd.img
+
+dist/inaugurator-1.0.linux-x86_64.tar.gz:
+	python setup.py build
+	python setup.py bdist
+
+build/inaugurator.vmlinuz: /boot/vmlinuz-3.11.10-200.fc19.x86_64
+	-mkdir $(@D)
+	cp $< $@
+
+build/inaugurator.initrd.img: build/inaugurator.initrd.dir
+	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
+	mv $@.tmp $@
+
+build/inaugurator.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
+	-mkdir $(@D)
+	-rm -fr $@.tmp $@
+	mkdir $@.tmp
+	tar -xf $< --directory $@.tmp
+	echo "Copying libraries"
+	DEST=$@.tmp sh/relative_copy_glob.sh /lib64/ld*
+	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/*
+	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/lib-dynload/*
+	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/libnss_dns*
+	DEST=$@.tmp sh/relative_copy_glob.sh /usr/share/hwdata/pci.ids
+	echo "Copying executables"
+	DEST=$@.tmp sh/relative_copy_executable.sh /bin/bash
+	DEST=$@.tmp sh/relative_copy_executable.sh /bin/sh
+	DEST=$@.tmp sh/relative_copy_executable.sh /bin/python2.7
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/busybox
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/kexec
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ifconfig
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/route
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/parted
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/mkfs.ext4
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/mount.nfs
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ip
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ethtool
+	echo "Copying drivers"
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh virtio_blk
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh isci
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh virtio_net
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh e1000
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh igb
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh 8139cp
+	echo "Creating /etc"
+	DEST=$@.tmp sh/relative_copy_glob.sh etc/*
+	DEST=$@.tmp sh/relative_copy_glob.sh init
+	mkdir $@.tmp/proc
+	mkdir $@.tmp/sys
+	find $@.tmp -name "*.pyo" | xargs rm -f
+	mv $@.tmp $@
