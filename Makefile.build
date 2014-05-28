@@ -17,6 +17,7 @@ build/inaugurator.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
 	-mkdir $(@D)
 	-rm -fr $@.tmp $@
 	mkdir $@.tmp
+	echo "Installing Inaugurator"
 	tar -xf $< --directory $@.tmp
 	echo "Copying libraries"
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib64/ld*
@@ -37,6 +38,7 @@ build/inaugurator.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/mount.nfs
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ip
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ethtool
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/bin/osmosis
 	echo "Copying drivers"
 	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh virtio_blk
 	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh isci
@@ -44,7 +46,8 @@ build/inaugurator.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
 	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh e1000
 	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh igb
 	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh 8139cp
-	echo "Creating /etc"
+	echo "Misc"
+	ln -s /usr/sbin/busybox $@.tmp/usr/sbin/insmod
 	DEST=$@.tmp sh/relative_copy_glob.sh etc/*
 	DEST=$@.tmp sh/relative_copy_glob.sh init
 	mkdir $@.tmp/proc
