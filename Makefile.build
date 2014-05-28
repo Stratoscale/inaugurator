@@ -22,6 +22,7 @@ build/inaugurator.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
 	echo "Copying libraries"
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib64/ld*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/*
+	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/encodings/*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/lib-dynload/*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/libnss_dns*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/share/hwdata/pci.ids
@@ -39,6 +40,7 @@ build/inaugurator.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ip
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ethtool
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/bin/osmosis
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/bin/rsync
 	echo "Copying drivers"
 	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh virtio_blk
 	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh isci

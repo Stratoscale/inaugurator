@@ -4,6 +4,7 @@ clean:
 	rm -fr build dist inaugurator.egg-info
 
 check_convention:
+	sh/check_spelling.sh
 	pep8 inaugurator --max-line-length=109
 
 include Makefile.build
