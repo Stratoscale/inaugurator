@@ -1,11 +1,14 @@
-all: build check_convention
+all: build unittest check_convention
 
 clean:
 	rm -fr build dist inaugurator.egg-info
 
 check_convention:
+	pep8 inaugurator --max-line-length=109 --exclude=samplegrubconfigs.py
 	sh/check_spelling.sh
-	pep8 inaugurator --max-line-length=109
+
+unittest:
+	PYTHONPATH=$(PWD) python -m unittest inaugurator.tests.test_grubconfparser
 
 include Makefile.build
 

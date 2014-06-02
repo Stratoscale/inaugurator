@@ -1,6 +1,7 @@
 import re
 from inaugurator import sh
 
+
 class Network:
     _CONFIG_SCRIPT_PATH = "/etc/udhcp_script.sh"
 
