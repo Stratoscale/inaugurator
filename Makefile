@@ -14,5 +14,7 @@ include Makefile.build
 
 install: build/inaugurator.initrd.img build/inaugurator.vmlinuz
 	-sudo mkdir /usr/share/inaugurator
+	-yes | sudo pip uninstall inaugurator
+	sudo python setup.py install
 	sudo cp $^ /usr/share/inaugurator
 	sudo chmod 644 /usr/share/inaugurator/*

@@ -6,6 +6,8 @@ from inaugurator import network
 from inaugurator import loadkernel
 from inaugurator import fstab
 from inaugurator import passwd
+from inaugurator import osmosis
+from inaugurator import checkinwithserver
 import argparse
 import traceback
 import pdb
@@ -26,11 +28,10 @@ def main(args):
         network.Network(
             macAddress=args.inauguratorUseNICWithMAC, ipAddress=args.inauguratorIPAddress,
             netmask=args.inauguratorNetmask)
-        result = os.system(
-            "/usr/bin/osmosis checkout %s %s --MD5 --removeUnknownFiles --serverHostname=%s" % (
-                destination, args.inauguratorOsmosisLabel, args.inauguratorOsmosisHostname))
-        if result != 0:
-            raise Exception("Osmosis failed")
+        osmos = osmosis.Osmosis(destination, hostname=args.inauguratorOsmosisHostname)
+        checkIn = checkinwithserver.CheckInWithServer(hostname=args.inauguratorServerHostname)
+        osmos.tellLabel(checkIn.label())
+        osmos.wait()
         print "Osmosis complete"
         with mountOp.mountBoot() as bootDestination:
             sh.run("rsync -rlpgDS %s/boot/ %s/" % (destination, bootDestination))
@@ -52,8 +53,8 @@ def main(args):
 
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--inauguratorClearDisk")
+parser.add_argument("--inauguratorServerHostname", required=True)
 parser.add_argument("--inauguratorOsmosisHostname", required=True)
-parser.add_argument("--inauguratorOsmosisLabel", required=True)
 parser.add_argument("--inauguratorUseNICWithMAC", required=True)
 parser.add_argument("--inauguratorIPAddress", required=True)
 parser.add_argument("--inauguratorNetmask", required=True)

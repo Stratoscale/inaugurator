@@ -15,7 +15,7 @@ setup(
         "from the network or a DOK"),
     keywords="Osmosis rootfs initrd boot",
     url="http://packages.python.org/inaugurator",
-    packages=['inaugurator'],
+    packages=['inaugurator', 'inaugurator.server'],
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: 4 - Beta",
