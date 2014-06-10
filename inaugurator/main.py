@@ -47,6 +47,7 @@ def main(args):
             bootPath=os.path.join(destination, "boot"), rootPartition=mountOp.rootPartition())
         print "kernel loaded"
     after = time.time()
+    checkIn.done()
     print "Inaugurator took: %.2fs. KEXECing" % (after - before)
     loadKernel.execute()
 

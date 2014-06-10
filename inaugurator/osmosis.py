@@ -6,8 +6,8 @@ class Osmosis:
         self._popen = subprocess.Popen([
             "/usr/bin/osmosis", "checkout", destination, '+', '--MD5',
             '--removeUnknownFiles', '--serverHostname', hostname],
-            close_fds = True,
-            stdin = subprocess.PIPE)
+            close_fds=True,
+            stdin=subprocess.PIPE)
 
     def tellLabel(self, label):
         self._popen.stdin.write(label + "\n")

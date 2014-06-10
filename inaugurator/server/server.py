@@ -5,8 +5,9 @@ from inaugurator.server import config
 
 
 class Server(threading.Thread):
-    def __init__(self, bindHostname, checkInCallback):
+    def __init__(self, bindHostname, checkInCallback, doneCallback):
         self._checkInCallback = checkInCallback
+        self._doneCallback = doneCallback
         self._sock = socket.socket()
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._sock.bind((bindHostname, config.PORT))
@@ -35,15 +36,25 @@ class Server(threading.Thread):
     def _work(self):
         connection, peer = self._sock.accept()
         ip = peer[0]
+        keepConnectionOpen = False
         try:
             connection.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
-            self._safeHangup(ip)
-            self._connections[ip] = connection
-            self._checkInCallback(ipAddress=ip)
+            command = connection.recv(16)
+            if command == "checkin":
+                self._safeHangup(ip)
+                self._connections[ip] = connection
+                self._checkInCallback(ipAddress=ip)
+                keepConnectionOpen = True
+            elif command == "done":
+                self._doneCallback(ipAddress=ip)
+            else:
+                raise Exception("Unknown command '%s'" % command)
         except:
             self._safeHangup(ip)
-            connection.close()
             raise
+        finally:
+            if not keepConnectionOpen:
+                connection.close()
 
     def _safeHangup(self, ipAddress):
         if ipAddress in self._connections:
