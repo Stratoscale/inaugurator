@@ -8,7 +8,7 @@ class Mount:
 
     def __init__(self, targetDevice):
         self._bootPartition = "%s1" % (targetDevice,)
-        self._rootPartition = "%s2" % (targetDevice,)
+        self._rootPartition = "%s3" % (targetDevice,)
 
     def rootPartition(self):
         return self._rootPartition

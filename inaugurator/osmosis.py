@@ -2,10 +2,10 @@ import subprocess
 
 
 class Osmosis:
-    def __init__(self, destination, hostname):
+    def __init__(self, destination, objectStores):
         self._popen = subprocess.Popen([
             "/usr/bin/osmosis", "checkout", destination, '+', '--MD5',
-            '--removeUnknownFiles', '--serverHostname', hostname],
+            '--removeUnknownFiles', '--objectStores', objectStores],
             close_fds=True,
             stdin=subprocess.PIPE)
 

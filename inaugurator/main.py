@@ -28,7 +28,7 @@ def main(args):
         network.Network(
             macAddress=args.inauguratorUseNICWithMAC, ipAddress=args.inauguratorIPAddress,
             netmask=args.inauguratorNetmask)
-        osmos = osmosis.Osmosis(destination, hostname=args.inauguratorOsmosisHostname)
+        osmos = osmosis.Osmosis(destination, objectStores=args.inauguratorOsmosisObjectStores)
         checkIn = checkinwithserver.CheckInWithServer(hostname=args.inauguratorServerHostname)
         osmos.tellLabel(checkIn.label())
         osmos.wait()
@@ -55,7 +55,7 @@ def main(args):
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--inauguratorClearDisk")
 parser.add_argument("--inauguratorServerHostname", required=True)
-parser.add_argument("--inauguratorOsmosisHostname", required=True)
+parser.add_argument("--inauguratorOsmosisObjectStores", required=True)
 parser.add_argument("--inauguratorUseNICWithMAC", required=True)
 parser.add_argument("--inauguratorIPAddress", required=True)
 parser.add_argument("--inauguratorNetmask", required=True)

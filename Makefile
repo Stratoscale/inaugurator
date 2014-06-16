@@ -7,8 +7,9 @@ check_convention:
 	pep8 inaugurator --max-line-length=109 --exclude=samplegrubconfigs.py
 	sh/check_spelling.sh
 
+UNITTESTS=$(shell find inaugurator -name 'test*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
 unittest:
-	PYTHONPATH=$(PWD) python -m unittest inaugurator.tests.test_grubconfparser
+	PYTHONPATH=$(PWD) python -m unittest $(UNITTESTS)
 
 include Makefile.build
 
