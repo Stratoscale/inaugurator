@@ -8,6 +8,7 @@ from inaugurator import fstab
 from inaugurator import passwd
 from inaugurator import osmosis
 from inaugurator import checkinwithserver
+from inaugurator import grub
 import argparse
 import traceback
 import pdb
@@ -35,9 +36,14 @@ def main(args):
         print "Osmosis complete"
         with mountOp.mountBoot() as bootDestination:
             sh.run("rsync -rlpgDS %s/boot/ %s/" % (destination, bootDestination))
+        if partitionTable.created():
+            with mountOp.mountBootInsideRoot():
+                print "Installing grub"
+                grub.install(targetDevice, destination)
         print "Boot sync complete"
         fstab.createFSTab(
-            rootPath=destination, root=mountOp.rootPartition(), boot=mountOp.bootPartition())
+            rootPath=destination, root=mountOp.rootPartition(),
+            boot=mountOp.bootPartition(), swap=mountOp.swapPartition())
         print "/etc/fstab created"
         if args.inauguratorChangeRootPassword:
             passwd.setRootPassword(destination, args.inauguratorChangeRootPassword)

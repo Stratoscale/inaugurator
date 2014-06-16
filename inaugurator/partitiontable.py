@@ -7,14 +7,19 @@ class PartitionTable:
     def __init__(self, device):
         self._device = device
         self._cachedDiskSize = None
+        self._created = False
+
+    def created(self):
+        return self._created
 
     def clear(self):
         sh.run("/usr/sbin/busybox dd if=/dev/zero of=%s bs=1M count=1024" % self._device)
 
     def _create(self):
         table = self._expected()
-        print "creating new partition table"
-        sh.run("echo -ne '%s' | sfdisk --unit M %s" % (self._sfdiskScript(table), self._device))
+        script = "echo -ne '%s' | sfdisk --unit M %s" % (self._sfdiskScript(table), self._device)
+        print "creating new partition table:", script
+        sh.run(script)
         sh.run("/usr/sbin/busybox mdev -s")
         for partition in table:
             if partition['id'] == 82:
@@ -25,6 +30,7 @@ class PartitionTable:
                 sh.run("/usr/sbin/mkfs.ext4 %s" % partition['device'])
             else:
                 assert False, "Unrecognized partition id: %d" % partition['id']
+        self._created = True
 
     def _parse(self):
         LINE = re.compile(r"(/\S+) : start=\s*\d+, size=\s*(\d+), Id=\s*(\d+)")
@@ -45,15 +51,17 @@ class PartitionTable:
             dict(device="%s2" % self._device, sizeMB=swapSizeMB, id=82),
             dict(device="%s3" % self._device, sizeMB='fill', id=83)]
 
-    def _sfdiskPartitionLine(self, asDict):
-        if asDict['sizeMB'] == 'fill':
-            return r',,%(id)d\n' % asDict
-        else:
-            return r',%(sizeMB)d,%(id)d\n' % asDict
-
     def _sfdiskScript(self, table):
-        empty = r";\n" * (4 - len(table))
-        return "".join([self._sfdiskPartitionLine(partition) for partition in table]) + empty
+        lines = []
+        offsetMB = 2
+        for partition in table:
+            sizeMB = "" if partition['sizeMB'] == 'fill' else partition['sizeMB']
+            line = r'%(offsetMB)d,%(sizeMB)s,%(id)d\n' % dict(
+                partition, sizeMB=sizeMB, offsetMB=offsetMB)
+            lines.append(line)
+            if isinstance(sizeMB, int):
+                offsetMB += sizeMB + 2
+        return "".join(lines)
 
     def _check(self):
         try:
@@ -76,4 +84,6 @@ class PartitionTable:
             return
         self._create()
         if not self._check():
+            print "Expected:", self._expected()
+            print "Found:", self._parse()
             raise Exception("Created partition table isn't as expected")
