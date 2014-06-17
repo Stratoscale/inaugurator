@@ -50,6 +50,8 @@ build/inaugurator.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
 	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh e1000
 	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh igb
 	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh 8139cp
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh vfat
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh usb_storage
 	echo "Misc"
 	ln -s /usr/sbin/busybox $@.tmp/usr/sbin/insmod
 	DEST=$@.tmp sh/relative_copy_glob.sh etc/*

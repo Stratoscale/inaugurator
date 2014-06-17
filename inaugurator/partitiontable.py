@@ -13,11 +13,12 @@ class PartitionTable:
         return self._created
 
     def clear(self):
-        sh.run("/usr/sbin/busybox dd if=/dev/zero of=%s bs=1M count=1024" % self._device)
+        sh.run("/usr/sbin/busybox dd if=/dev/zero of=%s bs=1M count=512" % self._device)
 
     def _create(self):
+        self.clear()
         table = self._expected()
-        script = "echo -ne '%s' | sfdisk --unit M %s" % (self._sfdiskScript(table), self._device)
+        script = "echo -ne '%s' | sfdisk --unit M %s --in-order" % (self._sfdiskScript(table), self._device)
         print "creating new partition table:", script
         sh.run(script)
         sh.run("/usr/sbin/busybox mdev -s")
@@ -32,7 +33,7 @@ class PartitionTable:
                 assert False, "Unrecognized partition id: %d" % partition['id']
         self._created = True
 
-    def _parse(self):
+    def parse(self):
         LINE = re.compile(r"(/\S+) : start=\s*\d+, size=\s*(\d+), Id=\s*(\d+)")
         lines = LINE.findall(sh.run("/usr/sbin/sfdisk --dump %s" % self._device))
         return [
@@ -53,19 +54,18 @@ class PartitionTable:
 
     def _sfdiskScript(self, table):
         lines = []
-        offsetMB = 2
+        offsetMB = '2'
         for partition in table:
             sizeMB = "" if partition['sizeMB'] == 'fill' else partition['sizeMB']
-            line = r'%(offsetMB)d,%(sizeMB)s,%(id)d\n' % dict(
+            line = r'%(offsetMB)s,%(sizeMB)s,%(id)d\n' % dict(
                 partition, sizeMB=sizeMB, offsetMB=offsetMB)
             lines.append(line)
-            if isinstance(sizeMB, int):
-                offsetMB += sizeMB + 2
+            offsetMB = ''
         return "".join(lines)
 
     def _check(self):
         try:
-            parsed = self._parse()
+            parsed = self.parse()
         except:
             print "Unable to parse partition table"
             traceback.print_exc()
@@ -75,8 +75,14 @@ class PartitionTable:
             return False
         if parsed[2]['sizeMB'] < self._diskSizeMB() * 3 / 4:
             return False
-        parsed[2]['sizeMB'] = 'fill'
-        return parsed == expected
+        for i in xrange(len(parsed)):
+            if parsed[i]['id'] != expected[i]['id']:
+                return False
+            if expected[i]['sizeMB'] != 'fill' and (
+                    parsed[i]['sizeMB'] < expected[i]['sizeMB'] or
+                    parsed[i]['sizeMB'] > expected[i]['sizeMB'] * 1.1):
+                return False
+        return True
 
     def verify(self):
         if self._check():
@@ -85,5 +91,5 @@ class PartitionTable:
         self._create()
         if not self._check():
             print "Expected:", self._expected()
-            print "Found:", self._parse()
+            print "Found:", self.parse()
             raise Exception("Created partition table isn't as expected")

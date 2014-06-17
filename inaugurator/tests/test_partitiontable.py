@@ -26,7 +26,7 @@ class Test(unittest.TestCase):
             ""])
         self.expectedCommands.append(('/usr/sbin/sfdisk --dump /dev/sda', example))
         tested = PartitionTable("/dev/sda")
-        parsed = tested._parse()
+        parsed = tested.parse()
         self.assertEquals(len(parsed), 2)
         self.assertEquals(parsed[0]['device'], '/dev/sda1')
         self.assertEquals(parsed[0]['sizeMB'], 16023552 / 2 / 1024)

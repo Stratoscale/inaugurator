@@ -13,6 +13,10 @@ unittest:
 
 include Makefile.build
 
+uninstall:
+	-sudo mkdir /usr/share/inaugurator
+	-yes | sudo pip uninstall inaugurator
+
 install: build/inaugurator.initrd.img build/inaugurator.vmlinuz
 	-sudo mkdir /usr/share/inaugurator
 	-yes | sudo pip uninstall inaugurator

@@ -9,6 +9,7 @@ from inaugurator import passwd
 from inaugurator import osmosis
 from inaugurator import checkinwithserver
 from inaugurator import grub
+from inaugurator import diskonkey
 import argparse
 import traceback
 import pdb
@@ -25,14 +26,26 @@ def main(args):
     partitionTable.verify()
     print "Partitions created"
     mountOp = mount.Mount(targetDevice)
+    checkIn = None
     with mountOp.mountRoot() as destination:
-        network.Network(
-            macAddress=args.inauguratorUseNICWithMAC, ipAddress=args.inauguratorIPAddress,
-            netmask=args.inauguratorNetmask)
-        osmos = osmosis.Osmosis(destination, objectStores=args.inauguratorOsmosisObjectStores)
-        checkIn = checkinwithserver.CheckInWithServer(hostname=args.inauguratorServerHostname)
-        osmos.tellLabel(checkIn.label())
-        osmos.wait()
+        if args.inauguratorSource == 'network':
+            network.Network(
+                macAddress=args.inauguratorUseNICWithMAC, ipAddress=args.inauguratorIPAddress,
+                netmask=args.inauguratorNetmask)
+            osmos = osmosis.Osmosis(destination, objectStores=args.inauguratorOsmosisObjectStores)
+            checkIn = checkinwithserver.CheckInWithServer(hostname=args.inauguratorServerHostname)
+            osmos.tellLabel(checkIn.label())
+            osmos.wait()
+        elif args.inauguratorSource == 'DOK':
+            dok = diskonkey.DiskOnKey()
+            with dok.mount() as source:
+                osmos = osmosis.Osmosis(destination, objectStores=source + "/osmosisobjectstore")
+                with open("%s/inaugurate_label.txt" % source) as f:
+                    label = f.read().strip()
+                osmos.tellLabel(label)
+                osmos.wait()
+        else:
+            assert False, "Unknown source %s" % args.inauguratorSource
         print "Osmosis complete"
         with mountOp.mountBoot() as bootDestination:
             sh.run("rsync -rlpgDS %s/boot/ %s/" % (destination, bootDestination))
@@ -53,23 +66,35 @@ def main(args):
             bootPath=os.path.join(destination, "boot"), rootPartition=mountOp.rootPartition())
         print "kernel loaded"
     after = time.time()
-    checkIn.done()
+    if checkIn is not None:
+        checkIn.done()
     print "Inaugurator took: %.2fs. KEXECing" % (after - before)
     loadKernel.execute()
 
 
 parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument("--inauguratorClearDisk")
-parser.add_argument("--inauguratorServerHostname", required=True)
-parser.add_argument("--inauguratorOsmosisObjectStores", required=True)
-parser.add_argument("--inauguratorUseNICWithMAC", required=True)
-parser.add_argument("--inauguratorIPAddress", required=True)
-parser.add_argument("--inauguratorNetmask", required=True)
+parser.add_argument("--inauguratorClearDisk", action="store_true")
+parser.add_argument("--inauguratorSource", required=True)
+parser.add_argument("--inauguratorServerHostname")
+parser.add_argument("--inauguratorOsmosisObjectStores")
+parser.add_argument("--inauguratorUseNICWithMAC")
+parser.add_argument("--inauguratorIPAddress")
+parser.add_argument("--inauguratorNetmask")
 parser.add_argument("--inauguratorChangeRootPassword")
 
 try:
     cmdLine = open("/proc/cmdline").read()
     args = parser.parse_known_args(cmdLine.split(' '))[0]
+    if args.inauguratorSource == "network":
+        assert (
+            args.inauguratorServerHostname and args.inauguratorOsmosisObjectStores and
+            args.inauguratorUseNICWithMAC and args.inauguratorIPAddress and
+            args.inauguratorNetmask), \
+            "If inauguratorSource is 'network', all network command line paramaters must be specified"
+    elif args.inauguratorSource == "DOK":
+        pass
+    else:
+        assert False, "Unknown source for inaugurator: %s" % args.inauguratorSource
     main(args)
 except Exception as e:
     print "Inaugurator raised exception: "
