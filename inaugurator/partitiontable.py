@@ -54,7 +54,7 @@ class PartitionTable:
 
     def _sfdiskScript(self, table):
         lines = []
-        offsetMB = '2'
+        offsetMB = '8'
         for partition in table:
             sizeMB = "" if partition['sizeMB'] == 'fill' else partition['sizeMB']
             line = r'%(offsetMB)s,%(sizeMB)s,%(id)d\n' % dict(
