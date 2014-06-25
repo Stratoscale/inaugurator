@@ -5,7 +5,8 @@ dist/inaugurator-1.0.linux-x86_64.tar.gz:
 	python setup.py build
 	python setup.py bdist
 
-build/inaugurator.vmlinuz: /boot/vmlinuz-3.11.10-200.fc19.x86_64
+KERNEL_VERSION = 3.11.9-200.fc19.x86_64
+build/inaugurator.vmlinuz: /boot/vmlinuz-$(KERNEL_VERSION)
 	-mkdir $(@D)
 	cp $< $@
 
@@ -41,17 +42,18 @@ build/inaugurator.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ip
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ethtool
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/chroot
-	DEST=$@.tmp sh/relative_copy_executable.sh /usr/bin/osmosis
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/bin/rsync
+	cp -a ../osmosis/build/cpp/osmosis.bin $@.tmp/usr/bin/osmosis
+	DEST=$@.tmp sh/relative_copy_executable_dependencies.sh $@.tmp/usr/bin/osmosis
 	echo "Copying drivers"
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh virtio_blk
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh isci
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh virtio_net
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh e1000
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh igb
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh 8139cp
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh vfat
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh sh/relative_copy_driver.sh usb_storage
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh virtio_blk
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh isci
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh virtio_net
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh e1000
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh igb
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh 8139cp
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh vfat
+	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh usb_storage
 	echo "Misc"
 	ln -s /usr/sbin/busybox $@.tmp/usr/sbin/insmod
 	DEST=$@.tmp sh/relative_copy_glob.sh etc/*

@@ -1,9 +1,10 @@
 #!/bin/sh
 #copy into the initrd the executable and its dependencies
 #requires DEST environment set
+#requires KERNEL_UNAME_R environment set
 set -e
 mkdir `dirname $INSMOD_SCRIPT` 2>/dev/null || true
-modprobe --show-depends $1 >> $INSMOD_SCRIPT
+modprobe --show-depends $1 --set-version=$KERNEL_UNAME_R >> $INSMOD_SCRIPT
 for ko in `modprobe --show-depends $1 | sed 's/insmod //'`; do
     sh/relative_copy_glob.sh $ko
 done
