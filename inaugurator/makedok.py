@@ -66,9 +66,8 @@ try:
     try:
         with open(os.path.join(mountPoint, "inaugurate_label.txt"), "w") as f:
             f.write(args.label)
-        if not os.path.exists(os.path.join(mountPoint, "inaugurator.vmlinuz")):
-            logging.info("Installing inaugurator")
-            installInaugurator(args.device, mountPoint)
+        logging.info("Installing inaugurator")
+        installInaugurator(args.device, mountPoint)
         logging.info("Transferring Osmosis Label %s" % args.label)
         transferOsmosisLabel(args.label, mountPoint)
     finally:

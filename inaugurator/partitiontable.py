@@ -18,7 +18,8 @@ class PartitionTable:
     def _create(self):
         self.clear()
         table = self._expected()
-        script = "echo -ne '%s' | sfdisk --unit M %s --in-order" % (self._sfdiskScript(table), self._device)
+        script = "echo -ne '%s' | sfdisk --unit M %s --in-order --force" % (
+            self._sfdiskScript(table), self._device)
         print "creating new partition table:", script
         sh.run(script)
         sh.run("/usr/sbin/busybox mdev -s")
@@ -63,33 +64,34 @@ class PartitionTable:
             offsetMB = ''
         return "".join(lines)
 
-    def _check(self):
+    def _findMismatch(self):
         try:
             parsed = self.parse()
         except:
             print "Unable to parse partition table"
             traceback.print_exc()
-            return False
+            return "Unable to parse partition table"
         expected = self._expected()
         if len(parsed) != len(expected):
-            return False
+            return "Partition count not as expected"
         if parsed[2]['sizeMB'] < self._diskSizeMB() * 3 / 4:
-            return False
+            return "Partition 2 does not take up 3/4 of the disk"
         for i in xrange(len(parsed)):
             if parsed[i]['id'] != expected[i]['id']:
-                return False
+                return "Expected id of partition %d" % i
             if expected[i]['sizeMB'] != 'fill' and (
-                    parsed[i]['sizeMB'] < expected[i]['sizeMB'] or
+                    parsed[i]['sizeMB'] < expected[i]['sizeMB'] * 0.9 or
                     parsed[i]['sizeMB'] > expected[i]['sizeMB'] * 1.1):
-                return False
-        return True
+                return "Expected size of partition %d" % i
+        return None
 
     def verify(self):
-        if self._check():
+        if not self._findMismatch():
             print "Partition table already set up"
             return
         self._create()
-        if not self._check():
+        if not self._findMismatch():
             print "Expected:", self._expected()
             print "Found:", self.parse()
+            print "Mismatch:", self._findMismatch()
             raise Exception("Created partition table isn't as expected")
