@@ -1,5 +1,6 @@
 import re
 import traceback
+import time
 from inaugurator import sh
 
 
@@ -90,8 +91,14 @@ class PartitionTable:
             print "Partition table already set up"
             return
         self._create()
-        if not self._findMismatch():
-            print "Expected:", self._expected()
-            print "Found:", self.parse()
-            print "Mismatch:", self._findMismatch()
-            raise Exception("Created partition table isn't as expected")
+        for retry in xrange(5):
+            mismatch = self._findMismatch()
+            if mismatch is None:
+                return
+            else:
+                print "Partition table not correct even after %d retries" % retry
+                time.sleep(0.2)
+        print "Expected:", self._expected()
+        print "Found:", self.parse()
+        print "Mismatch:", self._findMismatch()
+        raise Exception("Created partition table isn't as expected")

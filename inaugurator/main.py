@@ -31,7 +31,7 @@ def main(args):
         if args.inauguratorSource == 'network':
             network.Network(
                 macAddress=args.inauguratorUseNICWithMAC, ipAddress=args.inauguratorIPAddress,
-                netmask=args.inauguratorNetmask)
+                netmask=args.inauguratorNetmask, gateway=args.inauguratorGateway)
             osmos = osmosis.Osmosis(destination, objectStores=args.inauguratorOsmosisObjectStores)
             checkIn = checkinwithserver.CheckInWithServer(hostname=args.inauguratorServerHostname)
             osmos.tellLabel(checkIn.label())
@@ -80,6 +80,7 @@ parser.add_argument("--inauguratorOsmosisObjectStores")
 parser.add_argument("--inauguratorUseNICWithMAC")
 parser.add_argument("--inauguratorIPAddress")
 parser.add_argument("--inauguratorNetmask")
+parser.add_argument("--inauguratorGateway")
 parser.add_argument("--inauguratorChangeRootPassword")
 
 try:
@@ -89,7 +90,7 @@ try:
         assert (
             args.inauguratorServerHostname and args.inauguratorOsmosisObjectStores and
             args.inauguratorUseNICWithMAC and args.inauguratorIPAddress and
-            args.inauguratorNetmask), \
+            args.inauguratorNetmask and args.inauguratorGateway), \
             "If inauguratorSource is 'network', all network command line paramaters must be specified"
     elif args.inauguratorSource == "DOK":
         pass
