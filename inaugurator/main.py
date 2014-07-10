@@ -32,7 +32,9 @@ def main(args):
             network.Network(
                 macAddress=args.inauguratorUseNICWithMAC, ipAddress=args.inauguratorIPAddress,
                 netmask=args.inauguratorNetmask, gateway=args.inauguratorGateway)
-            osmos = osmosis.Osmosis(destination, objectStores=args.inauguratorOsmosisObjectStores)
+            osmos = osmosis.Osmosis(
+                destination, objectStores=args.inauguratorOsmosisObjectStores,
+                withLocalObjectStore=args.inauguratorWithLocalObjectStore)
             checkIn = checkinwithserver.CheckInWithServer(hostname=args.inauguratorServerHostname)
             osmos.tellLabel(checkIn.label())
             osmos.wait()
@@ -82,6 +84,7 @@ parser.add_argument("--inauguratorIPAddress")
 parser.add_argument("--inauguratorNetmask")
 parser.add_argument("--inauguratorGateway")
 parser.add_argument("--inauguratorChangeRootPassword")
+parser.add_argument("--inauguratorWithLocalObjectStore", action="store_true")
 
 try:
     cmdLine = open("/proc/cmdline").read()
