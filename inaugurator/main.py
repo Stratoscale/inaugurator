@@ -67,6 +67,9 @@ def main(args):
         loadKernel.fromBootPartitionGrubConfig(
             bootPath=os.path.join(destination, "boot"), rootPartition=mountOp.rootPartition())
         print "kernel loaded"
+    print "sync..."
+    sh.run(["busybox", "sync"])
+    print "sync done"
     after = time.time()
     if checkIn is not None:
         checkIn.done()
