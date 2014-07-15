@@ -1,3 +1,4 @@
 requirements:
-- hash: fc501ce4eb6066efbc17c92a692b2fc97f937604
+- hash: ede47342f4f805a534d3427c132c655a310cbb7e
   originURL: https://github.com/Stratoscale/rootfs-build.git
+
