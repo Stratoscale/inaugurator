@@ -75,8 +75,8 @@ class PartitionTable:
         expected = self._expected()
         if len(parsed) != len(expected):
             return "Partition count not as expected"
-        if parsed[2]['sizeMB'] < self._diskSizeMB() * 3 / 4:
-            return "Partition 2 does not take up 3/4 of the disk"
+        if parsed[2]['sizeMB'] > self._diskSizeMB() * 3 / 4:
+            return "Partition 3 does not take up 3/4 of the disk"
         for i in xrange(len(parsed)):
             if parsed[i]['id'] != expected[i]['id']:
                 return "Expected id of partition %d" % i

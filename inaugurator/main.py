@@ -41,7 +41,9 @@ def main(args):
         elif args.inauguratorSource == 'DOK':
             dok = diskonkey.DiskOnKey()
             with dok.mount() as source:
-                osmos = osmosis.Osmosis(destination, objectStores=source + "/osmosisobjectstore")
+                osmos = osmosis.Osmosis(
+                    destination, objectStores=source + "/osmosisobjectstore",
+                    withLocalObjectStore=args.inauguratorWithLocalObjectStore)
                 with open("%s/inaugurate_label.txt" % source) as f:
                     label = f.read().strip()
                 osmos.tellLabel(label)
