@@ -53,10 +53,9 @@ def main(args):
         print "Osmosis complete"
         with mountOp.mountBoot() as bootDestination:
             sh.run("rsync -rlpgDS %s/boot/ %s/" % (destination, bootDestination))
-        if partitionTable.created():
-            with mountOp.mountBootInsideRoot():
-                print "Installing grub"
-                grub.install(targetDevice, destination)
+        with mountOp.mountBootInsideRoot():
+            print "Installing grub"
+            grub.install(targetDevice, destination)
         print "Boot sync complete"
         fstab.createFSTab(
             rootPath=destination, root=mountOp.rootPartition(),
