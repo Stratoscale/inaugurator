@@ -35,8 +35,11 @@ def main(args):
             osmos = osmosis.Osmosis(
                 destination, objectStores=args.inauguratorOsmosisObjectStores,
                 withLocalObjectStore=args.inauguratorWithLocalObjectStore)
-            checkIn = checkinwithserver.CheckInWithServer(hostname=args.inauguratorServerHostname)
-            osmos.tellLabel(checkIn.label())
+            if args.inauguratorServerHostname:
+                checkIn = checkinwithserver.CheckInWithServer(hostname=args.inauguratorServerHostname)
+                osmos.tellLabel(checkIn.label())
+            else:
+                osmos.tellLabel(args.inauguratorNetworkLabel)
             osmos.wait()
         elif args.inauguratorSource == 'DOK':
             dok = diskonkey.DiskOnKey()
@@ -83,6 +86,7 @@ parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--inauguratorClearDisk", action="store_true")
 parser.add_argument("--inauguratorSource", required=True)
 parser.add_argument("--inauguratorServerHostname")
+parser.add_argument("--inauguratorNetworkLabel")
 parser.add_argument("--inauguratorOsmosisObjectStores")
 parser.add_argument("--inauguratorUseNICWithMAC")
 parser.add_argument("--inauguratorIPAddress")
@@ -97,7 +101,8 @@ try:
     args = parser.parse_known_args(cmdLine.split(' '))[0]
     if args.inauguratorSource == "network":
         assert (
-            args.inauguratorServerHostname and args.inauguratorOsmosisObjectStores and
+            (args.inauguratorServerHostname or args.inauguratorNetworkLabel) and
+            args.inauguratorOsmosisObjectStores and
             args.inauguratorUseNICWithMAC and args.inauguratorIPAddress and
             args.inauguratorNetmask and args.inauguratorGateway), \
             "If inauguratorSource is 'network', all network command line paramaters must be specified"
