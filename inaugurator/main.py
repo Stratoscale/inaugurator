@@ -66,7 +66,8 @@ def main(args):
             print "Changed root password"
         loadKernel = loadkernel.LoadKernel()
         loadKernel.fromBootPartitionGrubConfig(
-            bootPath=os.path.join(destination, "boot"), rootPartition=mountOp.rootPartition())
+            bootPath=os.path.join(destination, "boot"), rootPartition=mountOp.rootPartition(),
+            append=args.inauguratorPassthrough)
         print "kernel loaded"
     print "sync..."
     sh.run(["busybox", "sync"])
@@ -89,6 +90,7 @@ parser.add_argument("--inauguratorNetmask")
 parser.add_argument("--inauguratorGateway")
 parser.add_argument("--inauguratorChangeRootPassword")
 parser.add_argument("--inauguratorWithLocalObjectStore", action="store_true")
+parser.add_argument("--inauguratorPassthrough", default="")
 
 try:
     cmdLine = open("/proc/cmdline").read()
