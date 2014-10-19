@@ -42,6 +42,7 @@ build/inaugurator.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ip
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ethtool
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/chroot
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/lvm
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/bin/rsync
 	cp -a ../osmosis/build/cpp/osmosis.bin $@.tmp/usr/bin/osmosis
 	DEST=$@.tmp sh/relative_copy_executable_dependencies.sh $@.tmp/usr/bin/osmosis

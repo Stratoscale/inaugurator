@@ -8,7 +8,7 @@ def createFSTab(rootPath, root, boot, swap):
 
 
 _TEMPLATE = """
-%(root)s /                       ext4    defaults        1 1
-%(swap)s swap                    swap    defaults        0 0
-%(boot)s /boot                   ext4    defaults        1 2
+LABEL=ROOT /                       ext4    defaults        1 1
+LABEL=SWAP swap                    swap    defaults        0 0
+LABEL=BOOT /boot                   ext4    defaults        1 2
 """

@@ -1,4 +1,5 @@
 from inaugurator import sh
+from inaugurator import partitiontable
 import contextlib
 
 
@@ -8,8 +9,8 @@ class Mount:
 
     def __init__(self, targetDevice):
         self._bootPartition = "%s1" % targetDevice
-        self._swapPartition = "%s2" % targetDevice
-        self._rootPartition = "%s3" % targetDevice
+        self._swapPartition = "/dev/%s/swap" % partitiontable.PartitionTable.VOLUME_GROUP
+        self._rootPartition = "/dev/%s/root" % partitiontable.PartitionTable.VOLUME_GROUP
 
     def rootPartition(self):
         return self._rootPartition
