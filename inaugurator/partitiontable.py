@@ -156,6 +156,14 @@ class PartitionTable:
     def verify(self):
         if not self._findMismatch():
             print "Partition table already set up"
+            sh.run("lvm pvscan --cache %s2" % self._device)
+            sh.run("lvm vgchange --activate y %s" % self.VOLUME_GROUP)
+            sh.run("lvm vgscan --mknodes")
+            print "/dev/inaugurator:"
+            try:
+                print sh.run("busybox find /dev/inaugurator")
+            except Exception as e:
+                print "Unable: %s" % e
             return
         self._create()
         for retry in xrange(5):
