@@ -44,7 +44,7 @@ def installInaugurator(device, mountPoint):
 
 
 def partitionTableCheck(device):
-    partitionTable = partitiontable.PartitionTable(device).parse()
+    partitionTable = partitiontable.PartitionTable(device).parsePartitionTable()
     return len(partitionTable) == 1 and partitionTable[0]['id'] == 6
 
 
