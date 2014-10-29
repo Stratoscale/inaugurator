@@ -55,7 +55,7 @@ def main(args):
             assert False, "Unknown source %s" % args.inauguratorSource
         print "Osmosis complete"
         with mountOp.mountBoot() as bootDestination:
-            sh.run("rsync -rlpgDS %s/boot/ %s/" % (destination, bootDestination))
+            sh.run("rsync -rlpgDS --delete-before %s/boot/ %s/" % (destination, bootDestination))
         with mountOp.mountBootInsideRoot():
             print "Installing grub"
             grub.install(targetDevice, destination)
