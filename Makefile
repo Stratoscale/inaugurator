@@ -17,7 +17,7 @@ uninstall:
 	-sudo mkdir /usr/share/inaugurator
 	-yes | sudo pip uninstall inaugurator
 
-install: build/inaugurator.initrd.img build/inaugurator.vmlinuz
+install: build/inaugurator.thin.initrd.img build/inaugurator.vmlinuz
 	-sudo mkdir /usr/share/inaugurator
 	-yes | sudo pip uninstall inaugurator
 	sudo python setup.py install

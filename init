@@ -2,10 +2,10 @@
 export PATH=/bin:/usr/bin:/sbin:/usr/sbin
 /usr/sbin/busybox mount -t proc proc /proc
 /usr/sbin/busybox mount -t sysfs sys /sys
-/bin/sh /etc/insmod.sh
 /usr/sbin/busybox mdev -s
-/usr/sbin/busybox echo ifconfig -a:
+echo ifconfig -a:
 /usr/sbin/ifconfig -a
-/usr/sbin/busybox echo lsmod:
+echo lsmod:
 /usr/sbin/busybox lsmod
+export PYUDEV_UDEV_LIBRARY_NAME=libudev.so.1
 exec /bin/python2.7 -m inaugurator.main

@@ -1,5 +1,5 @@
 .PHONY: build
-build: build/inaugurator.vmlinuz build/inaugurator.initrd.img
+build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img dist/inaugurator-1.0.linux-x86_64.tar.gz
 
 dist/inaugurator-1.0.linux-x86_64.tar.gz:
 	python setup.py build
@@ -11,11 +11,11 @@ build/inaugurator.vmlinuz: /boot/vmlinuz-$(KERNEL_VERSION)
 	-mkdir $(@D)
 	cp $< $@
 
-build/inaugurator.initrd.img: build/inaugurator.initrd.dir
+build/inaugurator.thin.initrd.img: build/inaugurator.thin.initrd.dir
 	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
 	mv $@.tmp $@
 
-build/inaugurator.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
+build/inaugurator.thin.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
 	-mkdir $(@D)
 	-rm -fr $@.tmp $@
 	mkdir $@.tmp
@@ -25,7 +25,11 @@ build/inaugurator.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib64/ld*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/encodings/*
+	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/ctypes/*
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/lib64/python2.7/lib-dynload/_ctypes.so
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/lib-dynload/*
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/lib64/python2.7/lib-dynload/_hashlib.so
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/lib64/libudev.so.1
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/libnss_dns*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/share/hwdata/pci.ids
 	echo "Copying executables"
@@ -55,10 +59,14 @@ build/inaugurator.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
 	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh 8139cp
 	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh vfat
 	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh usb_storage
+	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.order
+	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.builtin
+	depmod --basedir=$@.tmp $(KERNEL_VERSION)
 	echo "Misc"
 	ln -s /usr/sbin/busybox $@.tmp/usr/sbin/insmod
 	DEST=$@.tmp sh/relative_copy_glob.sh etc/*
 	DEST=$@.tmp sh/relative_copy_glob.sh init
+	mkdir -p $@.tmp/run/udev
 	mkdir $@.tmp/proc
 	mkdir $@.tmp/sys
 	find $@.tmp -name "*.pyo" | xargs rm -f

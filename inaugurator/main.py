@@ -10,6 +10,7 @@ from inaugurator import osmosis
 from inaugurator import checkinwithserver
 from inaugurator import grub
 from inaugurator import diskonkey
+from inaugurator import udev
 import argparse
 import traceback
 import pdb
@@ -19,6 +20,7 @@ import time
 
 def main(args):
     before = time.time()
+    udev.loadAllDrivers()
     targetDevice = targetdevice.TargetDevice.device()
     partitionTable = partitiontable.PartitionTable(targetDevice)
     if args.inauguratorClearDisk:
