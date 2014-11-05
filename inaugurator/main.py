@@ -39,10 +39,9 @@ def main(args):
                 withLocalObjectStore=args.inauguratorWithLocalObjectStore)
             if args.inauguratorServerHostname:
                 checkIn = checkinwithserver.CheckInWithServer(hostname=args.inauguratorServerHostname)
-                osmos.tellLabel(checkIn.label())
+                label = checkIn.label()
             else:
-                osmos.tellLabel(args.inauguratorNetworkLabel)
-            osmos.wait()
+                label = args.inauguratorNetworkLabel
         elif args.inauguratorSource == 'DOK':
             dok = diskonkey.DiskOnKey()
             with dok.mount() as source:
@@ -51,11 +50,13 @@ def main(args):
                     withLocalObjectStore=args.inauguratorWithLocalObjectStore)
                 with open("%s/inaugurate_label.txt" % source) as f:
                     label = f.read().strip()
-                osmos.tellLabel(label)
-                osmos.wait()
         else:
             assert False, "Unknown source %s" % args.inauguratorSource
+        osmos.tellLabel(label)
+        osmos.wait()
         print "Osmosis complete"
+        with open(os.path.join(destination, "etc", "inaugurator.label"), "w") as f:
+            f.write(label)
         with mountOp.mountBoot() as bootDestination:
             sh.run("rsync -rlpgDS --delete-before %s/boot/ %s/" % (destination, bootDestination))
         with mountOp.mountBootInsideRoot():
