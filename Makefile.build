@@ -1,5 +1,5 @@
 .PHONY: build
-build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img dist/inaugurator-1.0.linux-x86_64.tar.gz
+build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img dist/inaugurator-1.0.linux-x86_64.tar.gz
 
 dist/inaugurator-1.0.linux-x86_64.tar.gz:
 	python setup.py build
@@ -11,7 +11,7 @@ build/inaugurator.vmlinuz: /boot/vmlinuz-$(KERNEL_VERSION)
 	-mkdir $(@D)
 	cp $< $@
 
-build/inaugurator.thin.initrd.img: build/inaugurator.thin.initrd.dir
+build/inaugurator.%.initrd.img: build/inaugurator.%.initrd.dir
 	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
 	mv $@.tmp $@
 
@@ -51,14 +51,14 @@ build/inaugurator.thin.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
 	cp -a ../osmosis/build/cpp/osmosis.bin $@.tmp/usr/bin/osmosis
 	DEST=$@.tmp sh/relative_copy_executable_dependencies.sh $@.tmp/usr/bin/osmosis
 	echo "Copying drivers"
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh virtio_blk
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh isci
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh virtio_net
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh e1000
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh igb
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh 8139cp
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh vfat
-	DEST=$@.tmp INSMOD_SCRIPT=$@.tmp/etc/insmod.sh KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh usb_storage
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh virtio_blk
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh isci
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh virtio_net
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh e1000
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh igb
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh 8139cp
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh vfat
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh usb_storage
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.order
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.builtin
 	depmod --basedir=$@.tmp $(KERNEL_VERSION)
@@ -70,4 +70,12 @@ build/inaugurator.thin.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
 	mkdir $@.tmp/proc
 	mkdir $@.tmp/sys
 	find $@.tmp -name "*.pyo" | xargs rm -f
+	mv $@.tmp $@
+
+build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
+	echo "Creating fat image. Starting from thin image"
+	cp -a $< $@.tmp
+	echo "Copying drivers"
+	set -e; for driver in `sh/list_storage_and_network_driver_names.sh $(KERNEL_VERSION)`; do echo "Copying $$driver"; DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh $$driver; done
+	depmod --basedir=$@.tmp $(KERNEL_VERSION)
 	mv $@.tmp $@
