@@ -29,7 +29,7 @@ def transferOsmosisLabel(label, mountPoint):
 
 def installInaugurator(device, mountPoint):
     INAUGURATOR_KERNEL = "/usr/share/inaugurator/inaugurator.vmlinuz"
-    INAUGURATOR_INITRD = "/usr/share/inaugurator/inaugurator.initrd.img"
+    INAUGURATOR_INITRD = "/usr/share/inaugurator/inaugurator.fat.initrd.img"
     shutil.copy(INAUGURATOR_KERNEL, mountPoint)
     shutil.copy(INAUGURATOR_INITRD, mountPoint)
     sh.run("grub2-install --boot-directory=%s/boot %s" % (mountPoint, device))
@@ -39,7 +39,7 @@ def installInaugurator(device, mountPoint):
                 'set default=0\n'
                 'menuentry "Installer" {\n'
                 '    linux /inaugurator.vmlinuz %s\n'
-                '    initrd /inaugurator.initrd.img\n'
+                '    initrd /inaugurator.fat.initrd.img\n'
                 '}\n' % inauguratorArguments)
 
 
