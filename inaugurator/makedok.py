@@ -60,6 +60,7 @@ if args.forceClear or not partitionTableCheck(args.device):
     logging.info("Creating partition")
     sh.run("echo '2,,6' | sfdisk %s" % args.device)
     sh.run("mkfs.vfat %s" % partition)
+    sh.run("dosfslabel %s STRATODOK" % partition)
 mountPoint = tempfile.mkdtemp()
 try:
     sh.run("mount %s %s" % (partition, mountPoint))

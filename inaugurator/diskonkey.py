@@ -14,6 +14,7 @@ class DiskOnKey:
     @contextlib.contextmanager
     def mount(self):
         os.makedirs(self._MOUNT_POINT)
+        sh.run("busybox modprobe vfat")
         sh.run("/usr/sbin/busybox mount -t vfat -o ro %s %s" % (
             self._partiton, self._MOUNT_POINT))
         yield self._MOUNT_POINT
