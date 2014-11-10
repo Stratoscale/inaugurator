@@ -43,6 +43,8 @@ def main(args):
                 label = checkIn.label()
             else:
                 label = args.inauguratorNetworkLabel
+            osmos.tellLabel(label)
+            osmos.wait()
         elif args.inauguratorSource == 'DOK':
             dok = diskonkey.DiskOnKey()
             with dok.mount() as source:
@@ -51,10 +53,10 @@ def main(args):
                     withLocalObjectStore=args.inauguratorWithLocalObjectStore)
                 with open("%s/inaugurate_label.txt" % source) as f:
                     label = f.read().strip()
+                osmos.tellLabel(label)  # This must stay under the dok mount 'with' statement
+                osmos.wait()
         else:
             assert False, "Unknown source %s" % args.inauguratorSource
-        osmos.tellLabel(label)
-        osmos.wait()
         print "Osmosis complete"
         with open(os.path.join(destination, "etc", "inaugurator.label"), "w") as f:
             f.write(label)
