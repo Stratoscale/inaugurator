@@ -34,6 +34,11 @@ class PartitionTable:
         sh.run(script)
         sh.run("busybox mdev -s")
         sh.run("mkfs.ext4 %s1 -L BOOT" % self._device)
+        try:
+            sh.run("lvm vgremove -f %s" % (self.VOLUME_GROUP, ))
+        except:
+            traceback.print_exc()
+            print "'lvm vgremove' failed"
         sh.run("lvm pvcreate %s2" % self._device)
         sh.run("lvm vgcreate %s %s2" % (self.VOLUME_GROUP, self._device))
         if self._diskSizeMB() / 1024 >= self._sizesGB['createRoot'] + self._sizesGB['bigSwap']:
