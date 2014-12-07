@@ -6,7 +6,8 @@ from inaugurator import network
 from inaugurator import loadkernel
 from inaugurator import fstab
 from inaugurator import passwd
-from inaugurator import osmosis
+from inaugurator import osmose
+from inaugurator import osmosiscleanup
 from inaugurator import checkinwithserver
 from inaugurator import grub
 from inaugurator import diskonkey
@@ -17,6 +18,10 @@ import traceback
 import pdb
 import os
 import time
+import logging
+
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 def main(args):
@@ -31,11 +36,12 @@ def main(args):
     mountOp = mount.Mount(targetDevice)
     checkIn = None
     with mountOp.mountRoot() as destination:
+        osmosiscleanup.OsmosisCleanup(destination)
         if args.inauguratorSource == 'network':
             network.Network(
                 macAddress=args.inauguratorUseNICWithMAC, ipAddress=args.inauguratorIPAddress,
                 netmask=args.inauguratorNetmask, gateway=args.inauguratorGateway)
-            osmos = osmosis.Osmosis(
+            osmos = osmose.Osmose(
                 destination, objectStores=args.inauguratorOsmosisObjectStores,
                 withLocalObjectStore=args.inauguratorWithLocalObjectStore)
             if args.inauguratorServerHostname:
@@ -48,7 +54,7 @@ def main(args):
         elif args.inauguratorSource == 'DOK':
             dok = diskonkey.DiskOnKey()
             with dok.mount() as source:
-                osmos = osmosis.Osmosis(
+                osmos = osmose.Osmose(
                     destination, objectStores=source + "/osmosisobjectstore",
                     withLocalObjectStore=args.inauguratorWithLocalObjectStore)
                 with open("%s/inaugurate_label.txt" % source) as f:

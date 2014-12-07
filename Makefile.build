@@ -15,17 +15,19 @@ build/inaugurator.%.initrd.img: build/inaugurator.%.initrd.dir
 	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
 	mv $@.tmp $@
 
-build/inaugurator.thin.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
+build/inaugurator.thin.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz 
 	-mkdir $(@D)
 	-rm -fr $@.tmp $@
 	mkdir $@.tmp
 	echo "Installing Inaugurator"
 	tar -xf $< --directory $@.tmp
+	tar -xf ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz --directory $@.tmp
 	echo "Copying libraries"
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib64/ld*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/encodings/*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/ctypes/*
+	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/logging/*
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/lib64/python2.7/lib-dynload/_ctypes.so
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/lib-dynload/*
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/lib64/python2.7/lib-dynload/_hashlib.so
@@ -37,6 +39,7 @@ build/inaugurator.thin.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz
 	DEST=$@.tmp sh/relative_copy_executable.sh /bin/sh
 	DEST=$@.tmp sh/relative_copy_executable.sh /bin/python2.7
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/busybox
+	ln -s /usr/sbin/busybox $@.tmp/usr/sbin/df
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/kexec
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ifconfig
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/route

@@ -2,7 +2,7 @@ import subprocess
 import os
 
 
-class Osmosis:
+class Osmose:
     def __init__(self, destination, objectStores, withLocalObjectStore):
         if withLocalObjectStore:
             localObjectStore = os.path.join(destination, "var", "lib", "osmosis", "objectstore")
