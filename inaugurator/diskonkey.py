@@ -21,6 +21,7 @@ class DiskOnKey:
         sh.run("/usr/sbin/busybox umount %s" % self._MOUNT_POINT)
 
     def _findDevice(self):
+        sh.run("busybox modprobe usb_storage")
         for i in xrange(10):
             try:
                 return self._findDeviceOnce()
