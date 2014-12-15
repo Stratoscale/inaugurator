@@ -19,9 +19,10 @@ import pdb
 import os
 import time
 import logging
+import sys
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 
 def main(args):
@@ -32,7 +33,7 @@ def main(args):
     if args.inauguratorClearDisk:
         partitionTable.clear()
     partitionTable.verify()
-    print "Partitions created"
+    logging.info("Partitions created")
     mountOp = mount.Mount(targetDevice)
     checkIn = None
     with mountOp.mountRoot() as destination:

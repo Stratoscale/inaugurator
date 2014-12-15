@@ -10,11 +10,11 @@ class Osmose:
             extra = ['--ignore', localObjectStore]
         else:
             extra = []
-        self._popen = subprocess.Popen([
+        cmd = [
             "/usr/bin/osmosis", "checkout", destination, '+', '--MD5', '--putIfMissing',
-            '--removeUnknownFiles', '--objectStores', objectStores] + extra,
-            close_fds=True,
-            stdin=subprocess.PIPE)
+            '--removeUnknownFiles', '--objectStores', objectStores] + extra
+        print "Running osmosis:\n%s" % " ".join(cmd)
+        self._popen = subprocess.Popen(cmd, close_fds=True, stdin=subprocess.PIPE)
 
     def tellLabel(self, label):
         self._popen.stdin.write(label + "\n")

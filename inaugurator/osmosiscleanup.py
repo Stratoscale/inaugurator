@@ -3,6 +3,7 @@ from osmosis import objectstore
 from osmosis.policy import cleanupremovelabelsuntildiskusage
 from osmosis.policy import disk
 from inaugurator import sh
+import logging
 
 
 class OsmosisCleanup:
@@ -11,10 +12,14 @@ class OsmosisCleanup:
     def __init__(self, mountPoint):
         objectStorePath = os.path.join(mountPoint, "var", "lib", "osmosis", "objectstore")
         self._objectStore = objectstore.ObjectStore(objectStorePath)
+        before = disk.dfPercent(mountPoint)
         if self._objectStoreExists():
             self._attemptObjectStoreCleanup()
+        logging.info("Disk usage: before cleanup: %(before)s%%, after: %(after)s%%", dict(
+            before=before, after=disk.dfPercent(mountPoint)))
         if disk.dfPercent(mountPoint) > self.ALLOWED_DISK_USAGE_PERCENT:
-            self._eraseEverything()
+            logging.info("Erasing disk - osmosis cleanup did not help")
+            self._eraseEverything(mountPoint)
 
     def _objectStoreExists(self):
         try:
@@ -30,5 +35,5 @@ class OsmosisCleanup:
         except cleanupremovelabelsuntildiskusage.ObjectStoreEmptyException:
             pass
 
-    def _eraseEverything(self):
-        sh.run("rm -fr %s/*" % self._mountPoint)
+    def _eraseEverything(self, mountPoint):
+        sh.run("rm -fr %s/*" % mountPoint)
