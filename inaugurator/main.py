@@ -13,6 +13,7 @@ from inaugurator import grub
 from inaugurator import diskonkey
 from inaugurator import udev
 from inaugurator import download
+from inaugurator import etclabelfile
 import argparse
 import traceback
 import pdb
@@ -37,6 +38,7 @@ def main(args):
     mountOp = mount.Mount(targetDevice)
     checkIn = None
     with mountOp.mountRoot() as destination:
+        etcLabelFile = etclabelfile.EtcLabelFile(destination)
         osmosiscleanup.OsmosisCleanup(destination)
         if args.inauguratorSource == 'network':
             network.Network(
@@ -65,8 +67,7 @@ def main(args):
         else:
             assert False, "Unknown source %s" % args.inauguratorSource
         print "Osmosis complete"
-        with open(os.path.join(destination, "etc", "inaugurator.label"), "w") as f:
-            f.write(label)
+        etcLabelFile.write(label)
         with mountOp.mountBoot() as bootDestination:
             sh.run("rsync -rlpgDS --delete-before %s/boot/ %s/" % (destination, bootDestination))
         with mountOp.mountBootInsideRoot():
@@ -114,8 +115,9 @@ parser.add_argument("--inauguratorPassthrough", default="")
 parser.add_argument("--inauguratorDownload", nargs='+', default=[])
 
 try:
-    cmdLine = open("/proc/cmdline").read()
+    cmdLine = open("/proc/cmdline").read().strip()
     args = parser.parse_known_args(cmdLine.split(' '))[0]
+    print "Command line arguments:", args
     if args.inauguratorSource == "network":
         assert (
             (args.inauguratorServerHostname or args.inauguratorNetworkLabel) and

@@ -36,4 +36,4 @@ class OsmosisCleanup:
             pass
 
     def _eraseEverything(self, mountPoint):
-        sh.run("rm -fr %s/*" % mountPoint)
+        sh.run("busybox rm -fr %s/*" % mountPoint)

@@ -1,9 +1,12 @@
 import subprocess
 import os
+import logging
 
 
 class Osmose:
     def __init__(self, destination, objectStores, withLocalObjectStore):
+        logging.info("Osmosing parameters: withLocalObjectStore: %(withLocalObjectStore)s", dict(
+            withLocalObjectStore=withLocalObjectStore))
         if withLocalObjectStore:
             localObjectStore = os.path.join(destination, "var", "lib", "osmosis", "objectstore")
             objectStores = localObjectStore + "+" + objectStores
