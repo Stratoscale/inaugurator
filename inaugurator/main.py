@@ -46,7 +46,8 @@ def main(args):
                 netmask=args.inauguratorNetmask, gateway=args.inauguratorGateway)
             osmos = osmose.Osmose(
                 destination, objectStores=args.inauguratorOsmosisObjectStores,
-                withLocalObjectStore=args.inauguratorWithLocalObjectStore)
+                withLocalObjectStore=args.inauguratorWithLocalObjectStore,
+                ignoreDirs=args.inauguratorIgnoreDirs)
             if args.inauguratorServerHostname:
                 checkIn = checkinwithserver.CheckInWithServer(hostname=args.inauguratorServerHostname)
                 label = checkIn.label()
@@ -59,11 +60,20 @@ def main(args):
             with dok.mount() as source:
                 osmos = osmose.Osmose(
                     destination, objectStores=source + "/osmosisobjectstore",
-                    withLocalObjectStore=args.inauguratorWithLocalObjectStore)
+                    withLocalObjectStore=args.inauguratorWithLocalObjectStore,
+                    ignoreDirs=args.inauguratorIgnoreDirs)
                 with open("%s/inaugurate_label.txt" % source) as f:
                     label = f.read().strip()
                 osmos.tellLabel(label)  # This must stay under the dok mount 'with' statement
                 osmos.wait()
+        elif args.inauguratorSource == 'local':
+            osmos = osmose.Osmose(
+                destination, objectStores=None,
+                withLocalObjectStore=args.inauguratorWithLocalObjectStore,
+                ignoreDirs=args.inauguratorIgnoreDirs)
+            label = args.inauguratorNetworkLabel
+            osmos.tellLabel(label)
+            osmos.wait()
         else:
             assert False, "Unknown source %s" % args.inauguratorSource
         print "Osmosis complete"
@@ -113,6 +123,7 @@ parser.add_argument("--inauguratorChangeRootPassword")
 parser.add_argument("--inauguratorWithLocalObjectStore", action="store_true")
 parser.add_argument("--inauguratorPassthrough", default="")
 parser.add_argument("--inauguratorDownload", nargs='+', default=[])
+parser.add_argument("--inauguratorIgnoreDirs", nargs='+', default=[])
 
 try:
     cmdLine = open("/proc/cmdline").read().strip()
@@ -126,6 +137,8 @@ try:
             args.inauguratorNetmask and args.inauguratorGateway), \
             "If inauguratorSource is 'network', all network command line paramaters must be specified"
     elif args.inauguratorSource == "DOK":
+        pass
+    elif args.inauguratorSource == "local":
         pass
     else:
         assert False, "Unknown source for inaugurator: %s" % args.inauguratorSource

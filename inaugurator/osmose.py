@@ -4,15 +4,17 @@ import logging
 
 
 class Osmose:
-    def __init__(self, destination, objectStores, withLocalObjectStore):
+    def __init__(self, destination, objectStores, withLocalObjectStore, ignoreDirs):
+        absoluteIgnoreDirs = [os.path.join(destination, ignoreDir) for ignoreDir in ignoreDirs]
         logging.info("Osmosing parameters: withLocalObjectStore: %(withLocalObjectStore)s", dict(
             withLocalObjectStore=withLocalObjectStore))
         if withLocalObjectStore:
             localObjectStore = os.path.join(destination, "var", "lib", "osmosis", "objectstore")
-            objectStores = localObjectStore + "+" + objectStores
-            extra = ['--ignore', localObjectStore]
-        else:
-            extra = []
+            absoluteIgnoreDirs.append(localObjectStore)
+            objectStores = localObjectStore + ("+" + objectStores if objectStores else "")
+        extra = []
+        if len(absoluteIgnoreDirs) > 0:
+            extra += ['--ignore', ":".join(absoluteIgnoreDirs)]
         cmd = [
             "/usr/bin/osmosis", "checkout", destination, '+', '--MD5', '--putIfMissing',
             '--removeUnknownFiles', '--objectStores', objectStores] + extra
