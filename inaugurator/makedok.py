@@ -32,7 +32,7 @@ def installInaugurator(device, mountPoint):
     INAUGURATOR_INITRD = "/usr/share/inaugurator/inaugurator.fat.initrd.img"
     shutil.copy(INAUGURATOR_KERNEL, mountPoint)
     shutil.copy(INAUGURATOR_INITRD, mountPoint)
-    sh.run("grub2-install --boot-directory=%s/boot %s" % (mountPoint, device))
+    sh.run("grub2-install --target=i386-pc --boot-directory=%s/boot %s" % (mountPoint, device))
     inauguratorArguments = '--inauguratorSource=DOK --inauguratorChangeRootPassword=strato'
     with open("%s/boot/grub2/grub.cfg" % mountPoint, "w") as f:
         f.write('set timeout=1\n'
@@ -46,7 +46,6 @@ def installInaugurator(device, mountPoint):
 def partitionTableCheck(device):
     partitionTable = partitiontable.PartitionTable(device).parsePartitionTable()
     return len(partitionTable) == 1 and partitionTable[0]['id'] == 6
-
 
 if deviceSizeGB(args.device) > 32:
     raise Exception(
