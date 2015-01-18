@@ -6,7 +6,7 @@ class Download:
     def __init__(self, downloads):
         self._downloads = []
         for x in downloads:
-            urlAndPath = self._downloads.split(";")
+            urlAndPath = x.split(";")
             if len(urlAndPath) != 2:
                 raise Exception(
                     "--inauguratorDownload parameter '%s' must be a semicolon separated "
