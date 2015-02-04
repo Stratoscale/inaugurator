@@ -1,6 +1,7 @@
 import re
 import traceback
 import time
+import os
 from inaugurator import sh
 
 
@@ -52,7 +53,9 @@ class PartitionTable:
             rootSize = "--extents 100%FREE"
         sh.run("lvm lvcreate --zero n --name root %s %s" % (rootSize, self.VOLUME_GROUP))
         sh.run("lvm vgscan --mknodes")
+        self._waitForFileToShowUp("/dev/%s/swap" % self.VOLUME_GROUP)
         sh.run("mkswap /dev/%s/swap -L SWAP" % self.VOLUME_GROUP)
+        self._waitForFileToShowUp("/dev/%s/root" % self.VOLUME_GROUP)
         sh.run("mkfs.ext4 /dev/%s/root -L ROOT" % self.VOLUME_GROUP)
         self._created = True
 
@@ -190,3 +193,10 @@ class PartitionTable:
             print "Can't get logical LVM"
         print "Mismatch:", self._findMismatch()
         raise Exception("Created partition table isn't as expected")
+
+    def _waitForFileToShowUp(self, path):
+        before = time.time()
+        while not os.path.exists(path):
+            if time.time() - before > 2:
+                raise Exception("Timeout waiting for '%s' to show up" % path)
+            time.sleep(0.02)

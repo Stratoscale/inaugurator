@@ -14,6 +14,7 @@ from inaugurator import diskonkey
 from inaugurator import udev
 from inaugurator import download
 from inaugurator import etclabelfile
+from inaugurator import lvmetad
 import argparse
 import traceback
 import pdb
@@ -30,6 +31,7 @@ def main(args):
     before = time.time()
     udev.loadAllDrivers()
     targetDevice = targetdevice.TargetDevice.device()
+    lvmetad.Lvmetad()
     partitionTable = partitiontable.PartitionTable(targetDevice)
     if args.inauguratorClearDisk:
         partitionTable.clear()
