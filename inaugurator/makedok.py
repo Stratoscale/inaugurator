@@ -32,9 +32,17 @@ def installInaugurator(device, mountPoint):
     INAUGURATOR_INITRD = "/usr/share/inaugurator/inaugurator.fat.initrd.img"
     shutil.copy(INAUGURATOR_KERNEL, mountPoint)
     shutil.copy(INAUGURATOR_INITRD, mountPoint)
-    sh.run("grub2-install --target=i386-pc --boot-directory=%s/boot %s" % (mountPoint, device))
+    installerExecutable = "grub2-install"
+    try:
+        sh.run("which %s" % installerExecutable)
+    except:
+        installerExecutable = "grub-install"
+    sh.run("%s --target=i386-pc --boot-directory=%s/boot %s" % (installerExecutable, mountPoint, device))
     inauguratorArguments = '--inauguratorSource=DOK --inauguratorChangeRootPassword=strato'
-    with open("%s/boot/grub2/grub.cfg" % mountPoint, "w") as f:
+    grubCfg = "%s/boot/grub2/grub.cfg" % mountPoint
+    if not os.path.isdir(os.path.dirname(grubCfg)):
+        grubCfg = "%s/boot/grub/grub.cfg" % mountPoint
+    with open(grubCfg, "w") as f:
         f.write('set timeout=1\n'
                 'set default=0\n'
                 'menuentry "Installer" {\n'
@@ -56,6 +64,8 @@ for i in xrange(1, 5):
         ["umount", "%s%d" % (args.device, i)], stdout=open("/dev/null", "w"), stderr=subprocess.STDOUT)
 partition = args.device + "1"
 if args.forceClear or not partitionTableCheck(args.device):
+    logging.info("clearing head of disk")
+    sh.run("dd if=/dev/zero of=%s count=256 bs=1M" % args.device)
     logging.info("Creating partition")
     sh.run("echo '2,,6' | sfdisk %s" % args.device)
     sh.run("mkfs.vfat %s" % partition)
