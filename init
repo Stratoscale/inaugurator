@@ -8,6 +8,7 @@ echo ifconfig -a:
 /usr/sbin/busybox modprobe virtio_blk
 /usr/sbin/busybox modprobe virtio_net
 /usr/sbin/busybox modprobe dm-mod
+/usr/sbin/busybox modprobe sd_mod
 /usr/sbin/busybox modprobe ext4
 echo lsmod:
 /usr/sbin/busybox lsmod
