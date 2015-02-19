@@ -1,6 +1,7 @@
 from inaugurator import sh
 from inaugurator import partitiontable
 import contextlib
+import logging
 
 
 class Mount:
@@ -23,7 +24,7 @@ class Mount:
 
     @contextlib.contextmanager
     def mountRoot(self):
-        sh.run("/usr/sbin/fsck.ext4 -p %s" % self._rootPartition)
+        self._correctEXT4Errors(self._rootPartition)
         sh.run("/usr/sbin/busybox mkdir -p %s" % self._ROOT_MOUNT_POINT)
         sh.run("/usr/sbin/busybox mount -t ext4 -o noatime,data=writeback %s %s" % (
             self._rootPartition, self._ROOT_MOUNT_POINT))
@@ -32,7 +33,7 @@ class Mount:
 
     @contextlib.contextmanager
     def mountBoot(self):
-        sh.run("/usr/sbin/fsck.ext4 -p %s" % self._bootPartition)
+        self._correctEXT4Errors(self._bootPartition)
         sh.run("/usr/sbin/busybox mkdir -p %s" % self._BOOT_MOUNT_POINT)
         sh.run("/usr/sbin/busybox mount -t ext4 %s %s" % (self._bootPartition, self._BOOT_MOUNT_POINT))
         yield self._BOOT_MOUNT_POINT
@@ -47,3 +48,11 @@ class Mount:
         yield self._ROOT_MOUNT_POINT
         sh.run("/usr/sbin/busybox umount %s/proc" % self._ROOT_MOUNT_POINT)
         sh.run("/usr/sbin/busybox umount %s/boot" % self._ROOT_MOUNT_POINT)
+
+    def _correctEXT4Errors(self, device):
+        try:
+            sh.run("/usr/sbin/fsck.ext4 -y %s" % device)
+        except:
+            logging.exception(
+                "fsck returned with errors, this most likely means it has corrected issues on disk."
+                " attepting to continue")
