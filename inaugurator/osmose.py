@@ -1,10 +1,11 @@
 import subprocess
 import os
 import logging
+from inaugurator import reportthread
 
 
 class Osmose:
-    def __init__(self, destination, objectStores, withLocalObjectStore, ignoreDirs):
+    def __init__(self, destination, objectStores, withLocalObjectStore, ignoreDirs, talkToServer):
         absoluteIgnoreDirs = [os.path.join(destination, ignoreDir) for ignoreDir in ignoreDirs]
         logging.info("Osmosing parameters: withLocalObjectStore: %(withLocalObjectStore)s", dict(
             withLocalObjectStore=withLocalObjectStore))
@@ -15,6 +16,9 @@ class Osmose:
         extra = []
         if len(absoluteIgnoreDirs) > 0:
             extra += ['--ignore', ":".join(absoluteIgnoreDirs)]
+        if talkToServer is not None:
+            reportthread.ReportThread(talkToServer)
+            extra += ['--reportFile', reportthread.ReportThread.FIFO]
         cmd = [
             "/usr/bin/osmosis", "checkout", destination, '+', '--MD5', '--putIfMissing',
             '--removeUnknownFiles', '--objectStores', objectStores] + extra

@@ -1,66 +1,85 @@
-import threading
-import socket
-import logging
 from inaugurator.server import config
+import threading
+import logging
+import pika
+import time
+import json
 
 
 class Server(threading.Thread):
-    def __init__(self, bindHostname, checkInCallback, doneCallback):
+    _RECONNECT_INTERVAL = 1
+
+    def __init__(self, checkInCallback, doneCallback, progressCallback, listeningIDs):
         self._checkInCallback = checkInCallback
         self._doneCallback = doneCallback
-        self._sock = socket.socket()
-        self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._sock.bind((bindHostname, config.PORT))
-        self._sock.listen(100)
-        self._connections = {}
+        self._progressCallback = progressCallback
+        self._listeningIDs = listeningIDs
+        self._connect()
         threading.Thread.__init__(self)
         self.daemon = True
         threading.Thread.start(self)
 
-    def provideLabel(self, ipAddress, label):
-        connection = self._connections[ipAddress]
-        try:
-            del self._connections[ipAddress]
-            connection.send(label)
-            connection.shutdown(socket.SHUT_WR)
-        finally:
-            connection.close()
+    def provideLabel(self, id, label):
+        assert id in self._listeningIDs
+        self._channel.queue_purge(queue=self._labelQueue(id))
+        self._channel.basic_publish(exchange='', routing_key=self._labelQueue(id), body=label)
+
+    def _setUpID(self, id):
+        self._channel.queue_declare(self._labelQueue(id))
+        self._channel.exchange_declare(exchange=self._statusExchange(id), type='fanout')
+        myQueue = self._channel.queue_declare(exclusive=True).method.queue
+        self._channel.queue_bind(exchange=self._statusExchange(id), queue=myQueue)
+        self._channel.basic_consume(self._handleStatus, queue=myQueue, no_ack=True)
+
+    def _statusExchange(self, id):
+        return "inaugurator_status__%s" % id
+
+    def _labelQueue(self, id):
+        return "inaugurator_label__%s" % id
+
+    def _connect(self):
+        logging.info("Inaugurator server connects to rabbit MQ %(url)s", dict(url=config.AMQP_URL))
+        parameters = pika.URLParameters(config.AMQP_URL)
+        self._connection = pika.BlockingConnection(parameters)
+        self._channel = self._connection.channel()
 
     def run(self):
+        first = True
         while True:
-            try:
-                self._work()
-            except:
-                logging.exception("Unable to serve inaugurator request")
-
-    def _work(self):
-        connection, peer = self._sock.accept()
-        ip = peer[0]
-        keepConnectionOpen = False
-        try:
-            connection.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
-            command = connection.recv(16)
-            if command == "checkin":
-                self._safeHangup(ip)
-                self._connections[ip] = connection
-                self._checkInCallback(ipAddress=ip)
-                keepConnectionOpen = True
-            elif command == "done":
-                self._doneCallback(ipAddress=ip)
+            if first:
+                first = False
             else:
-                raise Exception("Unknown command '%s'" % command)
-        except:
-            self._safeHangup(ip)
-            raise
-        finally:
-            if not keepConnectionOpen:
-                connection.close()
-
-    def _safeHangup(self, ipAddress):
-        if ipAddress in self._connections:
-            connection = self._connections[ipAddress]
-            del self._connections[ipAddress]
+                try:
+                    self._connect()
+                except:
+                    logging.exception("Unable to reconnect")
+                    time.sleep(self._RECONNECT_INTERVAL)
+                    continue
             try:
-                connection.close()
+                for id in self._listeningIDs:
+                    self._setUpID(id)
+                self._channel.start_consuming()
             except:
-                pass
+                logging.exception("While handling messages")
+            finally:
+                try:
+                    self._channel.stop_consuming()
+                except:
+                    logging.exception("Unable to stop consuming, ignoring")
+            time.sleep(self._RECONNECT_INTERVAL)
+
+    def _handleStatus(self, channel, method, properties, body):
+        try:
+            message = json.loads(body)
+            id = message[u'id']
+            if message[u'status'] == "checkin":
+                self._checkInCallback(id)
+            elif message[u'status'] == "done":
+                self._doneCallback(id)
+            elif message[u'status'] == "progress":
+                self._progressCallback(id, message[u'progress'])
+            else:
+                raise Exception("Unknown status report: %s" % message)
+        except:
+            logging.exception("While handling message '%(body)s'", dict(body=body))
+            raise

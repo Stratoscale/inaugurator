@@ -28,12 +28,16 @@ build/inaugurator.thin.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz ../o
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/encodings/*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/ctypes/*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/logging/*
+	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/json/*
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/lib64/python2.7/lib-dynload/_ctypes.so
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/lib-dynload/*
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/lib64/python2.7/lib-dynload/_hashlib.so
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/lib64/libudev.so.1
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/libnss_dns*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/share/hwdata/pci.ids
+	echo "Copying pika:"
+	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib/python2.7/site-packages/pika/*.py
+	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib/python2.7/site-packages/pika/adapters/*.py
 	echo "Copying executables"
 	DEST=$@.tmp sh/relative_copy_executable.sh /bin/bash
 	DEST=$@.tmp sh/relative_copy_executable.sh /bin/sh

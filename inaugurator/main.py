@@ -8,7 +8,7 @@ from inaugurator import fstab
 from inaugurator import passwd
 from inaugurator import osmose
 from inaugurator import osmosiscleanup
-from inaugurator import checkinwithserver
+from inaugurator import talktoserver
 from inaugurator import grub
 from inaugurator import diskonkey
 from inaugurator import udev
@@ -25,6 +25,7 @@ import sys
 
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+logging.getLogger('pika').setLevel(logging.INFO)
 
 
 def main(args):
@@ -38,7 +39,7 @@ def main(args):
     partitionTable.verify()
     logging.info("Partitions created")
     mountOp = mount.Mount(targetDevice)
-    checkIn = None
+    talkToServer = None
     with mountOp.mountRoot() as destination:
         etcLabelFile = etclabelfile.EtcLabelFile(destination)
         osmosiscleanup.OsmosisCleanup(destination)
@@ -46,13 +47,18 @@ def main(args):
             network.Network(
                 macAddress=args.inauguratorUseNICWithMAC, ipAddress=args.inauguratorIPAddress,
                 netmask=args.inauguratorNetmask, gateway=args.inauguratorGateway)
+            if args.inauguratorServerAMQPURL:
+                talkToServer = talktoserver.TalkToServer(
+                    amqpURL=args.inauguratorServerAMQPURL, myID=args.inauguratorMyIDForServer)
+                talkToServer.checkIn()
             osmos = osmose.Osmose(
-                destination, objectStores=args.inauguratorOsmosisObjectStores,
+                destination=destination,
+                objectStores=args.inauguratorOsmosisObjectStores,
                 withLocalObjectStore=args.inauguratorWithLocalObjectStore,
-                ignoreDirs=args.inauguratorIgnoreDirs)
-            if args.inauguratorServerHostname:
-                checkIn = checkinwithserver.CheckInWithServer(hostname=args.inauguratorServerHostname)
-                label = checkIn.label()
+                ignoreDirs=args.inauguratorIgnoreDirs,
+                talkToServer=talkToServer)
+            if args.inauguratorServerAMQPURL:
+                label = talkToServer.label()
             else:
                 label = args.inauguratorNetworkLabel
             osmos.tellLabel(label)
@@ -63,7 +69,8 @@ def main(args):
                 osmos = osmose.Osmose(
                     destination, objectStores=source + "/osmosisobjectstore",
                     withLocalObjectStore=args.inauguratorWithLocalObjectStore,
-                    ignoreDirs=args.inauguratorIgnoreDirs)
+                    ignoreDirs=args.inauguratorIgnoreDirs,
+                    talkToServer=talkToServer)
                 with open("%s/inaugurate_label.txt" % source) as f:
                     label = f.read().strip()
                 osmos.tellLabel(label)  # This must stay under the dok mount 'with' statement
@@ -105,8 +112,8 @@ def main(args):
     sh.run(["busybox", "sync"])
     print "sync done"
     after = time.time()
-    if checkIn is not None:
-        checkIn.done()
+    if talkToServer is not None:
+        talkToServer.done()
     print "Inaugurator took: %.2fs. KEXECing" % (after - before)
     loadKernel.execute()
 
@@ -114,7 +121,8 @@ def main(args):
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--inauguratorClearDisk", action="store_true")
 parser.add_argument("--inauguratorSource", required=True)
-parser.add_argument("--inauguratorServerHostname")
+parser.add_argument("--inauguratorServerAMQPURL")
+parser.add_argument("--inauguratorMyIDForServer")
 parser.add_argument("--inauguratorNetworkLabel")
 parser.add_argument("--inauguratorOsmosisObjectStores")
 parser.add_argument("--inauguratorUseNICWithMAC")
@@ -133,11 +141,14 @@ try:
     print "Command line arguments:", args
     if args.inauguratorSource == "network":
         assert (
-            (args.inauguratorServerHostname or args.inauguratorNetworkLabel) and
+            (args.inauguratorServerAMQPURL or args.inauguratorNetworkLabel) and
             args.inauguratorOsmosisObjectStores and
             args.inauguratorUseNICWithMAC and args.inauguratorIPAddress and
             args.inauguratorNetmask and args.inauguratorGateway), \
             "If inauguratorSource is 'network', all network command line paramaters must be specified"
+        if args.inauguratorServerAMQPURL:
+            assert args.inauguratorMyIDForServer, \
+                'If communicating with server, must specifiy --inauguratorMyIDForServer'
     elif args.inauguratorSource == "DOK":
         pass
     elif args.inauguratorSource == "local":

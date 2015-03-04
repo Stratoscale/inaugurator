@@ -23,3 +23,6 @@ install: build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img buil
 	sudo python setup.py install
 	sudo cp $^ /usr/share/inaugurator
 	sudo chmod 644 /usr/share/inaugurator/*
+
+prepareForCleanBuild:
+	sudo pip install pika
