@@ -47,6 +47,8 @@ class Ceremony:
         inauguratorDownload - http get this file into a specific location, right before kexecing.
         inauguratorIgnoreDirs - ignore the following locations on disk, in the osmosis process. This is
                                 usedful for upgrades - to keep the current configuration somewhere.
+        inauguratorTargetDeviceCandidate - a list of devices (['/dev/vda', '/dev/sda']) to use as the
+                                           inauguration target
         """
         self._args = args
         self._talkToServer = None
@@ -171,7 +173,7 @@ class Ceremony:
 
     def _makeSureDiskIsMountable(self):
         udev.loadAllDrivers()
-        self._targetDevice = targetdevice.TargetDevice.device()
+        self._targetDevice = targetdevice.TargetDevice.device(self._args.inauguratorTargetDeviceCandidate)
         self._createPartitionTable()
         logging.info("Partitions created")
         self._mountOp = mount.Mount(self._targetDevice)

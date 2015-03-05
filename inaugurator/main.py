@@ -26,6 +26,7 @@ parser.add_argument("--inauguratorWithLocalObjectStore", action="store_true")
 parser.add_argument("--inauguratorPassthrough", default="")
 parser.add_argument("--inauguratorDownload", nargs='+', default=[])
 parser.add_argument("--inauguratorIgnoreDirs", nargs='+', default=[])
+parser.add_argument("--inauguratorTargetDeviceCandidate", nargs='+', default=['/dev/vda', '/dev/sda'])
 
 try:
     cmdLine = open("/proc/cmdline").read().strip()

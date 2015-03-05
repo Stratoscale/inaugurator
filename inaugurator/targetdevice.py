@@ -8,18 +8,17 @@ class TargetDevice:
     _found = None
 
     @classmethod
-    def device(cls):
+    def device(cls, candidates):
         if cls._found is None:
-            cls._found = cls._find()
+            cls._found = cls._find(candidates)
         return cls._found
         pass
 
     @classmethod
-    def _find(cls):
-        CANDIDATES = ['/dev/vda', '/dev/sda']
+    def _find(cls, candidates):
         RETRIES = 5
         for retry in xrange(RETRIES):
-            for device in CANDIDATES:
+            for device in candidates:
                 if not os.path.exists(device):
                     continue
                 if not stat.S_ISBLK(os.stat(device).st_mode):
