@@ -17,11 +17,15 @@ uninstall:
 	-sudo mkdir /usr/share/inaugurator
 	-yes | sudo pip uninstall inaugurator
 
-install: build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img build/inaugurator.vmlinuz
+PRODUCTS = build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img build/inaugurator.vmlinuz
+install: $(PRODUCTS)
+	$(MAKE) install_nodeps
+
+install_nodeps:
 	-sudo mkdir /usr/share/inaugurator
 	-yes | sudo pip uninstall inaugurator
 	sudo python setup.py install
-	sudo cp $^ /usr/share/inaugurator
+	sudo cp $(PRODUCTS) /usr/share/inaugurator
 	sudo chmod 644 /usr/share/inaugurator/*
 
 prepareForCleanBuild:

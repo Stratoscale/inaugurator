@@ -19,7 +19,6 @@ class Server(threading.Thread):
         self._progressCallback = progressCallback
         self._readyEvent = threading.Event()
         self._closed = False
-        self._connect()
         threading.Thread.__init__(self)
         self.daemon = True
         threading.Thread.start(self)
@@ -53,12 +52,6 @@ class Server(threading.Thread):
 
     def _labelQueue(self, id):
         return "inaugurator_label__%s" % id
-
-    def _connect(self):
-        logging.info("Inaugurator server connects to rabbit MQ %(url)s", dict(url=config.AMQP_URL))
-        parameters = pika.URLParameters(config.AMQP_URL)
-        self._connection = pika.BlockingConnection(parameters)
-        self._channel = self._connection.channel()
 
     def run(self):
         _logger.info('Connecting to %(amqpURL)s', dict(amqpURL=config.AMQP_URL))
