@@ -4,34 +4,51 @@ import logging
 import pika
 import time
 import json
+import os
+import signal
+
+_logger = logging.getLogger('inaugurator.server')
 
 
 class Server(threading.Thread):
     _RECONNECT_INTERVAL = 1
 
-    def __init__(self, checkInCallback, doneCallback, progressCallback, listeningIDs):
+    def __init__(self, checkInCallback, doneCallback, progressCallback):
         self._checkInCallback = checkInCallback
         self._doneCallback = doneCallback
         self._progressCallback = progressCallback
-        self._listeningIDs = listeningIDs
+        self._readyEvent = threading.Event()
+        self._closed = False
         self._connect()
         threading.Thread.__init__(self)
         self.daemon = True
         threading.Thread.start(self)
 
     def provideLabel(self, id, label):
-        assert id in self._listeningIDs
-        self._channel.queue_purge(queue=self._labelQueue(id))
-        self._channel.basic_publish(exchange='', routing_key=self._labelQueue(id), body=label)
 
-    def _setUpID(self, id):
-        self._channel.queue_declare(self._labelQueue(id))
-        self._channel.exchange_declare(exchange=self._statusExchange(id), type='fanout')
-        myQueue = self._channel.queue_declare(exclusive=True).method.queue
-        self._channel.queue_bind(exchange=self._statusExchange(id), queue=myQueue)
-        self._channel.basic_consume(self._handleStatus, queue=myQueue, no_ack=True)
+        def onPurged(*args):
+            self._channel.basic_publish(exchange='', routing_key=self._labelQueue(id), body=label)
 
-    def _statusExchange(self, id):
+        self._channel.queue_purge(onPurged, queue=self._labelQueue(id))
+
+    def listenOnID(self, id):
+        self._channel.queue_declare(lambda *a: None, queue=self._labelQueue(id))
+
+        def onQueueBind(myQueue):
+            self._channel.basic_consume(self._handleStatus, queue=myQueue, no_ack=True)
+
+        def onQueueDeclared(methodFrame):
+            myQueue = methodFrame.method.queue
+            self._channel.queue_bind(
+                lambda *a: onQueueBind(myQueue), exchange=self.statusExchange(id), queue=myQueue)
+
+        def onExchangeDecalred(*args):
+            self._channel.queue_declare(onQueueDeclared, exclusive=True)
+
+        self._channel.exchange_declare(onExchangeDecalred, exchange=self.statusExchange(id), type='fanout')
+
+    @classmethod
+    def statusExchange(cls, id):
         return "inaugurator_status__%s" % id
 
     def _labelQueue(self, id):
@@ -44,29 +61,36 @@ class Server(threading.Thread):
         self._channel = self._connection.channel()
 
     def run(self):
-        first = True
-        while True:
-            if first:
-                first = False
-            else:
-                try:
-                    self._connect()
-                except:
-                    logging.exception("Unable to reconnect")
-                    time.sleep(self._RECONNECT_INTERVAL)
-                    continue
-            try:
-                for id in self._listeningIDs:
-                    self._setUpID(id)
-                self._channel.start_consuming()
-            except:
-                logging.exception("While handling messages")
-            finally:
-                try:
-                    self._channel.stop_consuming()
-                except:
-                    logging.exception("Unable to stop consuming, ignoring")
-            time.sleep(self._RECONNECT_INTERVAL)
+        _logger.info('Connecting to %(amqpURL)s', dict(amqpURL=config.AMQP_URL))
+        self._connection = pika.SelectConnection(
+            pika.URLParameters(config.AMQP_URL),
+            self._onConnectionOpen,
+            stop_ioloop_on_close=False)
+        self._connection.ioloop.start()
+
+    def _onConnectionOpen(self, unused_connection):
+        _logger.info('Connection opened')
+        self._connection.add_on_close_callback(self._onConnectionClosed)
+        self._connection.channel(on_open_callback=self._onChannelOpen)
+
+    def _onConnectionClosed(self, connection, reply_code, reply_text):
+        self._channel = None
+        if self._closed:
+            self._connection.ioloop.stop()
+        else:
+            _logger.error("Connection closed, committing suicide: %(replyCode)s %(replyText)s", dict(
+                replyCode=reply_code, replyText=reply_text))
+            os.kill(os.getpid(), signal.SIGTERM)
+
+    def _onChannelOpen(self, channel):
+        self._channel = channel
+        self._channel.add_on_close_callback(self._onChannelClosed)
+        self._readyEvent.set()
+
+    def _onChannelClosed(self, channel, reply_code, reply_text):
+        _logger.error('Channel %(channel)i was closed: (%(replyCode)s) %(replyText)s', dict(
+            channel=channel, replyCode=reply_code, replyText=reply_text))
+        self._connection.close()
 
     def _handleStatus(self, channel, method, properties, body):
         try:
