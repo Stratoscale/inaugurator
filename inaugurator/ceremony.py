@@ -15,6 +15,7 @@ from inaugurator import udev
 from inaugurator import download
 from inaugurator import etclabelfile
 from inaugurator import lvmetad
+from inaugurator import verify
 import os
 import time
 import logging
@@ -68,6 +69,9 @@ class Ceremony:
             logging.info("kernel loaded")
             self._additionalDownload(destination)
         self._sync()
+        if self._args.inauguratorVerify:
+            self._verify()
+            self._sync()
         after = time.time()
         if self._talkToServer is not None:
             self._talkToServer.done()
@@ -194,3 +198,8 @@ class Ceremony:
             self._osmosFromLocalObjectStore(destination)
         else:
             assert False, "Unknown source %s" % self._args.inauguratorSource
+
+    def _verify(self):
+        verify.Verify.dropCaches()
+        with self._mountOp.mountRoot() as destination:
+            verify.Verify(destination, self._label, self._talkToServer).go()

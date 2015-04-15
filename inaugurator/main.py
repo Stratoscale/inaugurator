@@ -6,7 +6,8 @@ import logging
 import sys
 
 
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logging.getLogger('pika').setLevel(logging.INFO)
 
 
@@ -27,6 +28,7 @@ parser.add_argument("--inauguratorPassthrough", default="")
 parser.add_argument("--inauguratorDownload", nargs='+', default=[])
 parser.add_argument("--inauguratorIgnoreDirs", nargs='+', default=[])
 parser.add_argument("--inauguratorTargetDeviceCandidate", nargs='+', default=['/dev/vda', '/dev/sda'])
+parser.add_argument("--inauguratorVerify", action="store_true")
 
 try:
     cmdLine = open("/proc/cmdline").read().strip()
