@@ -25,6 +25,7 @@ build/inaugurator.thin.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz ../o
 	echo "Copying libraries"
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib64/ld*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/*
+	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/json/*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/encodings/*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/ctypes/*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/logging/*

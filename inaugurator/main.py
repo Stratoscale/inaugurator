@@ -15,6 +15,7 @@ from inaugurator import udev
 from inaugurator import download
 from inaugurator import etclabelfile
 from inaugurator import lvmetad
+from inaugurator import verify
 import argparse
 import traceback
 import pdb
@@ -24,7 +25,8 @@ import logging
 import sys
 
 
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 
 def main(args):
@@ -104,6 +106,10 @@ def main(args):
     print "sync..."
     sh.run(["busybox", "sync"])
     print "sync done"
+    verify.Verify.dropCaches()
+    with mountOp.mountRoot() as destination:
+        verify.Verify(destination, label, None).go()
+    sh.run(["busybox", "sync"])
     after = time.time()
     if checkIn is not None:
         checkIn.done()
