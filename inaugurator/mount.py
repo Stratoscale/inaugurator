@@ -2,6 +2,7 @@ from inaugurator import sh
 from inaugurator import partitiontable
 import contextlib
 import logging
+import time
 
 
 class Mount:
@@ -29,7 +30,16 @@ class Mount:
         sh.run("/usr/sbin/busybox mount -t ext4 -o noatime,data=writeback %s %s" % (
             self._rootPartition, self._ROOT_MOUNT_POINT))
         yield self._ROOT_MOUNT_POINT
-        sh.run("/usr/sbin/busybox umount %s" % self._ROOT_MOUNT_POINT)
+        self._unmount(self._ROOT_MOUNT_POINT)
+
+    def _unmount(self, mountPoint):
+        for i in xrange(30):
+            try:
+                sh.run("/usr/sbin/busybox umount %s" % mountPoint)
+                return
+            except:
+                time.sleep(0.1)
+        sh.run("/usr/sbin/busybox umount %s" % mountPoint)
 
     @contextlib.contextmanager
     def mountBoot(self):
@@ -37,7 +47,7 @@ class Mount:
         sh.run("/usr/sbin/busybox mkdir -p %s" % self._BOOT_MOUNT_POINT)
         sh.run("/usr/sbin/busybox mount -t ext4 %s %s" % (self._bootPartition, self._BOOT_MOUNT_POINT))
         yield self._BOOT_MOUNT_POINT
-        sh.run("/usr/sbin/busybox umount %s" % self._BOOT_MOUNT_POINT)
+        self._unmount(self._BOOT_MOUNT_POINT)
 
     @contextlib.contextmanager
     def mountBootInsideRoot(self):
@@ -46,8 +56,8 @@ class Mount:
         sh.run("/usr/sbin/busybox cp -a /dev/* %s/dev/" % self._ROOT_MOUNT_POINT)
         sh.run("/usr/sbin/busybox mount -t proc none %s/proc" % self._ROOT_MOUNT_POINT)
         yield self._ROOT_MOUNT_POINT
-        sh.run("/usr/sbin/busybox umount %s/proc" % self._ROOT_MOUNT_POINT)
-        sh.run("/usr/sbin/busybox umount %s/boot" % self._ROOT_MOUNT_POINT)
+        self._unmount("%s/proc" % self._ROOT_MOUNT_POINT)
+        self._unmount("%s/boot" % self._ROOT_MOUNT_POINT)
 
     def _correctEXT4Errors(self, device):
         try:
