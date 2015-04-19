@@ -11,6 +11,7 @@ from inaugurator import osmosiscleanup
 from inaugurator import talktoserver
 from inaugurator import grub
 from inaugurator import diskonkey
+from inaugurator import cdrom
 from inaugurator import udev
 from inaugurator import download
 from inaugurator import etclabelfile
@@ -26,7 +27,7 @@ class Ceremony:
         """
         args is a 'namespace' - an object, or maybe a bunch. The following members are required:
         inauguratorClearDisk - True will cause the disk to be erase even if partition layout is ok
-        inauguratorSource - 'network', 'DOK' (Disk On Key), 'local' - select from where the label
+        inauguratorSource - 'network', 'DOK' (Disk On Key), 'CDROM' or 'local' - select from where the label
                             should be osmosed. 'local' means the label is already in the local object
                             store, and is used in upgrades.
         inauguratorServerAMQPURL - the rabbitmq AMQP url to report status to. Can be 'None'. If used,
@@ -90,9 +91,7 @@ class Ceremony:
             if self._args.inauguratorServerAMQPURL:
                 assert self._args.inauguratorMyIDForServer, \
                     'If communicating with server, must specifiy --inauguratorMyIDForServer'
-        elif self._args.inauguratorSource == "DOK":
-            pass
-        elif self._args.inauguratorSource == "local":
+        elif self._args.inauguratorSource in ["DOK", "local", "CDROM"]:
             pass
         else:
             assert False, "Unknown source for inaugurator: %s" % self._args.inauguratorSource
@@ -155,6 +154,19 @@ class Ceremony:
             osmos.tellLabel(self._label)  # This must stay under the dok mount 'with' statement
             osmos.wait()
 
+    def _osmosFromCDROM(self, destination):
+        cdromInstance = cdrom.Cdrom()
+        with cdromInstance.mount() as source:
+            osmos = osmose.Osmose(
+                destination, objectStores=source + "/osmosisobjectstore",
+                withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
+                ignoreDirs=self._args.inauguratorIgnoreDirs,
+                talkToServer=self._talkToServer)
+            with open("%s/inaugurate_label.txt" % source) as f:
+                self._label = f.read().strip()
+            osmos.tellLabel(self._label)  # This must stay under the mount 'with' statement
+            osmos.wait()
+
     def _osmosFromLocalObjectStore(self, destination):
         osmos = osmose.Osmose(
             destination, objectStores=None,
@@ -194,6 +206,8 @@ class Ceremony:
             self._osmosFromNetwork(destination)
         elif self._args.inauguratorSource == 'DOK':
             self._osmosFromDOK(destination)
+        elif self._args.inauguratorSource == 'CDROM':
+            self._osmosFromCDROM(destination)
         elif self._args.inauguratorSource == 'local':
             self._osmosFromLocalObjectStore(destination)
         else:
