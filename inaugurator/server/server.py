@@ -22,6 +22,9 @@ class Server(threading.Thread):
         threading.Thread.__init__(self)
         self.daemon = True
         threading.Thread.start(self)
+        _logger.info('Inaugurator server waiting for RabbitMQ connection to be open...')
+        self._readyEvent.wait()
+        _logger.info('Inaugurator server is ready.')
 
     def provideLabel(self, id, label):
 
