@@ -38,7 +38,7 @@ def findReservedOffsetInISO():
 
 def findAndSeek(f, expected):
     f.seek(0)
-    firstBlock = expected[ :512]
+    firstBlock = expected[:512]
     while True:
         block = f.read(len(firstBlock))
         if block == "":
@@ -47,7 +47,7 @@ def findAndSeek(f, expected):
             positionBefore = f.tell()
             candidatePosition = f.tell() - len(block)
             rest = f.read(len(expected) - len(block))
-            if rest == expected[len(block): ]:
+            if rest == expected[len(block):]:
                 f.seek(candidatePosition)
                 return
             f.seek(positionBefore)
@@ -70,7 +70,7 @@ elif args.editReserved:
         f.seek(offset)
         with open(contentFilename, "rb") as f2:
             data = f2.read()
-        data += padding[ :size - len(data)]
+        data += padding[:size - len(data)]
         f.write(data)
     sys.exit(0)
 
@@ -101,6 +101,7 @@ try:
     shutil.copy(INAUGURATOR_INITRD, temp)
     with open(os.path.join(temp, "isolinux", "message.txt"), "w") as f:
         f.write("Inaugurator ISO\n")
+    INAUGURATOR_ARGUMENTS = "--inauguratorSource=CDROM --inauguratorChangeRootPassword=strato"
     with open(os.path.join(temp, "isolinux", "isolinux.cfg"), "w") as f:
         f.write("""
 display /isolinux/message.txt
@@ -109,8 +110,8 @@ default Inaugurator
 
 label Inaugurator
     kernel /inaugurator.vmlinuz
-    append initrd=/inaugurator.fat.initrd.img --inauguratorSource=CDROM --inauguratorChangeRootPassword=strato
-""")
+    append initrd=/inaugurator.fat.initrd.img %s
+""" % INAUGURATOR_ARGUMENTS)
     for opt in args.reserveFile:
         sizeKBText, filename, fill = opt.split(":")
         assert int(sizeKBText) % 16 == 0, "sizeKB % 16 != 0"
