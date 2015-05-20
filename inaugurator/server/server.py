@@ -6,7 +6,7 @@ import simplejson
 import json
 import os
 import signal
-import Queue
+import pikapatcher
 
 _logger = logging.getLogger('inaugurator.server')
 
@@ -18,19 +18,19 @@ class Server(threading.Thread):
         self._progressCallback = progressCallback
         self._readyEvent = threading.Event()
         self._closed = False
-        self._queue = Queue.Queue()
         threading.Thread.__init__(self)
         self.daemon = True
+        self._cmdPipe = None
         threading.Thread.start(self)
         _logger.info('Waiting for RabbitMQ connection to be open...')
         self._readyEvent.wait()
         _logger.info('Inaugurator server is ready.')
 
     def provideLabel(self, id, label):
-        self._queue.put(dict(cmd='provideLabel', id=id, label=label))
+        self._cmdPipe.sendCommand(cmd='provideLabel', id=id, label=label)
 
     def listenOnID(self, id):
-        self._queue.put(dict(cmd='listenRequest', id=id))
+        self._cmdPipe.sendCommand(cmd='listenRequest', id=id)
 
     def _provideLabel(self, id, label):
 
@@ -68,6 +68,10 @@ class Server(threading.Thread):
             pika.URLParameters(config.AMQP_URL),
             self._onConnectionOpen,
             stop_ioloop_on_close=False)
+        try:
+            self._cmdPipe = pikapatcher.CommandPipePikaPatcher(self._connection, self._handleCommand)
+        except RuntimeError, ex:
+            self._suicide(ex.message)
         self._connection.ioloop.start()
 
     def _onConnectionOpen(self, unused_connection):
@@ -80,14 +84,18 @@ class Server(threading.Thread):
         if self._closed:
             self._connection.ioloop.stop()
         else:
-            _logger.error("Connection closed, committing suicide: %(replyCode)s %(replyText)s", dict(
-                replyCode=reply_code, replyText=reply_text))
-            os.kill(os.getpid(), signal.SIGTERM)
+            msg = "Connection closed, committing suicide: %(replyCode)s %(replyText)s", dict(
+                replyCode=reply_code, replyText=reply_text)
+            self._suicide(msg)
+            raise RuntimeError(msg)
+
+    def _suicide(self, note):
+        _logger.error(note)
+        os.kill(os.getpid(), signal.SIGTERM)
 
     def _onChannelOpen(self, channel):
         self._channel = channel
         self._channel.add_on_close_callback(self._onChannelClosed)
-        self._connection.add_timeout(1, self._process_commands)
         self._readyEvent.set()
 
     def _onChannelClosed(self, channel, reply_code, reply_text):
@@ -126,17 +134,3 @@ class Server(threading.Thread):
         except:
             logging.exception("While handling message '%(body)s'", dict(body=body))
             raise
-
-    def _process_commands(self):
-        try:
-            while True:
-                command = self._queue.get(block=False)
-                self._handleCommand(command)
-        except Queue.Empty:
-            pass
-        except:
-            _logger.error('Error while processing command %(command)s',
-                          dict(command=command))
-            raise
-        finally:
-            self._connection.add_timeout(1, self._process_commands)
