@@ -2,17 +2,16 @@ from inaugurator.server import config
 import threading
 import logging
 import pika
-import time
+import simplejson
 import json
 import os
 import signal
+import pikapatcher
 
 _logger = logging.getLogger('inaugurator.server')
 
 
 class Server(threading.Thread):
-    _RECONNECT_INTERVAL = 1
-
     def __init__(self, checkInCallback, doneCallback, progressCallback):
         self._checkInCallback = checkInCallback
         self._doneCallback = doneCallback
@@ -21,19 +20,26 @@ class Server(threading.Thread):
         self._closed = False
         threading.Thread.__init__(self)
         self.daemon = True
+        self._cmdPipe = None
         threading.Thread.start(self)
-        _logger.info('Inaugurator server waiting for RabbitMQ connection to be open...')
+        _logger.info('Waiting for RabbitMQ connection to be open...')
         self._readyEvent.wait()
         _logger.info('Inaugurator server is ready.')
 
     def provideLabel(self, id, label):
+        self._cmdPipe.sendCommand(cmd='provideLabel', id=id, label=label)
+
+    def listenOnID(self, id):
+        self._cmdPipe.sendCommand(cmd='listenRequest', id=id)
+
+    def _provideLabel(self, id, label):
 
         def onPurged(*args):
             self._channel.basic_publish(exchange='', routing_key=self._labelQueue(id), body=label)
 
         self._channel.queue_purge(onPurged, queue=self._labelQueue(id))
 
-    def listenOnID(self, id):
+    def _listenToServer(self, id):
         self._channel.queue_declare(lambda *a: None, queue=self._labelQueue(id))
 
         def onQueueBind(myQueue):
@@ -62,6 +68,10 @@ class Server(threading.Thread):
             pika.URLParameters(config.AMQP_URL),
             self._onConnectionOpen,
             stop_ioloop_on_close=False)
+        try:
+            self._cmdPipe = pikapatcher.CommandPipePikaPatcher(self._connection, self._handleCommand)
+        except RuntimeError, ex:
+            self._suicide(ex.message)
         self._connection.ioloop.start()
 
     def _onConnectionOpen(self, unused_connection):
@@ -74,9 +84,14 @@ class Server(threading.Thread):
         if self._closed:
             self._connection.ioloop.stop()
         else:
-            _logger.error("Connection closed, committing suicide: %(replyCode)s %(replyText)s", dict(
-                replyCode=reply_code, replyText=reply_text))
-            os.kill(os.getpid(), signal.SIGTERM)
+            msg = "Connection closed, committing suicide: %(replyCode)s %(replyText)s", dict(
+                replyCode=reply_code, replyText=reply_text)
+            self._suicide(msg)
+            raise RuntimeError(msg)
+
+    def _suicide(self, note):
+        _logger.error(note)
+        os.kill(os.getpid(), signal.SIGTERM)
 
     def _onChannelOpen(self, channel):
         self._channel = channel
@@ -88,15 +103,31 @@ class Server(threading.Thread):
             channel=channel, replyCode=reply_code, replyText=reply_text))
         self._connection.close()
 
+    def _handleCommand(self, command):
+        _logger.info('Handling command: %(command)s', dict(command=command))
+        id = command[u'id']
+        cmd = command[u'cmd']
+        if cmd == "listenRequest":
+            self._listenToServer(id)
+        elif cmd == "provideLabel":
+            self._provideLabel(id, command['label'])
+        else:
+            raise Exception('Unknown command: %(body)', dict(body=command))
+
     def _handleStatus(self, channel, method, properties, body):
         try:
             message = json.loads(body)
+        except:
+            logging.exception("While parsing JSON message '%(body)s'", dict(body=body))
+            raise
+        try:
             id = message[u'id']
-            if message[u'status'] == "checkin":
+            status = message[u'status']
+            if status == "checkin":
                 self._checkInCallback(id)
-            elif message[u'status'] == "done":
+            elif status == "done":
                 self._doneCallback(id)
-            elif message[u'status'] == "progress":
+            elif status == "progress":
                 self._progressCallback(id, message[u'progress'])
             else:
                 raise Exception("Unknown status report: %s" % message)
