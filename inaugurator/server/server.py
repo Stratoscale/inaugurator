@@ -2,17 +2,16 @@ from inaugurator.server import config
 import threading
 import logging
 import pika
-import time
+import simplejson
 import json
 import os
 import signal
+import pikapatchwakeupfromanotherthread
 
 _logger = logging.getLogger('inaugurator.server')
 
 
 class Server(threading.Thread):
-    _RECONNECT_INTERVAL = 1
-
     def __init__(self, checkInCallback, doneCallback, progressCallback):
         self._checkInCallback = checkInCallback
         self._doneCallback = doneCallback
@@ -21,19 +20,26 @@ class Server(threading.Thread):
         self._closed = False
         threading.Thread.__init__(self)
         self.daemon = True
+        self._wakeUpFromAnotherThread = None
         threading.Thread.start(self)
         _logger.info('Inaugurator server waiting for RabbitMQ connection to be open...')
         self._readyEvent.wait()
         _logger.info('Inaugurator server is ready.')
 
     def provideLabel(self, id, label):
+        self._wakeUpFromAnotherThread.runInThread(self._provideLabel, id=id, label=label)
+
+    def listenOnID(self, id):
+        self._wakeUpFromAnotherThread.runInThread(self._listenOnID, id=id)
+
+    def _provideLabel(self, id, label):
 
         def onPurged(*args):
             self._channel.basic_publish(exchange='', routing_key=self._labelQueue(id), body=label)
 
         self._channel.queue_purge(onPurged, queue=self._labelQueue(id))
 
-    def listenOnID(self, id):
+    def _listenOnID(self, id):
         self._channel.queue_declare(lambda *a: None, queue=self._labelQueue(id))
 
         def onQueueBind(myQueue):
@@ -62,6 +68,8 @@ class Server(threading.Thread):
             pika.URLParameters(config.AMQP_URL),
             self._onConnectionOpen,
             stop_ioloop_on_close=False)
+        self._wakeUpFromAnotherThread = pikapatchwakeupfromanotherthread.PikaPatchWakeUpFromAnotherThread(
+            self._connection)
         self._connection.ioloop.start()
 
     def _onConnectionOpen(self, unused_connection):
