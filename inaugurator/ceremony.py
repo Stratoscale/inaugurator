@@ -71,6 +71,10 @@ class Ceremony:
             logging.info("kernel loaded")
             self._additionalDownload(destination)
         self._sync()
+        if self._args.inauguratorDisableNCQ:
+            self._disableNCQ()
+        else:
+            print 'Skipping the disabling of NCQ.'
         if self._args.inauguratorVerify:
             self._verify()
             self._sync()
@@ -226,3 +230,32 @@ class Ceremony:
         verify.Verify.dropCaches()
         with self._mountOp.mountRoot() as destination:
             verify.Verify(destination, self._label, self._talkToServer).go()
+
+    def _getSSDDeviceNames(self):
+        blockDevices = os.listdir('/sys/block')
+        storageDevices = [dev for dev in blockDevices if dev.startswith('sd')]
+        ssdDevices = []
+        for device in storageDevices:
+            isRotationalPathComponents = ['sys', 'block', device, 'queue', 'rotational']
+            isRotationalPath = os.path.join(*isRotationalPathComponents)
+            with open(isRotationalPath, 'rb') as f:
+                isRotational = f.read()
+            isRotational = bool(int(isRotational.strip()))
+            if not isRotational:
+                ssdDevices.append(device)
+        return ssdDevices
+
+    def _disableNCQ(self):
+        devices = self._getSSDDeviceNames()
+        if not devices:
+            print 'Did not find any non-rotational storage devices on which to disable NCQ.'
+            return
+        print 'Disabling NCQ for the following SSD devices: {}...'.format(devices)
+        for device in devices:
+            try:
+                queueDepthPath = '/sys/block/{}/device/queue_depth'.format(device)
+                print sh.run('busybox echo 1 > {}'.format(queueDepthPath))
+                print sh.run('busybox echo "{} is now:" '.format(queueDepthPath))
+                print sh.run('busybox cat {}'.format(queueDepthPath))
+            except Exception, ex:
+                print ex.message
