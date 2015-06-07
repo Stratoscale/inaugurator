@@ -3,6 +3,10 @@ import Queue
 import select
 import logging
 import signal
+from inaugurator.server import newpika_select_connection
+import pika
+
+pika.SelectConnection = newpika_select_connection.SelectConnection
 
 _logger = logging.getLogger('inaugurator.server')
 
