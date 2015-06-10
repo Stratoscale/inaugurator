@@ -110,4 +110,3 @@ class Server(threading.Thread):
                 raise Exception("Unknown status report: %s" % message)
         except:
             logging.exception("While handling message '%(body)s'", dict(body=body))
-            raise
