@@ -62,6 +62,10 @@ class Server(threading.Thread):
     def _labelQueue(self, id):
         return "inaugurator_label__%s" % id
 
+    def close(self):
+        self._closed = True
+        self._connection.close()
+
     def run(self):
         _logger.info('Connecting to %(amqpURL)s', dict(amqpURL=config.AMQP_URL))
         self._connection = pika.SelectConnection(

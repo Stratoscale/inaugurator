@@ -3,6 +3,7 @@ import Queue
 import select
 import logging
 import signal
+import select
 from inaugurator.server import newpika_select_connection
 import pika
 
@@ -48,16 +49,24 @@ class PikaPatchWakeUpFromAnotherThread:
                 "cannot patch pika.", dict(pollerType=str(type(poller))))
             self._suicide()
 
-    def _processCommands(self, *args, **kwargs):
+    def _processCommands(self, *args, **unused):
+        kwargs = None
         try:
-            os.read(self._readFd, 1)
+            ready = select.select([self._readFd], [], [], 0)[0]
+            if len(ready) > 0:
+                os.read(self._readFd, 1)
+        except:
+            _logger.exception("Unable to read from wake up pipe, ignoring")
+        try:
             callback, kwargs = self._queue.get(block=False)
-            callback(**kwargs)
         except Queue.Empty:
             _logger.warn("Command queue is empty after the pipe indicated that a command exists.")
+            return
+        try:
+            callback(**kwargs)
         except:
-            _logger.error('Error while processing command %(command)s', dict(command=command))
-            raise
+            _logger.error('Error while processing command %(command)s arguments %(kwargs)s', dict(
+                command=command, kwargs=kwargs))
 
     def _suicide(self):
         os.kill(os.getpid(), signal.SIGTERM)

@@ -45,7 +45,11 @@ class RabbitMQWrapper(threading.Thread):
     def cleanup(self):
         self._exited = True
         processtree.devourChildrenOf(self._popen.pid)
-        self._popen.terminate()
+        try:
+            self._popen.terminate()
+        except OSError as e:
+            logging.warning("Unable to terminate rabbitMQ process on cleanup: %(exception)s", dict(
+                exception=e))
 
     @classmethod
     def connect(cls):
