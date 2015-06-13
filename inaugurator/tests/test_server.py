@@ -4,6 +4,8 @@ import tempfile
 import time
 import subprocess
 import os
+import sys
+sys.path.insert(0, '.')
 from inaugurator.server import server
 from inaugurator.server import rabbitmqwrapper
 from inaugurator.server import config
