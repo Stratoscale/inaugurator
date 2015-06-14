@@ -7,6 +7,7 @@ import json
 import os
 import signal
 import pikapatchwakeupfromanotherthread
+import idlistener
 
 _logger = logging.getLogger('inaugurator.server')
 
@@ -18,6 +19,7 @@ class Server(threading.Thread):
         self._progressCallback = progressCallback
         self._readyEvent = threading.Event()
         self._closed = False
+        self._listeners = {}
         threading.Thread.__init__(self)
         self.daemon = True
         self._wakeUpFromAnotherThread = None
@@ -32,6 +34,9 @@ class Server(threading.Thread):
     def listenOnID(self, id):
         self._wakeUpFromAnotherThread.runInThread(self._listenOnID, id=id)
 
+    def stopListeningOnID(self, id):
+        self._wakeUpFromAnotherThread.runInThread(self._stopListeningOnID, id=id)
+
     def _provideLabel(self, id, label):
 
         def onPurged(*args):
@@ -40,24 +45,17 @@ class Server(threading.Thread):
         self._channel.queue_purge(onPurged, queue=self._labelQueue(id))
 
     def _listenOnID(self, id):
-        self._channel.queue_declare(lambda *a: None, queue=self._labelQueue(id))
+        if id in self._listeners:
+            _logger.error("Tried to listen twice on the same host %(id)s.", dict(id=id))
+            return
+        self._listeners[id] = idlistener.IDListener(id, self._handleStatus, self._channel)
 
-        def onQueueBind(myQueue):
-            self._channel.basic_consume(self._handleStatus, queue=myQueue, no_ack=True)
-
-        def onQueueDeclared(methodFrame):
-            myQueue = methodFrame.method.queue
-            self._channel.queue_bind(
-                lambda *a: onQueueBind(myQueue), exchange=self.statusExchange(id), queue=myQueue)
-
-        def onExchangeDecalred(*args):
-            self._channel.queue_declare(onQueueDeclared, exclusive=True)
-
-        self._channel.exchange_declare(onExchangeDecalred, exchange=self.statusExchange(id), type='fanout')
-
-    @classmethod
-    def statusExchange(cls, id):
-        return "inaugurator_status__%s" % id
+    def _stopListeningOnID(self, id):
+        if id not in self._listeners:
+            _logger.error("Tried to stop listening on a non existent %(id)s.", dict(id=id))
+            return
+        self._listeners[id].stopListening()
+        del self._listeners[id]
 
     def _labelQueue(self, id):
         return "inaugurator_label__%s" % id
