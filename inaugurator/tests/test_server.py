@@ -69,6 +69,49 @@ class Test(unittest.TestCase):
         finally:
             tested.close()
 
+    def test_StopListening(self):
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        try:
+            tested.listenOnID("yuvu")
+            self.sendCheckIn("yuvu")
+            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments), [("yuvu",)])
+            tested.stopListeningOnID("yuvu")
+            self.sendCheckIn("yuvu")
+            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments), [("yuvu",)])
+            tested.listenOnID("yuvu")
+            self.sendCheckIn("yuvu")
+            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments), [("yuvu",), ("yuvu",)])
+            self.assertEquals(self.doneCallbackArguments, [])
+            self.assertEquals(self.progressCallbackArguments, [])
+        finally:
+            tested.close()
+
+    def test_StopListeningDoesNotAffectAnotherServer(self):
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        try:
+            tested.listenOnID("yuvu")
+            tested.listenOnID("jakarta")
+            self.sendCheckIn("yuvu")
+            self.sendCheckIn("jakarta")
+            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments),
+                                           [("yuvu",), ("jakarta",)])
+            #import pdb; pdb.set_trace()
+            tested.stopListeningOnID("yuvu")
+            self.sendCheckIn("yuvu")
+            self.sendCheckIn("jakarta")
+            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments),
+                                           [("yuvu",), ("jakarta",), ("jakarta",)])
+            tested.listenOnID("yuvu")
+            self.sendCheckIn("yuvu")
+            self.sendCheckIn("jakarta")
+            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments),
+                                           [("yuvu",), ("jakarta",), ("jakarta",), ("yuvu",), ("jakarta",)])
+            self.assertEquals(self.doneCallbackArguments, [])
+            self.assertEquals(self.progressCallbackArguments, [])
+        finally:
+            tested.close()
+
+
     def test_SendCommand(self):
         tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
         try:
