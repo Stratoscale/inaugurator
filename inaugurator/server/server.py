@@ -32,6 +32,9 @@ class Server(threading.Thread):
     def listenOnID(self, id):
         self._wakeUpFromAnotherThread.runInThread(self._listenOnID, id=id)
 
+    def stopListeningOnID(self, id):
+        self._wakeUpFromAnotherThread.runInThread(self._stopListeningOnID, id=id)
+
     def _provideLabel(self, id, label):
 
         def onPurged(*args):
@@ -54,6 +57,9 @@ class Server(threading.Thread):
             self._channel.queue_declare(onQueueDeclared, exclusive=True)
 
         self._channel.exchange_declare(onExchangeDecalred, exchange=self.statusExchange(id), type='fanout')
+
+    def _stopListeningOnID(self, id):
+        self._channel.exchange_delete(exchange=self.statusExchange(id))
 
     @classmethod
     def statusExchange(cls, id):

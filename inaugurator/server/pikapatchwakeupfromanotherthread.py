@@ -65,8 +65,8 @@ class PikaPatchWakeUpFromAnotherThread:
         try:
             callback(**kwargs)
         except:
-            _logger.error('Error while processing command %(command)s arguments %(kwargs)s', dict(
-                command=command, kwargs=kwargs))
+            _logger.exception('Error while processing command %(command)s arguments %(kwargs)s', dict(
+                command=callback, kwargs=kwargs))
 
     def _suicide(self):
         os.kill(os.getpid(), signal.SIGTERM)

@@ -13,6 +13,7 @@ from inaugurator.server import config
 from inaugurator import talktoserver
 config.PORT = 2018
 config.AMQP_URL = "amqp://guest:guest@localhost:%d/%%2F" % config.PORT
+import mock
 
 
 class Test(unittest.TestCase):
@@ -69,6 +70,48 @@ class Test(unittest.TestCase):
         finally:
             tested.close()
 
+    def test_StopListening(self):
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        try:
+            tested.listenOnID("yuvu")
+            self.sendCheckIn("yuvu")
+            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments), [("yuvu",)])
+            tested.stopListeningOnID("yuvu")
+            self.sendCheckIn("yuvu")
+            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments), [("yuvu",)])
+            tested.listenOnID("yuvu")
+            self.sendCheckIn("yuvu")
+            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments), [("yuvu",), ("yuvu",)])
+            self.assertEquals(self.doneCallbackArguments, [])
+            self.assertEquals(self.progressCallbackArguments, [])
+        finally:
+            tested.close()
+
+    def test_StopListeningDoesNotAffectAnotherServer(self):
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        try:
+            tested.listenOnID("yuvu")
+            tested.listenOnID("jakarta")
+            self.sendCheckIn("yuvu")
+            self.sendCheckIn("jakarta")
+            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments),
+                                           [("yuvu",), ("jakarta",)])
+            tested.stopListeningOnID("yuvu")
+            self.sendCheckIn("yuvu")
+            self.sendCheckIn("jakarta")
+            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments),
+                                           [("yuvu",), ("jakarta",), ("jakarta",)])
+            tested.listenOnID("yuvu")
+            self.sendCheckIn("yuvu")
+            self.sendCheckIn("jakarta")
+            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments),
+                                           [("yuvu",), ("jakarta",), ("jakarta",), ("yuvu",), ("jakarta",)])
+            self.assertEquals(self.doneCallbackArguments, [])
+            self.assertEquals(self.progressCallbackArguments, [])
+        finally:
+            self.assertTrue(tested.isAlive())
+            tested.close()
+
     def test_SendCommand(self):
         tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
         try:
@@ -76,6 +119,18 @@ class Test(unittest.TestCase):
             talk = talktoserver.TalkToServer(config.AMQP_URL, "eliran")
             tested.provideLabel("eliran", "fake label")
             self.assertEquals(talk.label(), "fake label")
+        finally:
+            tested.close()
+
+    def test_ExceptionInCallbackDoesNotCrashServer(self):
+        raiseExceptionMock = mock.Mock()
+        raiseExceptionMock.side_effect = Exception("I'm an exception")
+        tested = server.Server(raiseExceptionMock, self.doneCallback, self.progressCallback)
+        try:
+            tested.listenOnID("yuvu")
+            self.sendCheckIn("yuvu")
+            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments), [])
+            self.assertTrue(tested.isAlive())
         finally:
             tested.close()
 
