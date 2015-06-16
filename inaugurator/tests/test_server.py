@@ -16,6 +16,8 @@ from inaugurator.server import config
 from inaugurator import talktoserver
 config.PORT = 2018
 config.AMQP_URL = "amqp://guest:guest@localhost:%d/%%2F" % config.PORT
+import pika
+import uuid
 
 
 class Test(unittest.TestCase):
@@ -58,6 +60,17 @@ class Test(unittest.TestCase):
     def sendCheckIn(self, id):
         talk = talktoserver.TalkToServer(config.AMQP_URL, id)
         talk.checkIn()
+        talk.close()
+
+    def sendProgress(self, id, message):
+        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
+        talk.progress(message)
+        talk.close()
+
+    def sendDone(self, id):
+        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
+        talk.done()
+        talk.close()
 
     def sendProgress(self, id, message):
         talk = talktoserver.TalkToServer(config.AMQP_URL, id)
@@ -148,6 +161,28 @@ class Test(unittest.TestCase):
         finally:
             tested.close()
 
+    def test_Progress(self):
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        try:
+            tested.listenOnID("eliran")
+            self.sendProgress("eliran", "lots-of")
+            self.assertEqualsWithinTimeout((lambda: self.progressCallbackArguments), [("eliran", "lots-of")])
+            self.assertEquals(self.doneCallbackArguments, [])
+            self.assertEquals(self.checkInCallbackArguments, [])
+        finally:
+            tested.close()
+
+    def test_Done(self):
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        try:
+            tested.listenOnID("eliran")
+            self.sendDone("eliran")
+            self.assertEqualsWithinTimeout((lambda: self.doneCallbackArguments), [("eliran",)])
+            self.assertEquals(self.progressCallbackArguments, [])
+            self.assertEquals(self.checkInCallbackArguments, [])
+        finally:
+            tested.close()
+
     def test_SendCommand(self):
         tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
         try:
@@ -156,6 +191,7 @@ class Test(unittest.TestCase):
             tested.provideLabel("eliran", "fake label")
             self.assertEquals(talk.label(), "fake label")
         finally:
+            talk.close()
             tested.close()
 
     def checkInAndCheckIfMessageArrived(self, id):
@@ -211,6 +247,19 @@ class Test(unittest.TestCase):
             self.sendCheckIn("yuvu")
             self.assertEqualsWithinTimeout((lambda: badCheckInCallback.call_args[0]), ("yuvu",))
         finally:
+            tested.close()
+
+    def test_ProvideLabel(self):
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        try:
+            tested.listenOnID("yuvu")
+            self.sendCheckIn("yuvu")
+            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments), [("yuvu",)])
+            talk = talktoserver.TalkToServer(config.AMQP_URL, "yuvu")
+            tested.provideLabel("yuvu", "thecoolestlabel")
+            self.assertEquals(talk.label(), "thecoolestlabel")
+        finally:
+            talk.close()
             tested.close()
 
 if __name__ == '__main__':
