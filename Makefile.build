@@ -15,6 +15,7 @@ build/inaugurator.%.initrd.img: build/inaugurator.%.initrd.dir
 	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
 	mv $@.tmp $@
 
+PIKA_EGG_FILENAME = pika-stable/pika-0.10.0p0-py2.7-commitref-7f222c29abe.egg
 build/inaugurator.thin.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz 
 	-mkdir $(@D)
 	-rm -fr $@.tmp $@
@@ -36,8 +37,8 @@ build/inaugurator.thin.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz ../o
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/libnss_dns*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/share/hwdata/pci.ids
 	echo "Copying pika:"
-	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib/python2.7/site-packages/pika/*.py
-	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib/python2.7/site-packages/pika/adapters/*.py
+	mkdir $@.tmp/usr/share/inaugurator -p
+	cp $(PIKA_EGG_FILENAME) $@.tmp/usr/share/inaugurator
 	echo "Copying executables"
 	DEST=$@.tmp sh/relative_copy_executable.sh /bin/bash
 	DEST=$@.tmp sh/relative_copy_executable.sh /bin/sh

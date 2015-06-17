@@ -26,6 +26,7 @@ install_nodeps:
 	-yes | sudo pip uninstall inaugurator
 	sudo python setup.py install
 	sudo cp $(PRODUCTS) /usr/share/inaugurator
+	sudo cp $(PIKA_EGG_FILENAME) /usr/share/inaugurator
 	sudo chmod 644 /usr/share/inaugurator/*
 
 prepareForCleanBuild:
