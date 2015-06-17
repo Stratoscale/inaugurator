@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.insert(0, os.path.join('usr', 'share', 'inaugurator',
+                                'pika-0.10.0p0-py2.7-commitref-7f222c29abe.egg'))
 from inaugurator import ceremony
 import argparse
 import traceback
