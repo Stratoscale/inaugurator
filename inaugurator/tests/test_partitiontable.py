@@ -132,7 +132,7 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''lvm pvcreate /dev/sda2''', ""))
         self.expectedCommands.append(('''lvm vgcreate inaugurator /dev/sda2''', ""))
         self.expectedCommands.append(('''lvm lvcreate --zero n --name swap --size 8G inaugurator''', ""))
-        self.expectedCommands.append(('''lvm lvcreate --zero n --name root --size 30G inaugurator''', ""))
+        self.expectedCommands.append(('''lvm lvcreate --zero n --name root --size 15G inaugurator''', ""))
         self.expectedCommands.append(('''lvm vgscan --mknodes''', ""))
         self.expectedCommands.append(('''pathExists: /dev/inaugurator/swap''', ""))
         self.expectedCommands.append(('''mkswap /dev/inaugurator/swap -L SWAP''', ""))
