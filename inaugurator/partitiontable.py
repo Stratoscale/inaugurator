@@ -9,8 +9,8 @@ class PartitionTable:
     _DEFAULT_SIZES_GB = dict(
         smallSwap=1,
         bigSwap=8,
-        minimumRoot=14,
-        createRoot=30)
+        minimumRoot=12,
+        createRoot=15)
     _BOOT_SIZE_MB = 256
     VOLUME_GROUP = "inaugurator"
 

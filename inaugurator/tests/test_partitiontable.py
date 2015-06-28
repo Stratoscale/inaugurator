@@ -89,14 +89,10 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''lvm lvcreate --zero n --name swap --size 1G inaugurator''', ""))
         self.expectedCommands.append((
             '''lvm lvcreate --zero n --name root --extents 100%FREE inaugurator''', ""))
-<<<<<<< HEAD
-        self.validateVolumesCreation()
-=======
         self.expectedCommands.append(('''lvm vgscan --mknodes''', ""))
         self.expectedCommands.append(('''pathExists: /dev/inaugurator/swap''', ""))
         self.expectedCommands.append(('''mkswap /dev/inaugurator/swap -L SWAP''', ""))
         self.expectedCommands.append(('''pathExists: /dev/inaugurator/root''', ""))
->>>>>>> Fixed failing unit test
         self.expectedCommands.append(('''mkfs.ext4 /dev/inaugurator/root -L ROOT''', ""))
         goodPartitionTable = "\n".join([
             "# partition table of /dev/sda",
@@ -142,15 +138,11 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''lvm pvcreate /dev/sda2''', ""))
         self.expectedCommands.append(('''lvm vgcreate inaugurator /dev/sda2''', ""))
         self.expectedCommands.append(('''lvm lvcreate --zero n --name swap --size 8G inaugurator''', ""))
-        self.expectedCommands.append(('''lvm lvcreate --zero n --name root --size 30G inaugurator''', ""))
-<<<<<<< HEAD
-        self.validateVolumesCreation()
-=======
+        self.expectedCommands.append(('''lvm lvcreate --zero n --name root --size 15G inaugurator''', ""))
         self.expectedCommands.append(('''lvm vgscan --mknodes''', ""))
         self.expectedCommands.append(('''pathExists: /dev/inaugurator/swap''', ""))
         self.expectedCommands.append(('''mkswap /dev/inaugurator/swap -L SWAP''', ""))
         self.expectedCommands.append(('''pathExists: /dev/inaugurator/root''', ""))
->>>>>>> Fixed failing unit test
         self.expectedCommands.append(('''mkfs.ext4 /dev/inaugurator/root -L ROOT''', ""))
         goodPartitionTable = "\n".join([
             "# partition table of /dev/sda",
