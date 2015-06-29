@@ -3,16 +3,23 @@ import unittest
 import inaugurator
 from inaugurator.partitiontable import PartitionTable
 from inaugurator import sh
+import os
 
 
 class Test(unittest.TestCase):
     def setUp(self):
         self.expectedCommands = []
         sh.run = self.runShell
-        inaugurator.partitiontable.os.path.exists = self.fakeOSExists
-        self.fakeExistingPaths = set()
+        os.path.exists = self.pathExists
+
+    def pathExists(self, path):
+        self._validateCommand("pathExists: %s" % path)
+        return True
 
     def runShell(self, command):
+        return self._validateCommand(command)
+
+    def _validateCommand(self, command):
         foundList = [x for x in self.expectedCommands if x[0] == command]
         if len(foundList) == 0:
             raise Exception("Command '%s' is not in expected commands" % command)
@@ -76,12 +83,20 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''busybox mdev -s''', ""))
         self.expectedCommands.append(('''sfdisk -s /dev/sda''', '%d\n' % (16 * 1024 * 1024)))
         self.expectedCommands.append(('''mkfs.ext4 /dev/sda1 -L BOOT''', ""))
+        self.expectedCommands.append(('''lvm vgremove -f inaugurator''', ""))
         self.expectedCommands.append(('''lvm pvcreate /dev/sda2''', ""))
         self.expectedCommands.append(('''lvm vgcreate inaugurator /dev/sda2''', ""))
         self.expectedCommands.append(('''lvm lvcreate --zero n --name swap --size 1G inaugurator''', ""))
         self.expectedCommands.append((
             '''lvm lvcreate --zero n --name root --extents 100%FREE inaugurator''', ""))
+<<<<<<< HEAD
         self.validateVolumesCreation()
+=======
+        self.expectedCommands.append(('''lvm vgscan --mknodes''', ""))
+        self.expectedCommands.append(('''pathExists: /dev/inaugurator/swap''', ""))
+        self.expectedCommands.append(('''mkswap /dev/inaugurator/swap -L SWAP''', ""))
+        self.expectedCommands.append(('''pathExists: /dev/inaugurator/root''', ""))
+>>>>>>> Fixed failing unit test
         self.expectedCommands.append(('''mkfs.ext4 /dev/inaugurator/root -L ROOT''', ""))
         goodPartitionTable = "\n".join([
             "# partition table of /dev/sda",
@@ -123,11 +138,19 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''busybox mdev -s''', ""))
         self.expectedCommands.append(('''sfdisk -s /dev/sda''', '%d\n' % (128 * 1024 * 1024)))
         self.expectedCommands.append(('''mkfs.ext4 /dev/sda1 -L BOOT''', ""))
+        self.expectedCommands.append(('''lvm vgremove -f inaugurator''', ""))
         self.expectedCommands.append(('''lvm pvcreate /dev/sda2''', ""))
         self.expectedCommands.append(('''lvm vgcreate inaugurator /dev/sda2''', ""))
         self.expectedCommands.append(('''lvm lvcreate --zero n --name swap --size 8G inaugurator''', ""))
         self.expectedCommands.append(('''lvm lvcreate --zero n --name root --size 30G inaugurator''', ""))
+<<<<<<< HEAD
         self.validateVolumesCreation()
+=======
+        self.expectedCommands.append(('''lvm vgscan --mknodes''', ""))
+        self.expectedCommands.append(('''pathExists: /dev/inaugurator/swap''', ""))
+        self.expectedCommands.append(('''mkswap /dev/inaugurator/swap -L SWAP''', ""))
+        self.expectedCommands.append(('''pathExists: /dev/inaugurator/root''', ""))
+>>>>>>> Fixed failing unit test
         self.expectedCommands.append(('''mkfs.ext4 /dev/inaugurator/root -L ROOT''', ""))
         goodPartitionTable = "\n".join([
             "# partition table of /dev/sda",
