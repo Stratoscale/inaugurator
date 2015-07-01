@@ -101,8 +101,7 @@ class Test(unittest.TestCase):
         tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
         try:
             tested.listenOnID("eliran")
-            self.sendCheckIn("eliran")
-            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments), [("eliran",)])
+            self.validateCheckIn(tested, "eliran")
             self.assertEquals(self.doneCallbackArguments, [])
             self.assertEquals(self.progressCallbackArguments, [])
         finally:
@@ -127,7 +126,6 @@ class Test(unittest.TestCase):
         try:
             tested.listenOnID("jakarta")
             tested.listenOnID("yuvu")
-            self.sendCheckIn("yuvu")
             self.validateCheckIn(tested, "yuvu")
             self.validateCheckIn(tested, "jakarta")
             self.invokeStopListeningAndWaitTillDone(tested, "yuvu")
@@ -165,8 +163,7 @@ class Test(unittest.TestCase):
         tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
         try:
             tested.listenOnID("eliran")
-            self.sendProgress("eliran", "lots-of")
-            self.assertEqualsWithinTimeout((lambda: self.progressCallbackArguments), [("eliran", "lots-of")])
+            self.validateProgress(tested, "eliran", "awesome-progress-message")
             self.assertEquals(self.doneCallbackArguments, [])
             self.assertEquals(self.checkInCallbackArguments, [])
         finally:
@@ -176,8 +173,7 @@ class Test(unittest.TestCase):
         tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
         try:
             tested.listenOnID("eliran")
-            self.sendDone("eliran")
-            self.assertEqualsWithinTimeout((lambda: self.doneCallbackArguments), [("eliran",)])
+            self.validateDone(tested, "eliran")
             self.assertEquals(self.progressCallbackArguments, [])
             self.assertEquals(self.checkInCallbackArguments, [])
         finally:
@@ -189,22 +185,45 @@ class Test(unittest.TestCase):
             tested.listenOnID("eliran")
             talk = talktoserver.TalkToServer(config.AMQP_URL, "eliran")
             tested.provideLabel("eliran", "fake label")
-            self.assertEquals(talk.label(), "fake label")
+            self.assertEqualsWithinTimeout(talk.label, "fake label")
         finally:
             talk.close()
             tested.close()
 
-    def checkInAndCheckIfMessageArrived(self, id):
-        self.sendCheckIn(id)
-        return (id,) in self.checkInCallbackArguments
+    def sendOneStatusMessageAndCheckArrival(self, sendMethod, callbackArguments, id, extraArgs):
+        if extraArgs is None:
+            extraArgs = tuple()
+        sendMethod(id, *extraArgs)
+        hasMessageArrived = (id,) + extraArgs in callbackArguments
+        return hasMessageArrived
 
-    def validateCheckIn(self, tested, id):
-        self.assertEqualsWithinTimeout(functools.partial(self.checkInAndCheckIfMessageArrived, id), True)
-        self.waitTillStatusQueueIsCleanByAbusingProgressCallbacks(id, tested)
-        self.checkInCallbackArguments = []
+    def validateStatusMessageArrival(self, tested, statusMessageType, id, extraArgs=None,
+                                     isArrivalExpected=True):
+        statusMessageTypes = dict(checkin=(self.sendCheckIn, self.checkInCallbackArguments),
+                                  progress=(self.sendProgress, self.progressCallbackArguments),
+                                  done=(self.sendDone, self.doneCallbackArguments))
+        sendMethod, callbackArguments = statusMessageTypes[statusMessageType]
+        validateMethod = functools.partial(self.sendOneStatusMessageAndCheckArrival, sendMethod,
+                                           callbackArguments, id, extraArgs)
+        if isArrivalExpected:
+            self.assertEqualsWithinTimeout(validateMethod, True)
+            self.waitTillStatusQueueIsCleanByAbusingProgressCallbacks(id, tested)
+            while callbackArguments:
+                callbackArguments.pop()
+        else:
+            self.assertEqualsDuringPeriod(validateMethod, False)
 
     def validateCheckInDoesNotWork(self, tested, id):
-        self.assertEqualsDuringPeriod(functools.partial(self.checkInAndCheckIfMessageArrived, id), False)
+        self.validateStatusMessageArrival(tested, "checkin", id, isArrivalExpected=False)
+
+    def validateCheckIn(self, tested, id):
+        self.validateStatusMessageArrival(tested, "checkin", id)
+
+    def validateProgress(self, tested, id, message):
+        self.validateStatusMessageArrival(tested, "progress", id, extraArgs=(message,))
+
+    def validateDone(self, tested, id):
+        self.validateStatusMessageArrival(tested, "done", id)
 
     def waitTillStatusQueueIsCleanByAbusingProgressCallbacks(self, idWhichIsListenedTo, tested):
         self.unreportedProgressMessageEvent = threading.Event()
@@ -218,7 +237,7 @@ class Test(unittest.TestCase):
             dict(counter=self.auxIDCounter)
         self.auxIDCounter += 1
         tested.listenOnID(auxID)
-        self.validateCheckIn(tested, auxID)
+        self.validateStatusMessageArrival(tested, "checkin", auxID)
 
     def invokeStopListeningAndWaitTillDone(self, tested, id):
         tested.stopListeningOnID(id)
@@ -233,19 +252,16 @@ class Test(unittest.TestCase):
             tested.listenOnID("yuvu")
             self.validateCheckInDoesNotWork(tested, "yuvu")
             self.assertGreater(badCheckInCallback.call_count, 0)
-            IDsWithCheckInAttempts = set([arg[0][0] for arg in badCheckInCallback.call_args_list])
-            self.assertEquals(IDsWithCheckInAttempts, set(["yuvu"]))
-            self.sendProgress("yuvu", "noprogress")
-            self.assertEqualsDuringPeriod((lambda: self.progressCallbackArguments), [])
-            badProgressCallback.assert_called_once_with("yuvu", "noprogress")
-            self.sendDone("yuvu")
-            self.assertEqualsDuringPeriod((lambda: self.doneCallbackArguments), [])
-            badDoneCallback.assert_called_once_with("yuvu")
+            checkInAttemptsArgs = set([arg[0] for arg in badCheckInCallback.call_args_list])
+            self.assertEquals(checkInAttemptsArgs, set([("yuvu",)]))
+            self.validateStatusMessageArrival(tested, "progress", "yuvu", isArrivalExpected=False,
+                                              extraArgs=("fake progress message",))
+            progressAttemptArgs = set([arg[0] for arg in badProgressCallback.call_args_list])
+            self.assertEquals(set([("yuvu", "fake progress message")]), progressAttemptArgs)
+            self.validateStatusMessageArrival(tested, "done", "yuvu", isArrivalExpected=False)
+            doneAttemptArgs = set([arg[0] for arg in badDoneCallback.call_args_list])
+            self.assertEquals(set([("yuvu",)]), doneAttemptArgs)
             self.assertTrue(tested.isAlive())
-            badCheckInCallback.reset_mock()
-            badCheckInCallback.side_effect = None
-            self.sendCheckIn("yuvu")
-            self.assertEqualsWithinTimeout((lambda: badCheckInCallback.call_args[0]), ("yuvu",))
         finally:
             tested.close()
 
@@ -253,11 +269,10 @@ class Test(unittest.TestCase):
         tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
         try:
             tested.listenOnID("yuvu")
-            self.sendCheckIn("yuvu")
-            self.assertEqualsWithinTimeout((lambda: self.checkInCallbackArguments), [("yuvu",)])
+            self.validateCheckIn(tested, "yuvu")
             talk = talktoserver.TalkToServer(config.AMQP_URL, "yuvu")
             tested.provideLabel("yuvu", "thecoolestlabel")
-            self.assertEquals(talk.label(), "thecoolestlabel")
+            self.assertEqualsWithinTimeout(talk.label, "thecoolestlabel")
         finally:
             talk.close()
             tested.close()
