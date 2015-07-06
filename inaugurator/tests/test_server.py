@@ -7,6 +7,7 @@ import os
 import sys
 import functools
 import threading
+import mock
 assert 'usr' not in __file__.split(os.path.sep)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from inaugurator.server import server
@@ -61,6 +62,10 @@ class Test(unittest.TestCase):
     def sendProgress(self, id, message):
         talk = talktoserver.TalkToServer(config.AMQP_URL, id)
         talk.progress(message)
+
+    def sendDone(self, id):
+        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
+        talk.done()
 
     def assertEqualsWithinTimeout(self, callback, expected, interval=0.1, timeout=3):
         before = time.time()
@@ -183,6 +188,30 @@ class Test(unittest.TestCase):
         tested.stopListeningOnID(id)
         self.waitTillAllCommandsWereExecutedByTheServer(tested)
 
+    def test_ExceptionInCallbackDoesNotCrashServer(self):
+        badCheckInCallback = mock.Mock(side_effect=Exception("Exception during checkin, ignore me"))
+        badProgressCallback = mock.Mock(side_effect=Exception("Exception during progress, ignore me"))
+        badDoneCallback = mock.Mock(side_effect=Exception("Exception during done, ignore me"))
+        tested = server.Server(badCheckInCallback, badDoneCallback, badProgressCallback)
+        try:
+            tested.listenOnID("yuvu")
+            self.validateCheckInDoesNotWork(tested, "yuvu")
+            self.assertGreater(badCheckInCallback.call_count, 0)
+            IDsWithCheckInAttempts = set([arg[0][0] for arg in badCheckInCallback.call_args_list])
+            self.assertEquals(IDsWithCheckInAttempts, set(["yuvu"]))
+            self.sendProgress("yuvu", "noprogress")
+            self.assertEqualsDuringPeriod((lambda: self.progressCallbackArguments), [])
+            badProgressCallback.assert_called_once_with("yuvu", "noprogress")
+            self.sendDone("yuvu")
+            self.assertEqualsDuringPeriod((lambda: self.doneCallbackArguments), [])
+            badDoneCallback.assert_called_once_with("yuvu")
+            self.assertTrue(tested.isAlive())
+            badCheckInCallback.reset_mock()
+            badCheckInCallback.side_effect = None
+            self.sendCheckIn("yuvu")
+            self.assertEqualsWithinTimeout((lambda: badCheckInCallback.call_args[0]), ("yuvu",))
+        finally:
+            tested.close()
 
 if __name__ == '__main__':
     unittest.main()
