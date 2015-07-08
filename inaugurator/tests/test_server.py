@@ -5,6 +5,7 @@ import time
 import subprocess
 import os
 import sys
+import mock
 assert 'usr' not in __file__.split(os.path.sep)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from inaugurator.server import server
@@ -48,6 +49,14 @@ class Test(unittest.TestCase):
         talk = talktoserver.TalkToServer(config.AMQP_URL, id)
         talk.checkIn()
 
+    def sendProgress(self, id, message):
+        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
+        talk.progress(message)
+
+    def sendDone(self, id):
+        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
+        talk.done()
+
     def assertEqualsWithinTimeout(self, callback, expected, interval=0.1, timeout=3):
         before = time.time()
         while time.time() < before + timeout:
@@ -56,6 +65,13 @@ class Test(unittest.TestCase):
                     return
             except:
                 time.sleep(interval)
+        self.assertEquals(callback(), expected)
+
+    def assertEqualsDuringPeriod(self, callback, expected, interval=0.1, period=1):
+        before = time.time()
+        while time.time() < before + period:
+            self.assertEquals(callback(), expected)
+            time.sleep(interval)
         self.assertEquals(callback(), expected)
 
     def test_CheckIn(self):
@@ -79,6 +95,30 @@ class Test(unittest.TestCase):
         finally:
             tested.close()
 
+    def test_ExceptionInCallbackDoesNotCrashServer(self):
+        raiseExceptionMock = mock.Mock(side_effect=Exception("I'm an exception, ignore me"))
+        tested = server.Server(raiseExceptionMock, raiseExceptionMock, raiseExceptionMock)
+        try:
+            tested.listenOnID("yuvu")
+            self.sendCheckIn("yuvu")
+            self.assertEqualsDuringPeriod((lambda: self.checkInCallbackArguments), [])
+            raiseExceptionMock.assert_called_once_with("yuvu")
+            raiseExceptionMock.reset_mock()
+            self.sendProgress("yuvu", "noprogress")
+            self.assertEqualsDuringPeriod((lambda: self.progressCallbackArguments), [])
+            raiseExceptionMock.assert_called_once_with("yuvu", "noprogress")
+            raiseExceptionMock.reset_mock()
+            self.sendDone("yuvu")
+            self.assertEqualsDuringPeriod((lambda: self.doneCallbackArguments), [])
+            raiseExceptionMock.assert_called_once_with("yuvu")
+            raiseExceptionMock.reset_mock()
+            self.assertTrue(tested.isAlive())
+            raiseExceptionMock.reset_mock()
+            raiseExceptionMock.side_effect = None
+            self.sendCheckIn("yuvu")
+            self.assertEqualsWithinTimeout((lambda: raiseExceptionMock.call_args[0]), ("yuvu",))
+        finally:
+            tested.close()
 
 if __name__ == '__main__':
     unittest.main()
