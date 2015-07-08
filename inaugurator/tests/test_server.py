@@ -72,14 +72,6 @@ class Test(unittest.TestCase):
         talk.done()
         talk.close()
 
-    def sendProgress(self, id, message):
-        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
-        talk.progress(message)
-
-    def sendDone(self, id):
-        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
-        talk.done()
-
     def assertEqualsWithinTimeout(self, callback, expected, interval=0.1, timeout=3):
         before = time.time()
         while time.time() < before + timeout:
