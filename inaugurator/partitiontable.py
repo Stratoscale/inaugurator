@@ -10,6 +10,7 @@ class PartitionTable:
         smallSwap=1,
         bigSwap=8,
         minimumRoot=12,
+        maximumRoot=18,
         createRoot=15)
     _BOOT_SIZE_MB = 256
     VOLUME_GROUP = "inaugurator"
@@ -143,6 +144,8 @@ class PartitionTable:
             return "Unable to parse physical volume/s"
         if root['sizeMB'] <= self._sizesGB['minimumRoot'] * 1024 * 0.9:
             return "Root partition is too small"
+        if root['sizeMB'] >= self._sizesGB['maximumRoot'] * 1024 * 1.1:
+            return "Root partition is too big"
         if self._diskSizeMB() / 1024 >= self._sizesGB['createRoot'] + self._sizesGB['bigSwap']:
             minimumSwapSizeGB = self._sizesGB['bigSwap']
         else:

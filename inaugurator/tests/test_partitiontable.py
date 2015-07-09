@@ -162,7 +162,7 @@ class Test(unittest.TestCase):
             'lvm lvdisplay --units m --columns /dev/inaugurator/swap', correctSwap))
         correctRoot = "\n".join([
             "  LV   VG          Attr      LSize  Pool Origin Data%  Move Log Copy%  Convert",
-            "  root inaugurator -wi-a---- 30720.00m",
+            "  root inaugurator -wi-a---- 15360.00m",
             ""])
         self.expectedCommands.append((
             'lvm lvdisplay --units m --columns /dev/inaugurator/root', correctRoot))
