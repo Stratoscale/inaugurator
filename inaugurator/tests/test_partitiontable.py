@@ -89,10 +89,7 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''lvm lvcreate --zero n --name swap --size 1G inaugurator''', ""))
         self.expectedCommands.append((
             '''lvm lvcreate --zero n --name root --extents 100%FREE inaugurator''', ""))
-        self.expectedCommands.append(('''lvm vgscan --mknodes''', ""))
-        self.expectedCommands.append(('''pathExists: /dev/inaugurator/swap''', ""))
-        self.expectedCommands.append(('''mkswap /dev/inaugurator/swap -L SWAP''', ""))
-        self.expectedCommands.append(('''pathExists: /dev/inaugurator/root''', ""))
+        self.validateVolumesCreation()
         self.expectedCommands.append(('''mkfs.ext4 /dev/inaugurator/root -L ROOT''', ""))
         goodPartitionTable = "\n".join([
             "# partition table of /dev/sda",
@@ -139,10 +136,7 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''lvm vgcreate inaugurator /dev/sda2''', ""))
         self.expectedCommands.append(('''lvm lvcreate --zero n --name swap --size 8G inaugurator''', ""))
         self.expectedCommands.append(('''lvm lvcreate --zero n --name root --size 15G inaugurator''', ""))
-        self.expectedCommands.append(('''lvm vgscan --mknodes''', ""))
-        self.expectedCommands.append(('''pathExists: /dev/inaugurator/swap''', ""))
-        self.expectedCommands.append(('''mkswap /dev/inaugurator/swap -L SWAP''', ""))
-        self.expectedCommands.append(('''pathExists: /dev/inaugurator/root''', ""))
+        self.validateVolumesCreation()
         self.expectedCommands.append(('''mkfs.ext4 /dev/inaugurator/root -L ROOT''', ""))
         goodPartitionTable = "\n".join([
             "# partition table of /dev/sda",
@@ -168,7 +162,7 @@ class Test(unittest.TestCase):
             'lvm lvdisplay --units m --columns /dev/inaugurator/swap', correctSwap))
         correctRoot = "\n".join([
             "  LV   VG          Attr      LSize  Pool Origin Data%  Move Log Copy%  Convert",
-            "  root inaugurator -wi-a---- 30720.00m",
+            "  root inaugurator -wi-a---- 15360.00m",
             ""])
         self.expectedCommands.append((
             'lvm lvdisplay --units m --columns /dev/inaugurator/root', correctRoot))
@@ -194,6 +188,8 @@ class Test(unittest.TestCase):
         createPathCallback = self.generateCreatePathCallback(rootPath)
         self.expectedCommands.append(('''mkswap %(path)s -L SWAP''' % dict(path=swapPath),
                                      createPathCallback))
+        self.expectedCommands.append(('''pathExists: /dev/inaugurator/swap''', ""))
+        self.expectedCommands.append(('''pathExists: /dev/inaugurator/root''', ""))
 
 
 if __name__ == '__main__':
