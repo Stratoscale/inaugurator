@@ -81,7 +81,6 @@ build/inaugurator.thin.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz ../o
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.builtin
 	depmod --basedir=$@.tmp $(KERNEL_VERSION)
 	echo "Misc"
-	ln -s /usr/sbin/busybox $@.tmp/usr/sbin/insmod
 	DEST=$@.tmp sh/relative_copy_glob.sh etc/*
 	DEST=$@.tmp sh/relative_copy_glob.sh init
 	mkdir -p $@.tmp/run/udev
