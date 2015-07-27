@@ -38,6 +38,7 @@ class Test(unittest.TestCase):
         self.progressCallbackArguments = []
         self.progressWaitEvents = dict()
         self.unreportedProgressMessageEvent = None
+        self.auxLabelIDCounter = 0
 
     def tearDown(self):
         self.rabbitMQWrapper.cleanup()
@@ -227,10 +228,9 @@ class Test(unittest.TestCase):
             raise AssertionError("Progress callback was not invoked at time")
 
     def waitTillAllCommandsWereExecutedByTheServer(self, tested):
-        self.auxIDCounter = 0
         auxID = "IDWhichIsUsedToValidateThatTheServerHasFinishedAllPendingCommands_%(counter)s" % \
-            dict(counter=self.auxIDCounter)
-        self.auxIDCounter += 1
+            dict(counter=self.auxLabelIDCounter)
+        self.auxLabelIDCounter += 1
         tested.listenOnID(auxID)
         self.validateStatusMessageArrival(tested, "checkin", auxID)
 
