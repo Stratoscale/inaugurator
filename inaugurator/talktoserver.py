@@ -5,6 +5,10 @@ import logging
 import threading
 
 
+class CannotReuseTalkToServerAfterDone(Exception):
+    pass
+
+
 class TalkToServerSpooler(threading.Thread):
     def __init__(self, amqpURL, statusExchange, labelExchange):
         super(TalkToServerSpooler, self).__init__()
@@ -13,6 +17,7 @@ class TalkToServerSpooler(threading.Thread):
         self._labelExchange = labelExchange
         self._labelQueue = None
         self._queue = Queue.Queue()
+        self._isFinished = False
         self._connect(amqpURL)
         threading.Thread.start(self)
 
@@ -21,6 +26,9 @@ class TalkToServerSpooler(threading.Thread):
 
     def getLabel(self):
         return self._executeCommandInConnectionThread(self._getLabel)
+
+    def cleanUpResources(self):
+        return self._executeCommandInConnectionThread(self._cleanUpResources)
 
     def run(self):
         logging.info("Inaugurator TalkToServer Spooler is waiting for commands...")
@@ -32,11 +40,14 @@ class TalkToServerSpooler(threading.Thread):
                 continue
             try:
                 returnValue.data = command(**kwargs)
-                self._connection.process_data_events()
+                if not self._isFinished:
+                    self._connection.process_data_events()
             except Exception as e:
                 returnValue.exception = e
             finally:
                 finishedEvent.set()
+                if self._isFinished:
+                    break
 
     def _connect(self, amqpURL):
         logging.info("Inaugurator Publish Spooler connects to rabbit MQ %(url)s...", dict(url=amqpURL))
@@ -63,12 +74,30 @@ class TalkToServerSpooler(threading.Thread):
         self._receivedLabel = body
         self._channel.stop_consuming()
 
+    def _cleanUpResources(self):
+        logging.info("Deleting the label queue...")
+        try:
+            self._channel.queue_delete(queue=self._labelQueue)
+            logging.info("Label queue deleted.")
+        except:
+            logging.exception("An error occurred while deleting the label queue. ignoring.")
+        logging.info("Closing the connection to RabbitMQ...")
+        try:
+            self._connection.close()
+            logging.info("Connection closed.")
+        except:
+            logging.exception("An error occurred while closing the connection. ignoring.")
+        self._isFinished = True
+
     def _getLabel(self, **kwargs):
         self._channel.basic_consume(self._labelCallback, queue=self._labelQueue, no_ack=True)
         self._channel.start_consuming()
         return self._receivedLabel
 
     def _executeCommandInConnectionThread(self, function, **kwargs):
+        if self._isFinished:
+            raise CannotReuseTalkToServerAfterDone()
+
         class ReturnValue(object):
             def __init__(self):
                 self.data = None
@@ -100,6 +129,7 @@ class TalkToServer:
     def done(self):
         logging.info("talking to server: done")
         self._spooler.publishStatus(status="done", id=self._myID)
+        self._spooler.cleanUpResources()
 
     def label(self):
         return self._spooler.getLabel()

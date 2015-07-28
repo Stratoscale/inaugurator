@@ -9,6 +9,7 @@ import threading
 import mock
 import patchsyspath
 import logging
+import pika
 from inaugurator.server import server
 from inaugurator.server import rabbitmqwrapper
 from inaugurator.server import config
@@ -237,6 +238,40 @@ class Test(unittest.TestCase):
             self.assertEqual(talk.label(), "theCoolestLabel")
             self.validateCheckIn(tested, "yuvu")
         finally:
+            tested.close()
+
+    def test_CannotReuseTalkToServerAfterDone(self):
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        try:
+            tested.listenOnID("yuvu")
+            talk = talktoserver.TalkToServer(config.AMQP_URL, "yuvu")
+            tested.provideLabel("yuvu", "theCoolestLabel")
+            self.assertEqual(talk.label(), "theCoolestLabel")
+            talk.done()
+            self.assertRaises(talktoserver.CannotReuseTalkToServerAfterDone, talk.label)
+        finally:
+            tested.close()
+
+    def test_FailureDuringTalkToServerCleanUpDoesNotCauseCrash(self):
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        origQueueDelete = pika.channel.Channel.queue_delete
+        origConnectionClose = pika.adapters.blocking_connection.BlockingConnection.close
+        try:
+            tested.listenOnID("yuvu")
+            pika.channel.Channel.queue_delete = mock.Mock(side_effect=Exception("ignore me"))
+            talk = talktoserver.TalkToServer(config.AMQP_URL, "yuvu")
+            tested.provideLabel("yuvu", "theCoolestLabel")
+            self.assertEqual(talk.label(), "theCoolestLabel")
+            pika.adapters.blocking_connection.BlockingConnection.close = \
+                mock.Mock(side_effect=Exception("ignore me too"))
+            talk = talktoserver.TalkToServer(config.AMQP_URL, "yuvu")
+            tested.provideLabel("yuvu", "yetAnotherCoolLabel")
+            self.assertEqual(talk.label(), "yetAnotherCoolLabel")
+            talk.done()
+            self.assertRaises(talktoserver.CannotReuseTalkToServerAfterDone, talk.label)
+        finally:
+            pika.channel.Channel.queue_delete = origQueueDelete
+            pika.adapters.blocking_connection.BlockingConnection.close = origConnectionClose
             tested.close()
 
     def sendOneStatusMessageAndCheckArrival(self, sendMethod, callbackArguments, id, extraArgs):
