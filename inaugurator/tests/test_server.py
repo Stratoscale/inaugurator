@@ -8,6 +8,7 @@ import functools
 import threading
 import mock
 import patchsyspath
+import logging
 from inaugurator.server import server
 from inaugurator.server import rabbitmqwrapper
 from inaugurator.server import config
@@ -22,6 +23,7 @@ class Test(unittest.TestCase):
     UNREPORTED_PROGRESS_MESSAGE = "unreportedProgressMessage"
 
     def setUp(self):
+        self._logger = logging.getLogger("inaugurator.server")
         output = subprocess.check_output(["ps", "-Af"])
         if 'beam.smp' in output:
             raise Exception("It seems a previous instance of rabbitMQ is already running. "
@@ -39,7 +41,7 @@ class Test(unittest.TestCase):
         self.rabbitMQWrapper.cleanup()
         with open(os.path.join(self.tempdir, "log.txt")) as f:
             log = f.read()
-        print log
+        self._logger.info(log)
         shutil.rmtree(self.tempdir, ignore_errors=True)
         time.sleep(1)
 
@@ -158,6 +160,85 @@ class Test(unittest.TestCase):
         finally:
             tested.close()
 
+    def test_AllConsumersOfLabelQueueGetTheLabel(self):
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        try:
+            tested.listenOnID("yuvu")
+            nrConsumers = 10
+            consumers = list()
+
+            def checkLabel(consumer, idx):
+                self._logger.info('Waiting for label in consumer %(idx)s', dict(idx=idx))
+                consumer['receivedLabel'] = consumer['talk'].label()
+                self._logger.info('Consumer %(idx)s has received a label.', dict(idx=idx))
+                consumer['finishedEvent'].set()
+
+            for idx in xrange(nrConsumers):
+                consumer = dict(talk=talktoserver.TalkToServer(config.AMQP_URL, "yuvu"),
+                                receivedLabel=None,
+                                finishedEvent=threading.Event())
+                consumer["thread"] = threading.Thread(target=checkLabel, args=(consumer, idx))
+                consumer["thread"].start()
+                consumers.append(consumer)
+            tested.provideLabel("yuvu", "onelabeltorulethemall")
+            for idx, consumer in enumerate(consumers):
+                consumer["finishedEvent"].wait()
+            for idx, consumer in enumerate(consumers):
+                self.assertEquals(consumer['receivedLabel'], "onelabeltorulethemall")
+        finally:
+            tested.close()
+
+    def test_DifferentLabelsAreNotInterspersed(self):
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        try:
+            idsToLabels = dict(alpha="india",
+                               bravo="india",
+                               charlie="juliet",
+                               delta="juliet",
+                               echo="kilo",
+                               foxtrot="kilo",
+                               golf="lima",
+                               hotel="lima")
+
+            def checkLabel(consumer, id):
+                self._logger.info('Waiting for label in consumer %(id)s', dict(id=id))
+                consumer["receivedLabel"] = consumer['talk'].label()
+                self._logger.info('Consumer %(id)s has received a label.', dict(id=id))
+                consumer["finishedEvent"].set()
+
+            consumers = dict()
+            for id in idsToLabels:
+                tested.listenOnID(id)
+                consumer = dict(talk=talktoserver.TalkToServer(config.AMQP_URL, id),
+                                receivedLabel=None,
+                                finishedEvent=threading.Event())
+                consumer["thread"] = threading.Thread(target=checkLabel, args=(consumer, id))
+                consumer["thread"].start()
+                consumers[id] = consumer
+            for id, label in idsToLabels.iteritems():
+                tested.provideLabel(id, label)
+            for id, consumer in consumers.iteritems():
+                consumer["finishedEvent"].wait()
+                self.assertEquals(consumer['receivedLabel'], idsToLabels[id])
+        finally:
+            tested.close()
+
+    def test_ProvideLabelToAnIdWhichIsNotListenedToDoesNotCrashServer(self):
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        try:
+            tested.provideLabel("whatIsThisID", "someLabel")
+            tested.listenOnID("yuvu")
+            tested.provideLabel("whatIsThisID", "someLabel")
+            self.validateCheckIn(tested, "yuvu")
+            talk = talktoserver.TalkToServer(config.AMQP_URL, "yuvu")
+            tested.provideLabel("whatIsThisID", "someLabel")
+            self.validateCheckIn(tested, "yuvu")
+            tested.provideLabel("yuvu", "theCoolestLabel")
+            self.assertEqual(talk.label(), "theCoolestLabel")
+            self.validateCheckIn(tested, "yuvu")
+        finally:
+            tested.close()
+
     def sendOneStatusMessageAndCheckArrival(self, sendMethod, callbackArguments, id, extraArgs):
         if extraArgs is None:
             extraArgs = tuple()
@@ -253,4 +334,9 @@ class Test(unittest.TestCase):
         self.assertEquals(callback(), expected)
 
 if __name__ == '__main__':
+    _logger = logging.getLogger("inaugurator.server")
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.DEBUG)
+    _logger.addHandler(handler)
+    _logger.setLevel(logging.DEBUG)
     unittest.main()

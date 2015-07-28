@@ -6,11 +6,12 @@ import threading
 
 
 class TalkToServerSpooler(threading.Thread):
-    def __init__(self, amqpURL, statusExchange, labelQueue):
+    def __init__(self, amqpURL, statusExchange, labelExchange):
         super(TalkToServerSpooler, self).__init__()
         self.daemon = True
         self._statusExchange = statusExchange
-        self._labelQueue = labelQueue
+        self._labelExchange = labelExchange
+        self._labelQueue = None
         self._queue = Queue.Queue()
         self._connect(amqpURL)
         threading.Thread.start(self)
@@ -45,8 +46,13 @@ class TalkToServerSpooler(threading.Thread):
         self._channel = self._connection.channel()
         logging.info("Declaring a RabbitMQ exchange %(exchange)s...", dict(exchange=self._statusExchange))
         self._channel.exchange_declare(exchange=self._statusExchange, type='fanout')
-        logging.info("Declaring a RabbitMQ queue %(queue)s...", dict(queue=self._labelQueue))
-        self._channel.queue_declare(self._labelQueue)
+        logging.info("Declaring a RabbitMQ exchange %(exchange)s...", dict(exchange=self._labelExchange))
+        self._channel.exchange_declare(exchange=self._labelExchange, type='fanout')
+        logging.info("Declaring an exclusive RabbitMQ label queue...")
+        frame = self._channel.queue_declare(exclusive=True)
+        self._labelQueue = frame.method.queue
+        logging.info("Binding label queue %(queue)s with labels exchange...", dict(queue=self._labelQueue))
+        self._channel.queue_bind(queue=self._labelQueue, exchange=self._labelExchange)
         logging.info("Inaugurator Publish Spooler is connected to the RabbitMQ broker.")
 
     def _publishStatus(self, **status):
@@ -80,9 +86,9 @@ class TalkToServerSpooler(threading.Thread):
 class TalkToServer:
     def __init__(self, amqpURL, myID):
         statusExchange = "inaugurator_status__%s" % myID
-        labelQueue = "inaugurator_label__%s" % myID
+        labelExchange = "inaugurator_label__%s" % myID
         self._myID = myID
-        self._spooler = TalkToServerSpooler(amqpURL, statusExchange, labelQueue)
+        self._spooler = TalkToServerSpooler(amqpURL, statusExchange, labelExchange)
 
     def checkIn(self):
         logging.info("talking to server: checkin")

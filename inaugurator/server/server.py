@@ -20,6 +20,7 @@ class Server(threading.Thread):
         self._readyEvent = threading.Event()
         self._closed = False
         self._listeners = {}
+        self._idsWithLabelExchanges = set()
         threading.Thread.__init__(self)
         self.daemon = True
         self._wakeUpFromAnotherThread = None
@@ -38,17 +39,24 @@ class Server(threading.Thread):
         self._wakeUpFromAnotherThread.runInThread(self._stopListeningOnID, id=id)
 
     def _provideLabel(self, id, label):
-
-        def onPurged(*args):
-            self._channel.basic_publish(exchange='', routing_key=self._labelQueue(id), body=label)
-
-        self._channel.queue_purge(onPurged, queue=self._labelQueue(id))
+        if id not in self._idsWithLabelExchanges:
+            _logger.error("Tried to provide a label to ID %(id)s which is not listened to.", dict(id=id))
+            return
+        self._channel.basic_publish(exchange=self._labelExchange(id), routing_key='', body=label)
 
     def _listenOnID(self, id):
         if id in self._listeners:
             _logger.error("Tried to listen twice on the same host %(id)s.", dict(id=id))
             return
         self._listeners[id] = idlistener.IDListener(id, self._handleStatus, self._channel)
+
+        labelExchange = self._labelExchange(id)
+
+        def onLabelExchangeDeclared(unused):
+            self._idsWithLabelExchanges.add(id)
+            _logger.info("Label exchange '%(exchange)s' declared", dict(exchange=labelExchange))
+
+        self._channel.exchange_declare(onLabelExchangeDeclared, type='fanout', exchange=labelExchange)
 
     def _stopListeningOnID(self, id):
         if id not in self._listeners:
@@ -57,7 +65,7 @@ class Server(threading.Thread):
         self._listeners[id].stopListening()
         del self._listeners[id]
 
-    def _labelQueue(self, id):
+    def _labelExchange(self, id):
         return "inaugurator_label__%s" % id
 
     def close(self):
