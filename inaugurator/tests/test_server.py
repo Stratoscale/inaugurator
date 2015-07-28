@@ -175,17 +175,6 @@ class Test(unittest.TestCase):
         finally:
             tested.close()
 
-    def test_SendCommand(self):
-        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
-        try:
-            tested.listenOnID("eliran")
-            talk = talktoserver.TalkToServer(config.AMQP_URL, "eliran")
-            tested.provideLabel("eliran", "fake label")
-            self.assertEquals(talk.label(), "fake label")
-        finally:
-            talk.close()
-            tested.close()
-
     def sendOneStatusMessageAndCheckArrival(self, sendMethod, callbackArguments, id, extraArgs):
         if extraArgs is None:
             extraArgs = tuple()
