@@ -43,51 +43,6 @@ class Test(unittest.TestCase):
         shutil.rmtree(self.tempdir, ignore_errors=True)
         time.sleep(1)
 
-    def checkInCallback(self, *args):
-        self.checkInCallbackArguments.append(args)
-
-    def doneCallback(self, *args):
-        self.doneCallbackArguments.append(args)
-
-    def progressCallback(self, *args):
-        message = args[1]
-        if message == self.UNREPORTED_PROGRESS_MESSAGE:
-            self.unreportedProgressMessageEvent.set()
-            return
-        self.progressCallbackArguments.append(args)
-
-    def sendCheckIn(self, id):
-        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
-        talk.checkIn()
-        talk.close()
-
-    def sendProgress(self, id, message):
-        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
-        talk.progress(message)
-        talk.close()
-
-    def sendDone(self, id):
-        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
-        talk.done()
-        talk.close()
-
-    def assertEqualsWithinTimeout(self, callback, expected, interval=0.1, timeout=3):
-        before = time.time()
-        while time.time() < before + timeout:
-            try:
-                if callback() == expected:
-                    return
-            except:
-                time.sleep(interval)
-        self.assertEquals(callback(), expected)
-
-    def assertEqualsDuringPeriod(self, callback, expected, interval=0.1, period=1):
-        before = time.time()
-        while time.time() < before + period:
-            self.assertEquals(callback(), expected)
-            time.sleep(interval)
-        self.assertEquals(callback(), expected)
-
     def test_CheckIn(self):
         tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
         try:
@@ -170,6 +125,40 @@ class Test(unittest.TestCase):
         finally:
             tested.close()
 
+    def test_ExceptionInCallbackDoesNotCrashServer(self):
+        badCheckInCallback = mock.Mock(side_effect=Exception("Exception during checkin, ignore me"))
+        badProgressCallback = mock.Mock(side_effect=Exception("Exception during progress, ignore me"))
+        badDoneCallback = mock.Mock(side_effect=Exception("Exception during done, ignore me"))
+        tested = server.Server(badCheckInCallback, badDoneCallback, badProgressCallback)
+        try:
+            tested.listenOnID("yuvu")
+            self.validateCheckInDoesNotWork(tested, "yuvu")
+            self.assertGreater(badCheckInCallback.call_count, 0)
+            checkInAttemptsArgs = set([arg[0] for arg in badCheckInCallback.call_args_list])
+            self.assertEquals(checkInAttemptsArgs, set([("yuvu",)]))
+            self.validateStatusMessageArrival(tested, "progress", "yuvu", isArrivalExpected=False,
+                                              extraArgs=("fake progress message",))
+            progressAttemptArgs = set([arg[0] for arg in badProgressCallback.call_args_list])
+            self.assertEquals(set([("yuvu", "fake progress message")]), progressAttemptArgs)
+            self.validateStatusMessageArrival(tested, "done", "yuvu", isArrivalExpected=False)
+            doneAttemptArgs = set([arg[0] for arg in badDoneCallback.call_args_list])
+            self.assertEquals(set([("yuvu",)]), doneAttemptArgs)
+            self.assertTrue(tested.isAlive())
+        finally:
+            tested.close()
+
+    def test_ProvideLabel(self):
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        try:
+            tested.listenOnID("yuvu")
+            self.validateCheckIn(tested, "yuvu")
+            talk = talktoserver.TalkToServer(config.AMQP_URL, "yuvu")
+            tested.provideLabel("yuvu", "thecoolestlabel")
+            self.assertEqual(talk.label(), "thecoolestlabel")
+        finally:
+            talk.close()
+            tested.close()
+
     def sendOneStatusMessageAndCheckArrival(self, sendMethod, callbackArguments, id, extraArgs):
         if extraArgs is None:
             extraArgs = tuple()
@@ -222,39 +211,50 @@ class Test(unittest.TestCase):
         tested.stopListeningOnID(id)
         self.waitTillAllCommandsWereExecutedByTheServer(tested)
 
-    def test_ExceptionInCallbackDoesNotCrashServer(self):
-        badCheckInCallback = mock.Mock(side_effect=Exception("Exception during checkin, ignore me"))
-        badProgressCallback = mock.Mock(side_effect=Exception("Exception during progress, ignore me"))
-        badDoneCallback = mock.Mock(side_effect=Exception("Exception during done, ignore me"))
-        tested = server.Server(badCheckInCallback, badDoneCallback, badProgressCallback)
-        try:
-            tested.listenOnID("yuvu")
-            self.validateCheckInDoesNotWork(tested, "yuvu")
-            self.assertGreater(badCheckInCallback.call_count, 0)
-            checkInAttemptsArgs = set([arg[0] for arg in badCheckInCallback.call_args_list])
-            self.assertEquals(checkInAttemptsArgs, set([("yuvu",)]))
-            self.validateStatusMessageArrival(tested, "progress", "yuvu", isArrivalExpected=False,
-                                              extraArgs=("fake progress message",))
-            progressAttemptArgs = set([arg[0] for arg in badProgressCallback.call_args_list])
-            self.assertEquals(set([("yuvu", "fake progress message")]), progressAttemptArgs)
-            self.validateStatusMessageArrival(tested, "done", "yuvu", isArrivalExpected=False)
-            doneAttemptArgs = set([arg[0] for arg in badDoneCallback.call_args_list])
-            self.assertEquals(set([("yuvu",)]), doneAttemptArgs)
-            self.assertTrue(tested.isAlive())
-        finally:
-            tested.close()
+    def checkInCallback(self, *args):
+        self.checkInCallbackArguments.append(args)
 
-    def test_ProvideLabel(self):
-        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
-        try:
-            tested.listenOnID("yuvu")
-            self.validateCheckIn(tested, "yuvu")
-            talk = talktoserver.TalkToServer(config.AMQP_URL, "yuvu")
-            tested.provideLabel("yuvu", "thecoolestlabel")
-            self.assertEqual(talk.label(), "thecoolestlabel")
-        finally:
-            talk.close()
-            tested.close()
+    def doneCallback(self, *args):
+        self.doneCallbackArguments.append(args)
+
+    def progressCallback(self, *args):
+        message = args[1]
+        if message == self.UNREPORTED_PROGRESS_MESSAGE:
+            self.unreportedProgressMessageEvent.set()
+            return
+        self.progressCallbackArguments.append(args)
+
+    def sendCheckIn(self, id):
+        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
+        talk.checkIn()
+        talk.close()
+
+    def sendProgress(self, id, message):
+        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
+        talk.progress(message)
+        talk.close()
+
+    def sendDone(self, id):
+        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
+        talk.done()
+        talk.close()
+
+    def assertEqualsWithinTimeout(self, callback, expected, interval=0.1, timeout=3):
+        before = time.time()
+        while time.time() < before + timeout:
+            try:
+                if callback() == expected:
+                    return
+            except:
+                time.sleep(interval)
+        self.assertEquals(callback(), expected)
+
+    def assertEqualsDuringPeriod(self, callback, expected, interval=0.1, period=1):
+        before = time.time()
+        while time.time() < before + period:
+            self.assertEquals(callback(), expected)
+            time.sleep(interval)
+        self.assertEquals(callback(), expected)
 
 if __name__ == '__main__':
     unittest.main()
