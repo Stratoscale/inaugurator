@@ -4,23 +4,18 @@ import tempfile
 import time
 import subprocess
 import os
-import sys
 import functools
 import threading
 import mock
-if 'PIKA_EGG_PATH' in os.environ:
-    sys.path.insert(0, os.environ['PIKA_EGG_PATH'])
-import pika
-assert('usr' not in os.path.dirname(pika.__file__))
-assert 'usr' not in __file__.split(os.path.sep)
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+import patchsyspath
 from inaugurator.server import server
 from inaugurator.server import rabbitmqwrapper
 from inaugurator.server import config
 from inaugurator import talktoserver
+
+patchsyspath.validatePaths()
 config.PORT = 2018
 config.AMQP_URL = "amqp://guest:guest@localhost:%d/%%2F" % config.PORT
-import uuid
 
 
 class Test(unittest.TestCase):
