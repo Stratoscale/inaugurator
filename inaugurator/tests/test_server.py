@@ -181,7 +181,7 @@ class Test(unittest.TestCase):
             tested.listenOnID("eliran")
             talk = talktoserver.TalkToServer(config.AMQP_URL, "eliran")
             tested.provideLabel("eliran", "fake label")
-            self.assertEqualsWithinTimeout(talk.label, "fake label")
+            self.assertEquals(talk.label(), "fake label")
         finally:
             talk.close()
             tested.close()
@@ -267,7 +267,7 @@ class Test(unittest.TestCase):
             self.validateCheckIn(tested, "yuvu")
             talk = talktoserver.TalkToServer(config.AMQP_URL, "yuvu")
             tested.provideLabel("yuvu", "thecoolestlabel")
-            self.assertEqualsWithinTimeout(talk.label, "thecoolestlabel")
+            self.assertEqual(talk.label(), "thecoolestlabel")
         finally:
             talk.close()
             tested.close()
