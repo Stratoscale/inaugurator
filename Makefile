@@ -11,6 +11,9 @@ UNITTESTS=$(shell find inaugurator -name 'test*.py' | sed 's@/@.@g' | sed 's/\(.
 unittest:
 	PYTHONPATH=$(PWD) python -m unittest $(UNITTESTS)
 
+integration_test:
+	PIKA_EGG_PATH=pika-stable/pika-0.10.0p0-py2.7-commitref-7f222c29abe.egg PYTHONPATH=inaugurator python inaugurator/tests/test_server.py $(TESTS)
+
 include Makefile.build
 
 uninstall:
