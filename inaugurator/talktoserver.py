@@ -21,11 +21,6 @@ class TalkToServerSpooler(threading.Thread):
     def getLabel(self):
         return self._executeCommandInConnectionThread(self._getLabel)
 
-    def stop(self):
-        logging.info("Stopping TalkToServer Spooler...")
-        self._executeCommandInConnectionThread(self._stop)
-        self.join()
-
     def run(self):
         logging.info("Inaugurator TalkToServer Spooler is waiting for commands...")
         while True:
@@ -36,8 +31,6 @@ class TalkToServerSpooler(threading.Thread):
                 continue
             try:
                 returnValue.data = command(**kwargs)
-                if command == self._stop:
-                    break
                 self._connection.process_data_events()
             except Exception as e:
                 returnValue.exception = e
@@ -68,14 +61,6 @@ class TalkToServerSpooler(threading.Thread):
         self._channel.basic_consume(self._labelCallback, queue=self._labelQueue, no_ack=True)
         self._channel.start_consuming()
         return self._receivedLabel
-
-    def _stop(self):
-        if not self._channel.is_closed and not self._channel.is_closing:
-            logging.info("Closing connection")
-            self._channel.close()
-        if not self._connection.is_closed and not self._connection.is_closing:
-            logging.info("Closing channel")
-            self._connection.close()
 
     def _executeCommandInConnectionThread(self, function, **kwargs):
         class ReturnValue(object):
@@ -112,6 +97,3 @@ class TalkToServer:
 
     def label(self):
         return self._spooler.getLabel()
-
-    def close(self):
-        self._spooler.stop()

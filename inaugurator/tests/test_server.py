@@ -156,7 +156,6 @@ class Test(unittest.TestCase):
             tested.provideLabel("yuvu", "thecoolestlabel")
             self.assertEqual(talk.label(), "thecoolestlabel")
         finally:
-            talk.close()
             tested.close()
 
     def sendOneStatusMessageAndCheckArrival(self, sendMethod, callbackArguments, id, extraArgs):
@@ -227,17 +226,14 @@ class Test(unittest.TestCase):
     def sendCheckIn(self, id):
         talk = talktoserver.TalkToServer(config.AMQP_URL, id)
         talk.checkIn()
-        talk.close()
 
     def sendProgress(self, id, message):
         talk = talktoserver.TalkToServer(config.AMQP_URL, id)
         talk.progress(message)
-        talk.close()
 
     def sendDone(self, id):
         talk = talktoserver.TalkToServer(config.AMQP_URL, id)
         talk.done()
-        talk.close()
 
     def assertEqualsWithinTimeout(self, callback, expected, interval=0.1, timeout=3):
         before = time.time()
