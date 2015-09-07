@@ -1,4 +1,6 @@
+import os
 import unittest
+import inaugurator
 from inaugurator.partitiontable import PartitionTable
 from inaugurator import sh
 
@@ -7,6 +9,8 @@ class Test(unittest.TestCase):
     def setUp(self):
         self.expectedCommands = []
         sh.run = self.runShell
+        inaugurator.partitiontable.os.path.exists = self.fakeOSExists
+        self.fakeExistingPaths = set()
 
     def runShell(self, command):
         foundList = [x for x in self.expectedCommands if x[0] == command]
@@ -14,8 +18,12 @@ class Test(unittest.TestCase):
             raise Exception("Command '%s' is not in expected commands" % command)
         found = foundList[0]
         self.expectedCommands.remove(found)
-        output = found[1]
-        print "Expected command run:", found
+        result = found[1]
+        if isinstance(result, str):
+            print "Expected command run:", found
+            output = result
+        else:
+            output = result()
         return output
 
     def test_ParsePartitionTable(self):
@@ -73,8 +81,7 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''lvm lvcreate --zero n --name swap --size 1G inaugurator''', ""))
         self.expectedCommands.append((
             '''lvm lvcreate --zero n --name root --extents 100%FREE inaugurator''', ""))
-        self.expectedCommands.append(('''lvm vgscan --mknodes''', ""))
-        self.expectedCommands.append(('''mkswap /dev/inaugurator/swap -L SWAP''', ""))
+        self.validateVolumesCreation()
         self.expectedCommands.append(('''mkfs.ext4 /dev/inaugurator/root -L ROOT''', ""))
         goodPartitionTable = "\n".join([
             "# partition table of /dev/sda",
@@ -120,8 +127,7 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''lvm vgcreate inaugurator /dev/sda2''', ""))
         self.expectedCommands.append(('''lvm lvcreate --zero n --name swap --size 8G inaugurator''', ""))
         self.expectedCommands.append(('''lvm lvcreate --zero n --name root --size 30G inaugurator''', ""))
-        self.expectedCommands.append(('''lvm vgscan --mknodes''', ""))
-        self.expectedCommands.append(('''mkswap /dev/inaugurator/swap -L SWAP''', ""))
+        self.validateVolumesCreation()
         self.expectedCommands.append(('''mkfs.ext4 /dev/inaugurator/root -L ROOT''', ""))
         goodPartitionTable = "\n".join([
             "# partition table of /dev/sda",
@@ -154,6 +160,25 @@ class Test(unittest.TestCase):
         tested = PartitionTable("/dev/sda")
         tested.verify()
         self.assertEquals(len(self.expectedCommands), 0)
+
+    def generateCreatePathCallback(self, path, output=""):
+        def callback():
+            self.fakeExistingPaths.add(path)
+            return output
+        return callback
+
+    def fakeOSExists(self, path):
+        return path in self.fakeExistingPaths
+
+    def validateVolumesCreation(self):
+        devPath = os.path.join("/dev", "inaugurator")
+        swapPath = os.path.join(devPath, "swap")
+        createPathCallback = self.generateCreatePathCallback(swapPath)
+        self.expectedCommands.append(('''lvm vgscan --mknodes''', createPathCallback))
+        rootPath = os.path.join(devPath, "root")
+        createPathCallback = self.generateCreatePathCallback(rootPath)
+        self.expectedCommands.append(('''mkswap %(path)s -L SWAP''' % dict(path=swapPath),
+                                     createPathCallback))
 
 
 if __name__ == '__main__':
