@@ -4,11 +4,11 @@ import select
 import logging
 import signal
 import select
-from inaugurator.server import newpika_select_connection
 import pika
+from inaugurator import packagesvalidation
 
-pika.SelectConnection = newpika_select_connection.SelectConnection
 
+packagesvalidation.validateMinimumVersions(pika="0.10.0")
 _logger = logging.getLogger('inaugurator.server')
 
 

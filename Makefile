@@ -4,7 +4,7 @@ clean:
 	rm -fr build dist inaugurator.egg-info
 
 check_convention:
-	pep8 inaugurator --max-line-length=109 --exclude=samplegrubconfigs.py,newpika_select_connection.py
+	pep8 inaugurator --max-line-length=109 --exclude=samplegrubconfigs.py
 	sh/check_spelling.sh
 
 UNITTESTS=$(shell find inaugurator -name 'test*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
