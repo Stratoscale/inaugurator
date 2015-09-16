@@ -78,8 +78,8 @@ class Server(threading.Thread):
             pika.URLParameters(config.AMQP_URL),
             self._onConnectionOpen,
             stop_ioloop_on_close=False)
-        self._wakeUpFromAnotherThread = pikapatchwakeupfromanotherthread.PikaPatchWakeUpFromAnotherThread(
-            self._connection)
+        self._wakeUpFromAnotherThread = \
+            pikapatchwakeupfromanotherthread.PikaPatchWakeUpFromAnotherThread(_logger, self._connection)
         self._connection.ioloop.start()
 
     def _onConnectionOpen(self, unused_connection):

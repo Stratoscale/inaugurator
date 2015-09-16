@@ -9,11 +9,11 @@ from inaugurator import packagesvalidation
 
 
 packagesvalidation.validateMinimumVersions(pika="0.10.0")
-_logger = logging.getLogger('inaugurator.server')
 
 
 class PikaPatchWakeUpFromAnotherThread:
-    def __init__(self, connection):
+    def __init__(self, logger, connection):
+        self._logger = logger
         self._queue = Queue.Queue()
         self._readFd, self._writeFd = os.pipe()
         self._patch(connection)
@@ -37,14 +37,14 @@ class PikaPatchWakeUpFromAnotherThread:
         try:
             poller = connection.ioloop._poller._poll
         except AttributeError:
-            _logger.error(
+            self._logger.error(
                 "While hot-patching pika: pika version seems to be different than the one this "
                 "hot-patch was created for, cannot proceed. This patch was created for pika 0.9.14")
             self._suicide()
         # There's no way of refering the builtin select.poll type object besides the `type` function,
         # since select.poll is a built-in function, in addition to being a hard-coded type.
         if str(type(poller)) != 'select.poll' and not isinstance(poller, select.epoll):
-            _logger.error(
+            self._logger.error(
                 "The current pika poller does not use poll or epoll; its type is %(pollerType)s. "
                 "cannot patch pika.", dict(pollerType=str(type(poller))))
             self._suicide()
@@ -56,16 +56,16 @@ class PikaPatchWakeUpFromAnotherThread:
             if len(ready) > 0:
                 os.read(self._readFd, 1)
         except:
-            _logger.exception("Unable to read from wake up pipe, ignoring")
+            self._logger.exception("Unable to read from wake up pipe, ignoring")
         try:
             callback, kwargs = self._queue.get(block=False)
         except Queue.Empty:
-            _logger.warn("Command queue is empty after the pipe indicated that a command exists.")
+            self._logger.warn("Command queue is empty after the pipe indicated that a command exists.")
             return
         try:
             callback(**kwargs)
         except:
-            _logger.error('Error while processing command %(command)s arguments %(kwargs)s', dict(
+            self._logger.error('Error while processing command %(command)s arguments %(kwargs)s', dict(
                 command=callback, kwargs=kwargs))
 
     def _suicide(self):
