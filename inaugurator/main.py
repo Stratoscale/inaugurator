@@ -1,13 +1,10 @@
-import os
-import sys
-sys.path.insert(0, os.path.join('usr', 'share', 'inaugurator',
-                                'pika-0.10.0p0-py2.7-commitref-7f222c29abe.egg'))
 from inaugurator import ceremony
 import argparse
 import traceback
 import pdb
 import logging
 import sys
+from inaugurator import packagesvalidation
 
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout,
@@ -35,6 +32,10 @@ parser.add_argument("--inauguratorTargetDeviceCandidate", nargs='+', default=['/
 parser.add_argument("--inauguratorVerify", action="store_true")
 
 try:
+    print "Validating pika version..."
+    # Earlier versions of pika are buggy
+    packagesvalidation.validateMinimumVersions(pika="0.10.0")
+    print "Pika version is valid."
     cmdLine = open("/proc/cmdline").read().strip()
     args = parser.parse_known_args(cmdLine.split(' '))[0]
     ceremonyInstance = ceremony.Ceremony(args)
