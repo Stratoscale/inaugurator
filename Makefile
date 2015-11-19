@@ -5,7 +5,7 @@ IMAGES_SOURCE=build
 all: build unittest check_convention
 
 clean:
-	rm -fr build dist inaugurator.egg-info
+	rm -fr build dist inaugurator.egg-info remote
 
 check_convention:
 	pep8 inaugurator --max-line-length=109 --exclude=samplegrubconfigs.py
@@ -46,6 +46,7 @@ install: $(PRODUCTS)
 install_nodeps:
 	-sudo mkdir /usr/share/inaugurator
 	-yes | sudo pip uninstall inaugurator
+	python setup.py bdist
 	sudo python setup.py install
 	sudo cp $(PRODUCTS) /usr/share/inaugurator
 	sudo chmod 644 /usr/share/inaugurator/*
