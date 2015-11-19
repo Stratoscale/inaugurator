@@ -1,7 +1,9 @@
-.PHONY: build
-build: build/inaugurator.vmlinuz.checksum build/inaugurator.thin.initrd.img.checksum build/inaugurator.fat.initrd.img.checksum dist/inaugurator-1.0.linux-x86_64.tar.gz
+INAUGURATOR_VERSION=$(shell python setup.py --version)
 
-dist/inaugurator-1.0.linux-x86_64.tar.gz:
+.PHONY: build
+build: build/inaugurator.vmlinuz.checksum build/inaugurator.thin.initrd.img.checksum build/inaugurator.fat.initrd.img.checksum dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
+
+dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz:
 	python setup.py build
 	python setup.py bdist
 	python setup.py bdist_egg
@@ -15,7 +17,7 @@ build/inaugurator.%.initrd.img: build/inaugurator.%.initrd.dir
 	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
 	mv $@.tmp $@
 
-build/inaugurator.thin.initrd.dir: dist/inaugurator-1.0.linux-x86_64.tar.gz ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz 
+build/inaugurator.thin.initrd.dir: dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz
 	-mkdir $(@D)
 	-rm -fr $@.tmp $@
 	mkdir $@.tmp
