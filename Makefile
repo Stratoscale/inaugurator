@@ -24,7 +24,8 @@ uninstall:
 	-sudo mkdir /usr/share/inaugurator
 	-yes | sudo pip uninstall inaugurator
 
-PRODUCTS = $(IMAGES_SOURCE)/inaugurator.thin.initrd.img $(IMAGES_SOURCE)/inaugurator.fat.initrd.img $(IMAGES_SOURCE)/inaugurator.vmlinuz
+IMAGES = $(IMAGES_SOURCE)/inaugurator.thin.initrd.img $(IMAGES_SOURCE)/inaugurator.fat.initrd.img $(IMAGES_SOURCE)/inaugurator.vmlinuz
+IMAGES_CHECKSUM = $(IMAGES_SOURCE)/inaugurator.thin.initrd.img.checksum $(IMAGES_SOURCE)/inaugurator.fat.initrd.img.checksum $(IMAGES_SOURCE)/inaugurator.vmlinuz.checksum
 .PHONY: bring_images_from_remote
 bring_images_from_remote:
 	-mkdir remote
@@ -33,14 +34,18 @@ bring_images_from_remote:
 .PHONY: submitimages
 submitimages: build
 	-mkdir build/images_product
-	cp $(PRODUCTS) build/images_product
+	cp $(IMAGES) build/images_product
+	cp $(IMAGES_CHECKSUM) build/images_product
 	solvent submitproduct images build/images_product
 
 remote/inaugurator.thin.initrd.img: bring_images_from_remote
+remote/inaugurator.thin.initrd.img.checksum: bring_images_from_remote
 remote/inaugurator.fat.initrd.img: bring_images_from_remote
+remote/inaugurator.fat.initrd.img.checksum: bring_images_from_remote
 remote/inaugurator.vmlinuz: bring_images_from_remote
+remote/inaugurator.vmlinuz.checksum: bring_images_from_remote
 
-install: $(PRODUCTS)
+install: $(IMAGES) $(IMAGES_CHECKSUM)
 	$(MAKE) install_nodeps
 
 install_nodeps:
@@ -48,7 +53,8 @@ install_nodeps:
 	-yes | sudo pip uninstall inaugurator
 	python setup.py bdist
 	sudo python setup.py install
-	sudo cp $(PRODUCTS) /usr/share/inaugurator
+	sudo cp $(IMAGES) /usr/share/inaugurator
+	sudo cp $(IMAGES_CHECKSUM) /usr/share/inaugurator
 	sudo chmod 644 /usr/share/inaugurator/*
 
 prepareForCleanBuild:
