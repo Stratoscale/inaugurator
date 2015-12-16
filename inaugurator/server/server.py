@@ -75,10 +75,17 @@ class Server(threading.Thread):
 
     def run(self):
         _logger.info('Connecting to %(amqpURL)s', dict(amqpURL=config.AMQP_URL))
-        self._connection = pika.SelectConnection(
-            pika.URLParameters(config.AMQP_URL),
-            self._onConnectionOpen,
-            stop_ioloop_on_close=False)
+        try:
+            self._connection = pika.SelectConnection(
+                pika.URLParameters(config.AMQP_URL),
+                self._onConnectionOpen,
+                stop_ioloop_on_close=False)
+        except Exception as ex:
+            _logger.exception("Inaugurator server thread has crashed: %(message)s", dict(message=str(ex)))
+            _logger.info("Commiting suicide...")
+            os.kill(os.getpid(), signal.SIGTERM)
+            raise
+
         self._wakeUpFromAnotherThread = \
             pikapatchwakeupfromanotherthread.PikaPatchWakeUpFromAnotherThread(_logger, self._connection)
         self._connection.ioloop.start()
