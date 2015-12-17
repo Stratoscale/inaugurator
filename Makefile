@@ -13,7 +13,7 @@ check_convention:
 
 UNITTESTS=$(shell find inaugurator -name 'test*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
 unittest:
-	PYTHONPATH=$(PWD) python -m unittest $(UNITTESTS)
+	PYTHONPATH=. python -m unittest $(UNITTESTS)
 
 integration_test:
 	PYTHONPATH=inaugurator python inaugurator/tests/integration_test.py $(TESTS)
@@ -29,7 +29,7 @@ IMAGES_CHECKSUM = $(IMAGES_SOURCE)/inaugurator.thin.initrd.img.checksum $(IMAGES
 .PHONY: bring_images_from_remote
 bring_images_from_remote:
 	-mkdir remote
-	sudo solvent bring --repositoryBasename=`basename $(PWD)` --product images --destination=remote
+	sudo solvent bring --repositoryBasename=inaugurator --product images --destination=remote
 
 .PHONY: submitimages
 submitimages: build
