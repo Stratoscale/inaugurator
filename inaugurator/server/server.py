@@ -13,10 +13,11 @@ _logger = logging.getLogger('inaugurator.server')
 
 
 class Server(threading.Thread):
-    def __init__(self, checkInCallback, doneCallback, progressCallback):
+    def __init__(self, checkInCallback, doneCallback, progressCallback, purgeCallback):
         self._checkInCallback = checkInCallback
         self._doneCallback = doneCallback
         self._progressCallback = progressCallback
+        self._purgeCallback = purgeCallback
         self._readyEvent = threading.Event()
         self._closed = False
         self._listeners = {}
@@ -116,6 +117,8 @@ class Server(threading.Thread):
                 self._doneCallback(id)
             elif message[u'status'] == "progress":
                 self._progressCallback(id, message[u'progress'])
+            elif message[u'status'] == "purge":
+                self._purgeCallback(id)
             else:
                 raise Exception("Unknown status report: %s" % message)
         except:

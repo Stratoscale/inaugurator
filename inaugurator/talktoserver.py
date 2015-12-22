@@ -10,7 +10,7 @@ class CannotReuseTalkToServerAfterDone(Exception):
 
 
 class TalkToServerSpooler(threading.Thread):
-    def __init__(self, amqpURL, statusExchange, labelExchange):
+    def __init__(self, amqpURL, statusExchange, labelExchange, myID):
         super(TalkToServerSpooler, self).__init__()
         self.daemon = True
         self._statusExchange = statusExchange
@@ -18,6 +18,7 @@ class TalkToServerSpooler(threading.Thread):
         self._labelQueue = None
         self._queue = Queue.Queue()
         self._isFinished = False
+        self._myID = myID
         self._connect(amqpURL)
         threading.Thread.start(self)
 
@@ -67,6 +68,7 @@ class TalkToServerSpooler(threading.Thread):
         logging.info("Inaugurator Publish Spooler is connected to the RabbitMQ broker.")
 
     def _publishStatus(self, **status):
+        status["id"] = self._myID
         body = json.dumps(status)
         self._channel.basic_publish(exchange=self._statusExchange, routing_key='', body=body)
 
@@ -116,20 +118,23 @@ class TalkToServer:
     def __init__(self, amqpURL, myID):
         statusExchange = "inaugurator_status__%s" % myID
         labelExchange = "inaugurator_label__%s" % myID
-        self._myID = myID
-        self._spooler = TalkToServerSpooler(amqpURL, statusExchange, labelExchange)
+        self._spooler = TalkToServerSpooler(amqpURL, statusExchange, labelExchange, myID=myID)
 
     def checkIn(self):
         logging.info("talking to server: checkin")
-        self._spooler.publishStatus(status="checkin", id=self._myID)
+        self._spooler.publishStatus(status="checkin")
 
     def progress(self, progress):
-        self._spooler.publishStatus(status="progress", progress=progress, id=self._myID)
+        self._spooler.publishStatus(status="progress", progress=progress)
 
     def done(self):
         logging.info("talking to server: done")
-        self._spooler.publishStatus(status="done", id=self._myID)
+        self._spooler.publishStatus(status="done")
         self._spooler.cleanUpResources()
+
+    def purge(self):
+        logging.info("talking to server: purge")
+        self._spooler.publishStatus(status="purge")
 
     def label(self):
         return self._spooler.getLabel()

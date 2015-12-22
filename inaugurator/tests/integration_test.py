@@ -34,6 +34,7 @@ class Test(unittest.TestCase):
         self.checkInCallbackArguments = []
         self.doneCallbackArguments = []
         self.progressCallbackArguments = []
+        self.purgeCallbackArguments = []
         self.progressWaitEvents = dict()
         self.unreportedProgressMessageEvent = None
         self.auxLabelIDCounter = 0
@@ -47,7 +48,8 @@ class Test(unittest.TestCase):
         time.sleep(1)
 
     def test_CheckIn(self):
-        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
+                               self.purgeCallback)
         try:
             tested.listenOnID("eliran")
             self.validateCheckIn(tested, "eliran")
@@ -57,7 +59,8 @@ class Test(unittest.TestCase):
             tested.close()
 
     def test_StopListening(self):
-        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
+                               self.purgeCallback)
         try:
             tested.listenOnID("yuvu")
             self.validateCheckIn(tested, "yuvu")
@@ -71,7 +74,8 @@ class Test(unittest.TestCase):
             tested.close()
 
     def test_StopListeningDoesNotAffectAnotherServer(self):
-        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
+                               self.purgeCallback)
         try:
             tested.listenOnID("jakarta")
             tested.listenOnID("yuvu")
@@ -89,7 +93,8 @@ class Test(unittest.TestCase):
             tested.close()
 
     def test_StopListeningOnAnIDWhichIsNotListenedTo(self):
-        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
+                               self.purgeCallback)
         try:
             self.invokeStopListeningAndWaitTillDone(tested, "yuvu")
             self.validateCheckInDoesNotWork(tested, "yuvu")
@@ -97,7 +102,8 @@ class Test(unittest.TestCase):
             tested.close()
 
     def test_ListenTwiceOnSameID(self):
-        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
+                               self.purgeCallback)
         try:
             tested.listenOnID("yuvu")
             self.validateCheckIn(tested, "yuvu")
@@ -109,7 +115,8 @@ class Test(unittest.TestCase):
             tested.close()
 
     def test_Progress(self):
-        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
+                               self.purgeCallback)
         try:
             tested.listenOnID("eliran")
             self.validateProgress(tested, "eliran", "awesome-progress-message")
@@ -119,7 +126,8 @@ class Test(unittest.TestCase):
             tested.close()
 
     def test_Done(self):
-        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
+                               self.purgeCallback)
         try:
             tested.listenOnID("eliran")
             self.validateDone(tested, "eliran")
@@ -132,7 +140,9 @@ class Test(unittest.TestCase):
         badCheckInCallback = mock.Mock(side_effect=Exception("Exception during checkin, ignore me"))
         badProgressCallback = mock.Mock(side_effect=Exception("Exception during progress, ignore me"))
         badDoneCallback = mock.Mock(side_effect=Exception("Exception during done, ignore me"))
-        tested = server.Server(badCheckInCallback, badDoneCallback, badProgressCallback)
+        badPurgeCallback = mock.Mock(side_effect=Exception("Exception during purge, ignore me"))
+        tested = server.Server(badCheckInCallback, badDoneCallback, badProgressCallback,
+                               badPurgeCallback)
         try:
             tested.listenOnID("yuvu")
             self.validateCheckInDoesNotWork(tested, "yuvu")
@@ -151,7 +161,8 @@ class Test(unittest.TestCase):
             tested.close()
 
     def test_ProvideLabel(self):
-        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
+                               self.purgeCallback)
         try:
             tested.listenOnID("yuvu")
             self.validateCheckIn(tested, "yuvu")
@@ -162,7 +173,8 @@ class Test(unittest.TestCase):
             tested.close()
 
     def test_AllConsumersOfLabelQueueGetTheLabel(self):
-        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
+                               self.purgeCallback)
         try:
             tested.listenOnID("yuvu")
             nrConsumers = 10
@@ -190,7 +202,8 @@ class Test(unittest.TestCase):
             tested.close()
 
     def test_DifferentLabelsAreNotInterspersed(self):
-        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
+                               self.purgeCallback)
         try:
             idsToLabels = dict(alpha="india",
                                bravo="india",
@@ -225,7 +238,8 @@ class Test(unittest.TestCase):
             tested.close()
 
     def test_ProvideLabelToAnIdWhichIsNotListenedToDoesNotCrashServer(self):
-        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
+                               self.purgeCallback)
         try:
             tested.provideLabel("whatIsThisID", "someLabel")
             tested.listenOnID("yuvu")
@@ -241,7 +255,8 @@ class Test(unittest.TestCase):
             tested.close()
 
     def test_CannotReuseTalkToServerAfterDone(self):
-        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
+                               self.purgeCallback)
         try:
             tested.listenOnID("yuvu")
             talk = talktoserver.TalkToServer(config.AMQP_URL, "yuvu")
@@ -253,7 +268,8 @@ class Test(unittest.TestCase):
             tested.close()
 
     def test_FailureDuringTalkToServerCleanUpDoesNotCauseCrash(self):
-        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
+                               self.purgeCallback)
         origQueueDelete = pika.channel.Channel.queue_delete
         origConnectionClose = pika.adapters.blocking_connection.BlockingConnection.close
         try:
@@ -274,6 +290,29 @@ class Test(unittest.TestCase):
             pika.adapters.blocking_connection.BlockingConnection.close = origConnectionClose
             tested.close()
 
+    def test_SendPurge(self):
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
+                               self.purgeCallback)
+        try:
+            tested.listenOnID("yuvu")
+            self.validatePurge(tested, "yuvu")
+            self.validateCheckIn(tested, "yuvu")
+            self.assertEquals(self.doneCallbackArguments, [])
+            self.assertEquals(self.progressCallbackArguments, [])
+        finally:
+            tested.close()
+
+    def test_SendCheckInAfterPurge(self):
+        tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
+                               self.purgeCallback)
+        try:
+            tested.listenOnID("eliran")
+            self.validatePurge(tested, "eliran")
+            self.assertEquals(self.doneCallbackArguments, [])
+            self.assertEquals(self.progressCallbackArguments, [])
+        finally:
+            tested.close()
+
     def sendOneStatusMessageAndCheckArrival(self, sendMethod, callbackArguments, id, extraArgs):
         if extraArgs is None:
             extraArgs = tuple()
@@ -285,7 +324,8 @@ class Test(unittest.TestCase):
                                      isArrivalExpected=True):
         statusMessageTypes = dict(checkin=(self.sendCheckIn, self.checkInCallbackArguments),
                                   progress=(self.sendProgress, self.progressCallbackArguments),
-                                  done=(self.sendDone, self.doneCallbackArguments))
+                                  done=(self.sendDone, self.doneCallbackArguments),
+                                  purge=(self.sendPurge, self.purgeCallbackArguments))
         sendMethod, callbackArguments = statusMessageTypes[statusMessageType]
         validateMethod = functools.partial(self.sendOneStatusMessageAndCheckArrival, sendMethod,
                                            callbackArguments, id, extraArgs)
@@ -308,6 +348,9 @@ class Test(unittest.TestCase):
 
     def validateDone(self, tested, id):
         self.validateStatusMessageArrival(tested, "done", id)
+
+    def validatePurge(self, tested, id):
+        self.validateStatusMessageArrival(tested, "purge", id)
 
     def waitTillStatusQueueIsCleanByAbusingProgressCallbacks(self, idWhichIsListenedTo, tested):
         self.unreportedProgressMessageEvent = threading.Event()
@@ -339,6 +382,9 @@ class Test(unittest.TestCase):
             return
         self.progressCallbackArguments.append(args)
 
+    def purgeCallback(self, *args):
+        self.purgeCallbackArguments.append(args)
+
     def sendCheckIn(self, id):
         talk = talktoserver.TalkToServer(config.AMQP_URL, id)
         talk.checkIn()
@@ -350,6 +396,10 @@ class Test(unittest.TestCase):
     def sendDone(self, id):
         talk = talktoserver.TalkToServer(config.AMQP_URL, id)
         talk.done()
+
+    def sendPurge(self, id):
+        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
+        talk.purge()
 
     def assertEqualsWithinTimeout(self, callback, expected, interval=0.1, timeout=3):
         before = time.time()
