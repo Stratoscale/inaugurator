@@ -24,7 +24,7 @@ class Test(unittest.TestCase):
     UNREPORTED_PROGRESS_MESSAGE = "unreportedProgressMessage"
 
     def setUp(self):
-        self._logger = logging.getLogger("inaugurator.server")
+        self._logger = logging.getLogger()
         output = subprocess.check_output(["ps", "-Af"])
         if 'beam.smp' in output:
             raise Exception("It seems a previous instance of rabbitMQ is already running. "
@@ -39,14 +39,21 @@ class Test(unittest.TestCase):
         self.unreportedProgressMessageEvent = None
         self.auxLabelIDCounter = 0
         self.doServerCallbackCauseErrors = False
+        self.talkToServerInstances = set()
         self.tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback,
                                     self.purgeCallback)
 
     def tearDown(self):
+        for talkToServer in self.talkToServerInstances:
+            try:
+                talkToServer.done()
+            except:
+                pass
         self.tested.close()
         self.rabbitMQWrapper.cleanup()
         with open(os.path.join(self.tempdir, "log.txt")) as f:
             log = f.read()
+        self._logger.info("RabbitMQ log:\n")
         self._logger.info(log)
         shutil.rmtree(self.tempdir, ignore_errors=True)
         time.sleep(1)
@@ -116,7 +123,7 @@ class Test(unittest.TestCase):
     def test_ProvideLabel(self):
         self.tested.listenOnID("yuvu")
         self.validateCheckIn("yuvu")
-        talk = talktoserver.TalkToServer(config.AMQP_URL, "yuvu")
+        talk = self.generateTalkToServer("yuvu")
         self.tested.provideLabel("yuvu", "thecoolestlabel")
         self.assertEqual(talk.label(), "thecoolestlabel")
 
@@ -132,7 +139,7 @@ class Test(unittest.TestCase):
             consumer['finishedEvent'].set()
 
         for idx in xrange(nrConsumers):
-            consumer = dict(talk=talktoserver.TalkToServer(config.AMQP_URL, "yuvu"),
+            consumer = dict(talk=self.generateTalkToServer("yuvu"),
                             receivedLabel=None,
                             finishedEvent=threading.Event())
             consumer["thread"] = threading.Thread(target=checkLabel, args=(consumer, idx))
@@ -163,7 +170,7 @@ class Test(unittest.TestCase):
         consumers = dict()
         for id in idsToLabels:
             self.tested.listenOnID(id)
-            consumer = dict(talk=talktoserver.TalkToServer(config.AMQP_URL, id),
+            consumer = dict(talk=self.generateTalkToServer(id),
                             receivedLabel=None,
                             finishedEvent=threading.Event())
             consumer["thread"] = threading.Thread(target=checkLabel, args=(consumer, id))
@@ -180,7 +187,7 @@ class Test(unittest.TestCase):
         self.tested.listenOnID("yuvu")
         self.tested.provideLabel("whatIsThisID", "someLabel")
         self.validateCheckIn("yuvu")
-        talk = talktoserver.TalkToServer(config.AMQP_URL, "yuvu")
+        talk = self.generateTalkToServer("yuvu")
         self.tested.provideLabel("whatIsThisID", "someLabel")
         self.validateCheckIn("yuvu")
         self.tested.provideLabel("yuvu", "theCoolestLabel")
@@ -189,7 +196,7 @@ class Test(unittest.TestCase):
 
     def test_CannotReuseTalkToServerAfterDone(self):
         self.tested.listenOnID("yuvu")
-        talk = talktoserver.TalkToServer(config.AMQP_URL, "yuvu")
+        talk = self.generateTalkToServer("yuvu")
         self.tested.provideLabel("yuvu", "theCoolestLabel")
         self.assertEqual(talk.label(), "theCoolestLabel")
         talk.done()
@@ -201,12 +208,12 @@ class Test(unittest.TestCase):
         try:
             self.tested.listenOnID("yuvu")
             pika.channel.Channel.queue_delete = mock.Mock(side_effect=Exception("ignore me"))
-            talk = talktoserver.TalkToServer(config.AMQP_URL, "yuvu")
+            talk = self.generateTalkToServer("yuvu")
             self.tested.provideLabel("yuvu", "theCoolestLabel")
             self.assertEqual(talk.label(), "theCoolestLabel")
             pika.adapters.blocking_connection.BlockingConnection.close = \
                 mock.Mock(side_effect=Exception("ignore me too"))
-            talk = talktoserver.TalkToServer(config.AMQP_URL, "yuvu")
+            talk = self.generateTalkToServer("yuvu")
             self.tested.provideLabel("yuvu", "yetAnotherCoolLabel")
             self.assertEqual(talk.label(), "yetAnotherCoolLabel")
             talk.done()
@@ -309,19 +316,19 @@ class Test(unittest.TestCase):
             raise Exception("Ignore me")
 
     def sendCheckIn(self, id):
-        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
+        talk = self.generateTalkToServer(id)
         talk.checkIn()
 
     def sendProgress(self, id, message):
-        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
+        talk = self.generateTalkToServer(id)
         talk.progress(message)
 
     def sendDone(self, id):
-        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
+        talk = self.generateTalkToServer(id)
         talk.done()
 
     def sendPurge(self, id):
-        talk = talktoserver.TalkToServer(config.AMQP_URL, id)
+        talk = self.generateTalkToServer(id)
         talk.purge()
 
     def assertEqualsWithinTimeout(self, callback, expected, interval=0.1, timeout=3):
@@ -341,10 +348,30 @@ class Test(unittest.TestCase):
             time.sleep(interval)
         self.assertEquals(callback(), expected)
 
+    def generateTalkToServer(self, id):
+        talkToServer = talktoserver.TalkToServer(config.AMQP_URL, id)
+        self.talkToServerInstances.add(talkToServer)
+        return talkToServer
+
 if __name__ == '__main__':
-    _logger = logging.getLogger("inaugurator.server")
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.DEBUG)
-    _logger.addHandler(handler)
-    _logger.setLevel(logging.DEBUG)
-    unittest.main()
+    logLevels = {0: {"": logging.CRITICAL, "inaugurator.server": logging.CRITICAL, "pika": logging.ERROR},
+                 1: {"": logging.CRITICAL, "inaugurator.server": logging.CRITICAL, "pika": logging.ERROR},
+                 2: {"": logging.CRITICAL, "inaugurator.server": logging.CRITICAL, "pika": logging.ERROR},
+                 3: {"": logging.ERROR, "inaugurator.server": logging.ERROR, "pika": logging.ERROR},
+                 4: {"": logging.INFO, "inaugurator.server": logging.INFO, "pika": logging.ERROR},
+                 5: {"": logging.DEBUG, "inaugurator.server": logging.DEBUG, "pika": logging.INFO},
+                 6: {"": logging.DEBUG, "inaugurator.server": logging.DEBUG, "pika": logging.DEBUG}}
+    maxVerbosity = max(logLevels.keys())
+    print "Note: For different verbosity levels, run with VERBOSITY=(number from 1 to %(maxVerbosity)s)." \
+          % dict(maxVerbosity=maxVerbosity)
+    verbosity = int(os.getenv("VERBOSITY", 0))
+    loggerNames = logLevels[0].keys()
+    logLevels = logLevels[verbosity]
+    for loggerName in loggerNames:
+        logger = logging.getLogger(loggerName)
+        logLevel = logLevels[loggerName]
+        logger.setLevel(logLevel)
+        for handler in logger.handlers:
+            handler.setLevel(logLevel)
+    # Increment verbosity so that test names will be presented on verbosity of 1
+    unittest.main(verbosity=verbosity)
