@@ -24,8 +24,11 @@ class PartitionTable:
     def created(self):
         return self._created
 
-    def clear(self):
-        sh.run("busybox dd if=/dev/zero of=%s bs=1M count=512" % self._device)
+    def clear(self, device=None, count=512):
+        if device is None:
+            device = self._device
+        sh.run("busybox dd if=/dev/zero of=%(device)s bs=1M count=%(count)s" % dict(device=device,
+                                                                                    count=count))
 
     def _create(self):
         self.clear()
@@ -161,6 +164,37 @@ class PartitionTable:
     def _approximatelyEquals(self, first, second):
         return first > second * 0.9 and first < second * 1.1
 
+    def _parseVGs(self):
+        pvscanOutput = sh.run("lvm pvscan")
+        print "`pvscan` output: %(pvscanOutput)s" % dict(pvscanOutput=pvscanOutput)
+        vgs = dict()
+        if "No matching physical volumes found" in pvscanOutput:
+            return vgs
+        pvscanOutput = [line.strip() for line in pvscanOutput.splitlines()]
+        pvscanOutput = [line for line in pvscanOutput if not line.startswith("Total:")]
+        for line in pvscanOutput:
+            parts = line.split(" ")
+            parts = [part for part in parts if part]
+            if len(parts) > 4 and parts[0] == "PV" and parts[2] == "VG":
+                device = parts[1]
+                name = parts[3]
+                assert device not in vgs
+                vgs[device] = name
+        return vgs
+
+    def _wipeOtherPartitionsWithSameVolumeGroup(self):
+        print "Validating that volume group %(vg)s is bound only to one device..." % \
+              dict(vg=self.VOLUME_GROUP)
+        vgs = self._parseVGs()
+        if not vgs:
+            raise Exception("No volume group was found after configuration of LVM.")
+        targetDeviceForVolumeGroup = "%(device)s2" % (dict(device=self._device))
+        for device, name in vgs.iteritems():
+            if device != targetDeviceForVolumeGroup and name == self.VOLUME_GROUP:
+                print "Wiping device %(device)s since it contains another copy of the volume group..." \
+                      % dict(device=device)
+                self.clear(device=device, count=1)
+
     def verify(self):
         if not self._findMismatch():
             print "Partition table already set up"
@@ -172,11 +206,13 @@ class PartitionTable:
                 print sh.run("busybox find /dev/inaugurator")
             except Exception as e:
                 print "Unable: %s" % e
+            self._wipeOtherPartitionsWithSameVolumeGroup()
             return
         self._create()
         for retry in xrange(5):
             mismatch = self._findMismatch()
             if mismatch is None:
+                self._wipeOtherPartitionsWithSameVolumeGroup()
                 return
             else:
                 print "Partition table not correct even after %d retries: '%s'" % (

@@ -111,11 +111,32 @@ class Test(unittest.TestCase):
             ""])
         self.expectedCommands.append((
             'lvm lvdisplay --units m --columns /dev/inaugurator/root', correctRoot))
+        self.expectedCommands.append(("lvm pvscan",
+                                      "PV /dev/sda2   VG inaugurator   lvm2 [irrelevant size data]",
+                                      "Total: 1 more irrelevant data"))
         tested = PartitionTable("/dev/sda")
         tested.verify()
         self.assertEquals(len(self.expectedCommands), 0)
 
     def test_CreatePartitionTable_OnA128GBDisk(self):
+        self._prepareExpectedCommandsFor128GBDisk()
+        tested = PartitionTable("/dev/sda")
+        tested.verify()
+        self.assertEquals(len(self.expectedCommands), 0)
+
+    def test_WipeOtherPhysicalVolumesWithAVolumeGroupByTheSameName(self):
+        self._prepareExpectedCommandsFor128GBDisk(extraVolumeGroup="inaugurator")
+        tested = PartitionTable("/dev/sda")
+        tested.verify()
+        self.assertEquals(len(self.expectedCommands), 0)
+
+    def test_DontWipeOtherPhysicalVolumesWithAVolumeGroupByADifferentName(self):
+        self._prepareExpectedCommandsFor128GBDisk(extraVolumeGroup="not-inaugurator")
+        tested = PartitionTable("/dev/sda")
+        tested.verify()
+        self.assertEquals(len(self.expectedCommands), 0)
+
+    def _prepareExpectedCommandsFor128GBDisk(self, extraVolumeGroup=None):
         self.expectedCommands.append(('sfdisk --dump /dev/sda', ""))
         self.expectedCommands.append(('''busybox dd if=/dev/zero of=/dev/sda bs=1M count=512''', ""))
         self.expectedCommands.append((
@@ -157,9 +178,17 @@ class Test(unittest.TestCase):
             ""])
         self.expectedCommands.append((
             'lvm lvdisplay --units m --columns /dev/inaugurator/root', correctRoot))
-        tested = PartitionTable("/dev/sda")
-        tested.verify()
-        self.assertEquals(len(self.expectedCommands), 0)
+        nrGroups = 1
+        pvscanResult = ["PV /dev/sda2   VG inaugurator   lvm2 [irrelevant size data]"]
+        if extraVolumeGroup is not None:
+            pvscanResult.append("PV /dev/sdb2 VG %(extraVolumeGroup)s [irrelevent size data]" %
+                                dict(extraVolumeGroup=extraVolumeGroup))
+            nrGroups += 1
+        pvscanResult.append("Total: %(nrGroups)s more irrelevant data" % dict(nrGroups=nrGroups))
+        pvscanResult = "\n".join(pvscanResult)
+        self.expectedCommands.append(("lvm pvscan", pvscanResult))
+        if extraVolumeGroup == "inaugurator":
+            self.expectedCommands.append(('''busybox dd if=/dev/zero of=/dev/sdb2 bs=1M count=1''', ""))
 
     def generateCreatePathCallback(self, path, output=""):
         def callback():
