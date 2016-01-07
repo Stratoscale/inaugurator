@@ -1,4 +1,5 @@
 import os
+import re
 import unittest
 import inaugurator
 from inaugurator.partitiontable import PartitionTable
@@ -125,18 +126,29 @@ class Test(unittest.TestCase):
         self.assertEquals(len(self.expectedCommands), 0)
 
     def test_WipeOtherPhysicalVolumesWithAVolumeGroupByTheSameName(self):
-        self._prepareExpectedCommandsFor128GBDisk(extraVolumeGroup="inaugurator")
+        self._prepareExpectedCommandsFor128GBDisk(extraVolumeGroup="inaugurator",
+                                                  physicalVolumeOfExtraVolumeGroup="/dev/sdb2")
         tested = PartitionTable("/dev/sda")
         tested.verify()
         self.assertEquals(len(self.expectedCommands), 0)
 
-    def test_DontWipeOtherPhysicalVolumesWithAVolumeGroupByADifferentName(self):
-        self._prepareExpectedCommandsFor128GBDisk(extraVolumeGroup="not-inaugurator")
+    def test_DontWipeTheWholePhysicalDeviceIfOneOfThePartitionsContainsAVolumeGroupByTheSameName(self):
+        self._prepareExpectedCommandsFor128GBDisk(extraVolumeGroup="inaugurator",
+                                                  physicalVolumeOfExtraVolumeGroup="/dev/sda3")
         tested = PartitionTable("/dev/sda")
         tested.verify()
         self.assertEquals(len(self.expectedCommands), 0)
 
-    def _prepareExpectedCommandsFor128GBDisk(self, extraVolumeGroup=None):
+    def test_DontWipeTargetDeviceInCaseOfOtherPhysicalVolumesWithAVolumeGroupByTheSameName(self):
+        self._prepareExpectedCommandsFor128GBDisk(extraVolumeGroup="non-inaugurator",
+                                                  physicalVolumeOfExtraVolumeGroup="/dev/sdb2")
+        tested = PartitionTable("/dev/sda")
+        tested.verify()
+        self.assertEquals(len(self.expectedCommands), 0)
+
+    def _prepareExpectedCommandsFor128GBDisk(self,
+                                             extraVolumeGroup=None,
+                                             physicalVolumeOfExtraVolumeGroup=None):
         self.expectedCommands.append(('sfdisk --dump /dev/sda', ""))
         self.expectedCommands.append(('''busybox dd if=/dev/zero of=/dev/sda bs=1M count=512''', ""))
         self.expectedCommands.append((
@@ -181,14 +193,32 @@ class Test(unittest.TestCase):
         nrGroups = 1
         pvscanResult = ["PV /dev/sda2   VG inaugurator   lvm2 [irrelevant size data]"]
         if extraVolumeGroup is not None:
-            pvscanResult.append("PV /dev/sdb2 VG %(extraVolumeGroup)s [irrelevent size data]" %
-                                dict(extraVolumeGroup=extraVolumeGroup))
+            pvscanResult.append("PV %(physicalVolumeOfExtraVolumeGroup)s VG %(extraVolumeGroup)s "
+                                "[irrelevent size data]" %
+                                dict(extraVolumeGroup=extraVolumeGroup,
+                                     physicalVolumeOfExtraVolumeGroup=physicalVolumeOfExtraVolumeGroup))
             nrGroups += 1
         pvscanResult.append("Total: %(nrGroups)s more irrelevant data" % dict(nrGroups=nrGroups))
         pvscanResult = "\n".join(pvscanResult)
         self.expectedCommands.append(("lvm pvscan", pvscanResult))
         if extraVolumeGroup == "inaugurator":
-            self.expectedCommands.append(('''busybox dd if=/dev/zero of=/dev/sdb2 bs=1M count=1''', ""))
+            cmd = '''busybox dd if=/dev/zero of=%(physicalVolume)s bs=1M count=1''' % \
+                  dict(physicalVolume=physicalVolumeOfExtraVolumeGroup)
+            self.expectedCommands.append((cmd, ""))
+            deviceNumberList = self._getNumberAtEndOfDevicePath(physicalVolumeOfExtraVolumeGroup)
+            isPhysicalVolumeAPartitionOfAPhysicalDevice = bool(deviceNumberList)
+            if isPhysicalVolumeAPartitionOfAPhysicalDevice:
+                partitionNumber = deviceNumberList[0]
+                physicalDevice = physicalVolumeOfExtraVolumeGroup[:-len(partitionNumber)]
+                if physicalDevice != "/dev/sda":
+                    cmd = '''busybox dd if=/dev/zero of=%(physicalDevice)s bs=1M count=1''' % \
+                          dict(physicalDevice=physicalDevice)
+                    self.expectedCommands.append((cmd, ""))
+
+    def _getNumberAtEndOfDevicePath(self, device):
+        numbersAtEndOfExpressionFinder = re.compile("[\/\D]+(\d+)$")
+        numbers = numbersAtEndOfExpressionFinder.findall(device)
+        return numbers
 
     def generateCreatePathCallback(self, path, output=""):
         def callback():

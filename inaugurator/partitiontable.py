@@ -166,7 +166,7 @@ class PartitionTable:
 
     def _parseVGs(self):
         pvscanOutput = sh.run("lvm pvscan")
-        print "`pvscan` output: %(pvscanOutput)s" % dict(pvscanOutput=pvscanOutput)
+        print "`pvscan` output:\n %(pvscanOutput)s" % dict(pvscanOutput=pvscanOutput)
         vgs = dict()
         if "No matching physical volumes found" in pvscanOutput:
             return vgs
@@ -182,18 +182,42 @@ class PartitionTable:
                 vgs[device] = name
         return vgs
 
+    def _getNumberAtEndOfDevicePath(self, device):
+        numbersAtEndOfExpressionFinder = re.compile("[\/\D]+(\d+)$")
+        numbers = numbersAtEndOfExpressionFinder.findall(device)
+        return numbers
+
+    def _getPhysicalDeviceOfPartition(self, partition):
+        numbers = self._getNumberAtEndOfDevicePath(partition)
+        assert numbers
+        number = numbers[0]
+        return partition[:-len(number)]
+
+    def _isPartitionOfPhysicalDevice(self, device):
+        numbers = self._getPhysicalDeviceOfPartition(device)
+        return bool(numbers)
+
     def _wipeOtherPartitionsWithSameVolumeGroup(self):
         print "Validating that volume group %(vg)s is bound only to one device..." % \
               dict(vg=self.VOLUME_GROUP)
         vgs = self._parseVGs()
         if not vgs:
             raise Exception("No volume group was found after configuration of LVM.")
-        targetDeviceForVolumeGroup = "%(device)s2" % (dict(device=self._device))
-        for device, name in vgs.iteritems():
-            if device != targetDeviceForVolumeGroup and name == self.VOLUME_GROUP:
-                print "Wiping device %(device)s since it contains another copy of the volume group..." \
-                      % dict(device=device)
-                self.clear(device=device, count=1)
+        targetPhysicalVolumeForVolumeGroup = "%(device)s2" % (dict(device=self._device))
+        for physicalVolume, volumeGroup in vgs.iteritems():
+            if physicalVolume != targetPhysicalVolumeForVolumeGroup and volumeGroup == self.VOLUME_GROUP:
+                print "Wiping '%(physicalVolume)s' since it contains another copy of the volume group..." \
+                      % dict(physicalVolume=physicalVolume)
+                self.clear(device=physicalVolume, count=1)
+                if self._isPartitionOfPhysicalDevice(physicalVolume):
+                    physicalDevice = self._getPhysicalDeviceOfPartition(physicalVolume)
+                    if physicalDevice == self._device:
+                        print "Skipping wipe of the physical device that contained the volume group since" \
+                              " it's the target divice."
+                        continue
+                    print "Wiping the physical device '%(physicalDevice)s' which contained the volume " \
+                          "group..." % dict(physicalDevice=physicalDevice)
+                    self.clear(device=physicalDevice, count=1)
 
     def verify(self):
         if not self._findMismatch():
