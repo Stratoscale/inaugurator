@@ -115,6 +115,7 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(("lvm pvscan",
                                       "PV /dev/sda2   VG inaugurator   lvm2 [irrelevant size data]",
                                       "Total: 1 more irrelevant data"))
+        self.expectedCommands.append(("blkid", ""))
         tested = PartitionTable("/dev/sda")
         tested.verify()
         self.assertEquals(len(self.expectedCommands), 0)
@@ -146,9 +147,18 @@ class Test(unittest.TestCase):
         tested.verify()
         self.assertEquals(len(self.expectedCommands), 0)
 
+    def test_WipeOtherPhysicalVolumesLabeledAsBoot(self):
+        self._prepareExpectedCommandsFor128GBDisk(blkidResult={"/dev/sdb1": "BOOT",
+                                                               "/dev/sda1": "BOOT",
+                                                               "/dev/bla": "NOTBOOT"})
+        tested = PartitionTable("/dev/sda")
+        tested.verify()
+        self.assertEquals(len(self.expectedCommands), 0)
+
     def _prepareExpectedCommandsFor128GBDisk(self,
                                              extraVolumeGroup=None,
-                                             physicalVolumeOfExtraVolumeGroup=None):
+                                             physicalVolumeOfExtraVolumeGroup=None,
+                                             blkidResult=None):
         self.expectedCommands.append(('sfdisk --dump /dev/sda', ""))
         self.expectedCommands.append(('''busybox dd if=/dev/zero of=/dev/sda bs=1M count=512''', ""))
         self.expectedCommands.append((
@@ -214,6 +224,20 @@ class Test(unittest.TestCase):
                     cmd = '''busybox dd if=/dev/zero of=%(physicalDevice)s bs=1M count=1''' % \
                           dict(physicalDevice=physicalDevice)
                     self.expectedCommands.append((cmd, ""))
+        if blkidResult is None:
+            blkidOutput = ""
+            devicesThatShouldNotBeLabeledAsBoot = list()
+        else:
+            devicesThatShouldNotBeLabeledAsBoot = \
+                [device for device, label in blkidResult.iteritems() if label == "BOOT" and
+                 device not in ("/dev/sda1", "/dev/sda")]
+            blkidOutput = "\n".join(["%(device)s: SOME_ATTRIBUTE=some_value LABEL=\"%(label)s\"" %
+                                    dict(device=device, label=label)
+                                    for device, label in blkidResult.iteritems()])
+        self.expectedCommands.append(("blkid", blkidOutput))
+        for device in devicesThatShouldNotBeLabeledAsBoot:
+            cmd = '''busybox dd if=/dev/zero of=%(device)s bs=1M count=1''' % dict(device=device)
+            self.expectedCommands.append((cmd, ""))
 
     def _getNumberAtEndOfDevicePath(self, device):
         numbersAtEndOfExpressionFinder = re.compile("[\/\D]+(\d+)$")

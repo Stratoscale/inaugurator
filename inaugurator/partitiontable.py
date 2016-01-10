@@ -18,6 +18,7 @@ class PartitionTable:
         self._sizesGB = dict(self._DEFAULT_SIZES_GB)
         self._sizesGB.update(sizesGB)
         self._device = device
+        self._bootPartition = "%s1" % (self._device,)
         self._cachedDiskSize = None
         self._created = False
 
@@ -37,7 +38,7 @@ class PartitionTable:
         print "creating new partition table:", script
         sh.run(script)
         sh.run("busybox mdev -s")
-        sh.run("mkfs.ext4 %s1 -L BOOT" % self._device)
+        sh.run("mkfs.ext4 %s -L BOOT" % self._bootPartition)
         try:
             sh.run("lvm vgremove -f %s" % (self.VOLUME_GROUP, ))
         except:
@@ -219,6 +220,29 @@ class PartitionTable:
                           "group..." % dict(physicalDevice=physicalDevice)
                     self.clear(device=physicalDevice, count=1)
 
+    def _getDevicesLabeledAsBoot(self):
+        output = sh.run("blkid")
+        print "blkid output:\n"
+        print output
+        for line in output.splitlines():
+            line = line.strip()
+            parts = line.split(":", 1)
+            if len(parts) != 2:
+                continue
+            device, data = parts
+            if " LABEL=\"BOOT\"" in data:
+                device = device.strip()
+                yield device
+
+    def _wipeOtherPartitionsWithBootLabel(self):
+        print "Validating that device %(device)s is the only one with BOOT label..." % \
+              dict(device=self._bootPartition)
+        for device in self._getDevicesLabeledAsBoot():
+            if device != self._bootPartition and device != self._device:
+                print "Wiping '%(device)s' since it is labeled as BOOT (probably leftovers from previous " \
+                      "inaugurations)..." % (dict(device=device))
+                self.clear(device=device, count=1)
+
     def verify(self):
         if not self._findMismatch():
             print "Partition table already set up"
@@ -231,12 +255,14 @@ class PartitionTable:
             except Exception as e:
                 print "Unable: %s" % e
             self._wipeOtherPartitionsWithSameVolumeGroup()
+            self._wipeOtherPartitionsWithBootLabel()
             return
         self._create()
         for retry in xrange(5):
             mismatch = self._findMismatch()
             if mismatch is None:
                 self._wipeOtherPartitionsWithSameVolumeGroup()
+                self._wipeOtherPartitionsWithBootLabel()
                 return
             else:
                 print "Partition table not correct even after %d retries: '%s'" % (
