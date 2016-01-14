@@ -17,6 +17,7 @@ from inaugurator import download
 from inaugurator import etclabelfile
 from inaugurator import lvmetad
 from inaugurator import verify
+from inaugurator import debugthread
 import os
 import time
 import logging
@@ -124,6 +125,7 @@ class Ceremony:
         network.Network(
             macAddress=self._args.inauguratorUseNICWithMAC, ipAddress=self._args.inauguratorIPAddress,
             netmask=self._args.inauguratorNetmask, gateway=self._args.inauguratorGateway)
+        debugthread.DebugThread()
         if self._args.inauguratorServerAMQPURL:
             self._talkToServer = talktoserver.TalkToServer(
                 amqpURL=self._args.inauguratorServerAMQPURL, myID=self._args.inauguratorMyIDForServer)
