@@ -133,3 +133,6 @@ class TalkToServer:
 
     def label(self):
         return self._spooler.getLabel()
+
+    def failed(self, message="Unknown reason"):
+        self._spooler.publishStatus(status="failed", id=self._myID, message=message)

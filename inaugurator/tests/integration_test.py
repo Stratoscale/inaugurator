@@ -34,11 +34,15 @@ class Test(unittest.TestCase):
         self.checkInCallbackArguments = []
         self.doneCallbackArguments = []
         self.progressCallbackArguments = []
+        self.failedCallbackArguments = []
         self.progressWaitEvents = dict()
         self.unreportedProgressMessageEvent = None
         self.auxLabelIDCounter = 0
         self.doServerCallbackCauseErrors = False
-        self.tested = server.Server(self.checkInCallback, self.doneCallback, self.progressCallback)
+        self.tested = server.Server(self.checkInCallback,
+                                    self.doneCallback,
+                                    self.progressCallback,
+                                    self.failedCallback)
         self.talkToServerInstances = set()
 
     def tearDown(self):
@@ -220,6 +224,12 @@ class Test(unittest.TestCase):
             pika.channel.Channel.queue_delete = origQueueDelete
             pika.adapters.blocking_connection.BlockingConnection.close = origConnectionClose
 
+    def test_InaugurationFailed(self):
+        self.tested.listenOnID("eliran")
+        self.validateInaugurationFailed("eliran", "some failure message")
+        self.assertEquals(self.doneCallbackArguments, [])
+        self.assertEquals(self.checkInCallbackArguments, [])
+
     def sendOneStatusMessageAndCheckArrival(self, sendMethod, callbackArguments, id, extraArgs):
         if extraArgs is None:
             extraArgs = tuple()
@@ -231,7 +241,8 @@ class Test(unittest.TestCase):
                                      isArrivalExpected=True):
         statusMessageTypes = dict(checkin=(self.sendCheckIn, self.checkInCallbackArguments),
                                   progress=(self.sendProgress, self.progressCallbackArguments),
-                                  done=(self.sendDone, self.doneCallbackArguments))
+                                  done=(self.sendDone, self.doneCallbackArguments),
+                                  failed=(self.sendFailed, self.failedCallbackArguments))
         sendMethod, callbackArguments = statusMessageTypes[statusMessageType]
         validateMethod = functools.partial(self.sendOneStatusMessageAndCheckArrival, sendMethod,
                                            callbackArguments, id, extraArgs)
@@ -251,6 +262,9 @@ class Test(unittest.TestCase):
 
     def validateProgress(self, id, message):
         self.validateStatusMessageArrival("progress", id, extraArgs=(message,))
+
+    def validateInaugurationFailed(self, id, message):
+        self.validateStatusMessageArrival("failed", id, extraArgs=(dict(message=message),))
 
     def validateDone(self, id):
         self.validateStatusMessageArrival("done", id)
@@ -291,6 +305,12 @@ class Test(unittest.TestCase):
         if self.doServerCallbackCauseErrors:
             raise Exception("Ignore me")
 
+    def failedCallback(self, *args):
+        message = args[1]
+        self.failedCallbackArguments.append(args)
+        if self.doServerCallbackCauseErrors:
+            raise Exception("Ignore me")
+
     def sendCheckIn(self, id):
         talk = self.generateTalkToServer(id)
         talk.checkIn()
@@ -302,6 +322,10 @@ class Test(unittest.TestCase):
     def sendDone(self, id):
         talk = self.generateTalkToServer(id)
         talk.done()
+
+    def sendFailed(self, id, message):
+        talk = self.generateTalkToServer(id)
+        talk.failed(message)
 
     def assertEqualsWithinTimeout(self, callback, expected, interval=0.1, timeout=3):
         before = time.time()
@@ -338,12 +362,15 @@ if __name__ == '__main__':
         print "Note: For different verbosity levels, run with VERBOSITY=(number from 0 to " \
               "%(maxVerbosity)s)." % dict(maxVerbosity=maxVerbosity)
     verbosity = int(os.getenv("VERBOSITY", 0))
-    loggerNames = logLevels[0].keys()
+    loggerNames = list(set(logLevels[0].keys()))
     logLevels = logLevels[verbosity]
     for loggerName in loggerNames:
         logger = logging.getLogger(loggerName)
         logLevel = logLevels[loggerName]
         logger.setLevel(logLevel)
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            logger.addHandler(handler)
         for handler in logger.handlers:
             handler.setLevel(logLevel)
     unittest.main(verbosity=verbosity)

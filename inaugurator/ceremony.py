@@ -130,18 +130,25 @@ class Ceremony:
             self._talkToServer = talktoserver.TalkToServer(
                 amqpURL=self._args.inauguratorServerAMQPURL, myID=self._args.inauguratorMyIDForServer)
             self._talkToServer.checkIn()
-        osmos = osmose.Osmose(
-            destination=destination,
-            objectStores=self._args.inauguratorOsmosisObjectStores,
-            withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
-            ignoreDirs=self._args.inauguratorIgnoreDirs,
-            talkToServer=self._talkToServer)
-        if self._args.inauguratorServerAMQPURL:
-            self._label = self._talkToServer.label()
-        else:
-            self._label = self._args.inauguratorNetworkLabel
-        osmos.tellLabel(self._label)
-        osmos.wait()
+        try:
+            osmos = osmose.Osmose(
+                destination=destination,
+                objectStores=self._args.inauguratorOsmosisObjectStores,
+                withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
+                ignoreDirs=self._args.inauguratorIgnoreDirs,
+                talkToServer=self._talkToServer)
+            if self._args.inauguratorServerAMQPURL:
+                self._label = self._talkToServer.label()
+            else:
+                self._label = self._args.inauguratorNetworkLabel
+            osmos.tellLabel(self._label)
+            osmos.wait()
+        except Exception as e:
+            try:
+                self._talkToServer.failed(message=str(e))
+            except:
+                pass
+            raise e
 
     def _osmosFromDOK(self, destination):
         dok = diskonkey.DiskOnKey()
