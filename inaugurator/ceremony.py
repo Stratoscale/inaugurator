@@ -63,6 +63,10 @@ class Ceremony:
     def ceremony(self):
         before = time.time()
         self._makeSureDiskIsMountable()
+        if self._args.inauguratorDisableNCQ:
+            self._disableNCQ()
+        else:
+            print 'Skipping the disabling of NCQ.'
         with self._mountOp.mountRoot() as destination:
             self._etcLabelFile = etclabelfile.EtcLabelFile(destination)
             self._doOsmosisFromSource(destination)
@@ -74,10 +78,6 @@ class Ceremony:
             logging.info("kernel loaded")
             self._additionalDownload(destination)
         self._sync()
-        if self._args.inauguratorDisableNCQ:
-            self._disableNCQ()
-        else:
-            print 'Skipping the disabling of NCQ.'
         if self._args.inauguratorVerify:
             self._verify()
             self._sync()
