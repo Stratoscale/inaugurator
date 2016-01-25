@@ -135,4 +135,5 @@ class TalkToServer:
         return self._spooler.getLabel()
 
     def failed(self, message="Unknown reason"):
+        logging.info("talking to server: failed")
         self._spooler.publishStatus(status="failed", id=self._myID, message=message)
