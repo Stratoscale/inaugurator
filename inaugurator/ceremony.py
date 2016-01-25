@@ -21,6 +21,7 @@ from inaugurator import debugthread
 import os
 import time
 import logging
+import threading
 
 
 class Ceremony:
@@ -56,6 +57,8 @@ class Ceremony:
         self._args = args
         self._talkToServer = None
         self._assertArgsSane()
+        self._debugPort = None
+        self._isExpectingReboot = False
 
     def ceremony(self):
         before = time.time()
@@ -129,7 +132,7 @@ class Ceremony:
         network.Network(
             macAddress=self._args.inauguratorUseNICWithMAC, ipAddress=self._args.inauguratorIPAddress,
             netmask=self._args.inauguratorNetmask, gateway=self._args.inauguratorGateway)
-        debugthread.DebugThread()
+        self._debugPort = debugthread.DebugThread()
         if self._args.inauguratorServerAMQPURL:
             self._talkToServer = talktoserver.TalkToServer(
                 amqpURL=self._args.inauguratorServerAMQPURL, myID=self._args.inauguratorMyIDForServer)
@@ -148,10 +151,15 @@ class Ceremony:
             osmos.tellLabel(self._label)
             osmos.wait()
         except Exception as e:
-            try:
-                self._talkToServer.failed(message=str(e))
-            except:
-                pass
+            if self._debugPort is not None and self._debugPort.wasRebootCalled():
+                logging.info("Waiting to be reboot (from outside)...")
+                blockForever = threading.Event()
+                blockForever.wait()
+            else:
+                try:
+                    self._talkToServer.failed(message=str(e))
+                except:
+                    pass
             raise e
 
     def _osmosFromDOK(self, destination):
