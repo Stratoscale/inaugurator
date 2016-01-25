@@ -14,6 +14,7 @@ class DebugThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.daemon = True
+        self._wasRebootCalled = False
         self.start()
 
     def run(self):
@@ -42,8 +43,27 @@ class DebugThread(threading.Thread):
                 if not cmd:
                     logging.info('Got disconnected.')
                     break
+                if cmd == "REBOOT":
+                    self._wasRebootCalled = True
+                    logging.info("Killing osmosis...")
+                    try:
+                        sh.run("pkill -9 osmosis")
+                    except:
+                        logging.error("Failed killing osmosis")
+                    logging.info("Flushing FS...")
+                    try:
+                        sh.run("sync")
+                    except:
+                        logging.error("Failed running sync.")
+                    logging.info("Rebooting...")
+                    # Sleep so that there will be enough time for the log to be printed
+                    time.sleep(1)
+                    logging.info(sh.run("reboot -f"))
                 try:
                     logging.info('command: \"{}\"'.format(cmd))
                     logging.info(sh.run(cmd))
                 except:
                     traceback.print_exc(file=sys.stdout)
+
+    def wasRebootCalled(self):
+        return self._wasRebootCalled
