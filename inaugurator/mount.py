@@ -9,7 +9,7 @@ class Mount:
     _BOOT_MOUNT_POINT = "/destBoot"
 
     def __init__(self, targetDevice):
-        self._bootPartition = "%s1" % targetDevice
+        self._bootPartition = "%s2" % targetDevice
         self._swapPartition = "/dev/%s/swap" % partitiontable.PartitionTable.VOLUME_GROUP
         self._rootPartition = "/dev/%s/root" % partitiontable.PartitionTable.VOLUME_GROUP
 

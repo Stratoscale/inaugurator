@@ -11,14 +11,16 @@ class PartitionTable:
         bigSwap=8,
         minimumRoot=14,
         createRoot=30)
-    _BOOT_SIZE_MB = 256
     VOLUME_GROUP = "inaugurator"
+    _PHYSICAL_PARTITIONS = dict(bios_boot=dict(sizeMB=2, flags="bios_grub"),
+                                boot=dict(sizeMB=256, fs="ext4", flags="boot"),
+                                lvm=dict(flags="lvm", sizeMB="fillUp"))
+    _PHYSICAL_PARTITIONS_ORDER = ("bios_boot", "boot", "lvm")
 
     def __init__(self, device, sizesGB=dict()):
         self._sizesGB = dict(self._DEFAULT_SIZES_GB)
         self._sizesGB.update(sizesGB)
         self._device = device
-        self._bootPartition = "%s1" % (self._device,)
         self._cachedDiskSize = None
         self._created = False
 
@@ -33,19 +35,35 @@ class PartitionTable:
 
     def _create(self):
         self.clear()
-        script = "echo -ne '8,%s,83\\n,,8e\\n' | sfdisk --unit M %s --in-order --force" % (
-            self._BOOT_SIZE_MB, self._device)
+        biosBootEnd = 1 + self._PHYSICAL_PARTITIONS["bios_boot"]["sizeMB"]
+        bootStart = biosBootEnd
+        bootEnd = bootStart + self._PHYSICAL_PARTITIONS["boot"]["sizeMB"]
+        script = "parted -s %(device)s -- mklabel gpt mkpart primary ext4 1MiB %(biosBootEnd)sMiB mkpart " \
+                 "primary " \
+                 "ext4 3MiB %(bootEnd)sMiB mkpart primary ext4 %(lvmStart)sMiB -1" % \
+            dict(device=self._device,
+                 biosBootEnd=biosBootEnd,
+                 bootStart=bootStart,
+                 bootEnd=bootEnd,
+                 lvmStart=bootEnd)
         print "creating new partition table:", script
         sh.run(script)
+        print "Setting first partition as BIOS boot partition..."
+        sh.run("parted -s %s set 1 bios_grub on" % (self._device,))
+        print "Setting second partition as a boot partition..."
+        sh.run("parted -s %s set 2 boot on" % (self._device,))
+        print "Enabling LVM on partition %s" % (self._device,)
+        sh.run("parted -s %s set 3 lvm on" % (self._device,))
         sh.run("busybox mdev -s")
-        sh.run("mkfs.ext4 %s -L BOOT" % self._bootPartition)
+        sh.run("mkfs.ext4 %s -L BOOT" % self._getPartitionPath("boot"))
         try:
             sh.run("lvm vgremove -f %s" % (self.VOLUME_GROUP, ))
         except:
             traceback.print_exc()
             print "'lvm vgremove' failed"
-        sh.run("lvm pvcreate %s2" % self._device)
-        sh.run("lvm vgcreate %s %s2" % (self.VOLUME_GROUP, self._device))
+        lvmPartitionPath = self._getPartitionPath("lvm")
+        sh.run("lvm pvcreate %s" % (lvmPartitionPath,))
+        sh.run("lvm vgcreate %s %s" % (self.VOLUME_GROUP, lvmPartitionPath))
         if self._diskSizeMB() / 1024 >= self._sizesGB['createRoot'] + self._sizesGB['bigSwap']:
             swapSizeGB = 8
         else:
@@ -64,11 +82,19 @@ class PartitionTable:
         self._created = True
 
     def parsePartitionTable(self):
-        LINE = re.compile(r"(/\S+) : start=\s*\d+, size=\s*(\d+), Id=\s*([0-9a-fA-F]+)")
-        lines = LINE.findall(sh.run("sfdisk --dump %s" % self._device))
-        return [
-            dict(device=device, sizeMB=int(size) * 512 / 1024 / 1024, id=int(id, 16))
-            for device, size, id in lines if int(size) > 0]
+        cmd = "parted -s -m %(device)s unit MB print" % dict(device=self._device)
+        output = sh.run(cmd)
+        print "Output of parted: %(output)s" % dict(output=output)
+        lines = [line.strip() for line in output.split(";")]
+        lines = [line for line in lines if line]
+        partitionsLines = lines[2:]
+        partitions = [dict(zip(("nr", "start", "end", "size", "fs", "name", "flags"),
+                      partitionLine.split(":"))) for partitionLine in partitionsLines]
+        return [dict(device="%(device)s%(nr)s" % dict(device=self._device, nr=partition["nr"]),
+                     sizeMB=float(partition["size"].rstrip("MB")),
+                     fs=partition["fs"],
+                     flags=partition["flags"])
+                for partition in partitions]
 
     @classmethod
     def _fieldsOfLastTableRow(self, output):
@@ -92,19 +118,15 @@ class PartitionTable:
 
     def _diskSizeMB(self):
         if self._cachedDiskSize is None:
-            self._cachedDiskSize = int(sh.run("sfdisk -s %s" % self._device).strip()) / 1024
+            with open(os.path.join("/sys/block/", self._device.lstrip("/dev/"), "size"), "r") as f:
+                contents = f.read()
+            contents = contents.strip()
+            nrBlocks = int(contents)
+            BLOCK_SIZE = 512
+            NR_BYTES_IN_MB = 1024 ** 2
+            sizeMB = nrBlocks * BLOCK_SIZE / NR_BYTES_IN_MB
+            self._cachedDiskSize = sizeMB
         return self._cachedDiskSize
-
-    def _sfdiskScript(self, table):
-        lines = []
-        offsetMB = '8'
-        for partition in table:
-            sizeMB = "" if partition['sizeMB'] == 'fill' else partition['sizeMB']
-            line = r'%(offsetMB)s,%(sizeMB)s,%(id)d\n' % dict(
-                partition, sizeMB=sizeMB, offsetMB=offsetMB)
-            lines.append(line)
-            offsetMB = ''
-        return "".join(lines)
 
     def _findMismatchInPartitionTable(self):
         try:
@@ -113,28 +135,48 @@ class PartitionTable:
             print "Unable to parse partition table"
             traceback.print_exc()
             return "Unable to parse partition table"
-        if len(parsed) != 2:
-            return "Partition count is not 2"
-        if parsed[0]['id'] != 0x83:
-            return "Expected first partition to be ext4 (0x83)"
-        if not self._approximatelyEquals(parsed[0]['sizeMB'], self._BOOT_SIZE_MB):
-            return "Expected first partition to be around %sMB" % self._BOOT_SIZE_MB
-        if parsed[1]['id'] != 0x8e:
-            return "Expected second partition to be LVM (0x8e)"
-        if not self._approximatelyEquals(parsed[1]['sizeMB'], self._diskSizeMB() - self._BOOT_SIZE_MB):
-            return "Expected second partition to fill up disk"
+        if len(parsed) != len(self._PHYSICAL_PARTITIONS):
+            return "Partition count is not %(nrPartitions)s" % \
+                dict(nrPartitions=len(self._PHYSICAL_PARTITIONS))
+        for partitionPurpose, actualPartition in zip(self._PHYSICAL_PARTITIONS_ORDER, parsed):
+            expectedPartition = self._PHYSICAL_PARTITIONS[partitionPurpose]
+            for attrName in ("fs", "flags"):
+                if attrName not in expectedPartition:
+                    continue
+                actual = actualPartition[attrName]
+                expected = expectedPartition[attrName]
+                if expected != actual:
+                    return "Expected attribute %(attrName)s of %(partitionPurpose)s partition to be " \
+                           "'%(expected)s', not '%(actual)s'" % \
+                           dict(attrName=attrName,
+                                partitionPurpose=partitionPurpose,
+                                expected=expected,
+                                actual=actual)
+
+            expectedSize = expectedPartition["sizeMB"]
+            if expectedPartition["sizeMB"] == "fillUp":
+                sizeOfOthers = self._combinedSizeOfAllOtherPartitions(partitionPurpose)
+                expectedSize = self._diskSizeMB() - sizeOfOthers
+            if not self._approximatelyEquals(expectedSize, actualPartition["sizeMB"]):
+                return "Expected partition %(partitionPurpose)s to be approximately %(expectedSize)sMB" % \
+                    dict(partitionPurpose=partitionPurpose, expectedSize=expectedSize)
         return None
 
+    def _combinedSizeOfAllOtherPartitions(self, partitionPurpose):
+        return sum([attrs["sizeMB"] for purpose, attrs in
+                    self._PHYSICAL_PARTITIONS.iteritems() if purpose != partitionPurpose])
+
     def _findMismatchInLVM(self):
+        lvmPartitionPath = self._getPartitionPath("lvm")
         try:
-            physical = self.parseLVMPhysicalVolume("%s2" % self._device)
+            physical = self.parseLVMPhysicalVolume(lvmPartitionPath)
         except:
             print "Unable to parse physical volume"
             traceback.print_exc()
             return "Unable to parse physical volume"
         if physical['name'] != self.VOLUME_GROUP:
             return "Physical volume name is '%s', and not '%s'" % (physical['name'], self.VOLUME_GROUP)
-        if physical['sizeMB'] * 1.1 < self._diskSizeMB() - self._BOOT_SIZE_MB:
+        if physical['sizeMB'] * 1.1 < self._combinedSizeOfAllOtherPartitions("lvm"):
             return "Physical volume does not fill up most of the disk: %s < %s" % (
                 physical['sizeMB'], self._diskSizeMB())
 
@@ -204,7 +246,7 @@ class PartitionTable:
         vgs = self._parseVGs()
         if not vgs:
             raise Exception("No volume group was found after configuration of LVM.")
-        targetPhysicalVolumeForVolumeGroup = "%(device)s2" % (dict(device=self._device))
+        targetPhysicalVolumeForVolumeGroup = self._getPartitionPath("lvm")
         for physicalVolume, volumeGroup in vgs.iteritems():
             if physicalVolume != targetPhysicalVolumeForVolumeGroup and volumeGroup == self.VOLUME_GROUP:
                 print "Wiping '%(physicalVolume)s' since it contains another copy of the volume group..." \
@@ -236,9 +278,9 @@ class PartitionTable:
 
     def _wipeOtherPartitionsWithBootLabel(self):
         print "Validating that device %(device)s is the only one with BOOT label..." % \
-              dict(device=self._bootPartition)
+              dict(device=self._getPartitionPath("boot"))
         for device in self._getDevicesLabeledAsBoot():
-            if device != self._bootPartition and device != self._device:
+            if device != self._getPartitionPath("boot") and device != self._device:
                 print "Wiping '%(device)s' since it is labeled as BOOT (probably leftovers from previous " \
                       "inaugurations)..." % (dict(device=device))
                 self.clear(device=device, count=1)
@@ -246,7 +288,8 @@ class PartitionTable:
     def verify(self):
         if not self._findMismatch():
             print "Partition table already set up"
-            sh.run("lvm pvscan --cache %s2" % self._device)
+            lvmPartitionPath = self._getPartitionPath("lvm")
+            sh.run("lvm pvscan --cache %s" % lvmPartitionPath)
             sh.run("lvm vgchange --activate y %s" % self.VOLUME_GROUP)
             sh.run("lvm vgscan --mknodes")
             print "/dev/inaugurator:"
@@ -286,3 +329,8 @@ class PartitionTable:
             if time.time() - before > 2:
                 raise Exception("Timeout waiting for '%s' to show up" % path)
             time.sleep(0.02)
+
+    def _getPartitionPath(self, partitionPurpose):
+        partitionIdx = self._PHYSICAL_PARTITIONS_ORDER.index(partitionPurpose)
+        partitionNr = partitionIdx + 1
+        return "%(device)s%(partitionNr)s" % dict(device=self._device, partitionNr=partitionNr)
