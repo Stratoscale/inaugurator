@@ -49,6 +49,7 @@ build/inaugurator.thin.initrd.dir: dist/inaugurator-${INAUGURATOR_VERSION}.linux
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ifconfig
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/route
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/sfdisk
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/parted
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/mkfs.ext4
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/mkswap
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ip
