@@ -35,13 +35,16 @@ class PartitionTable:
 
     def _create(self):
         self.clear()
-        biosBootEnd = 1 + self._PHYSICAL_PARTITIONS["bios_boot"]["sizeMB"]
+        biosBootStart = 1
+        biosBootEnd = biosBootStart + self._PHYSICAL_PARTITIONS["bios_boot"]["sizeMB"]
         bootStart = biosBootEnd
         bootEnd = bootStart + self._PHYSICAL_PARTITIONS["boot"]["sizeMB"]
-        script = "parted -s %(device)s -- mklabel gpt mkpart primary ext4 1MiB %(biosBootEnd)sMiB mkpart " \
-                 "primary " \
-                 "ext4 3MiB %(bootEnd)sMiB mkpart primary ext4 %(lvmStart)sMiB -1" % \
+        script = "parted -s %(device)s -- " \
+                 "mklabel gpt mkpart primary ext4 %(biosBootStart)sMiB %(biosBootEnd)sMiB " \
+                 "mkpart primary ext4 %(bootStart)sMiB %(bootEnd)sMiB " \
+                 "mkpart primary ext4 %(lvmStart)sMiB -1" % \
             dict(device=self._device,
+                 biosBootStart=biosBootStart,
                  biosBootEnd=biosBootEnd,
                  bootStart=bootStart,
                  bootEnd=bootEnd,
