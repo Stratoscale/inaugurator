@@ -51,7 +51,7 @@ class Mount:
 
     def _correctEXT4Errors(self, device):
         try:
-            sh.run("/usr/sbin/fsck.ext4 -y %s" % device)
+            sh.run("/usr/sbin/fsck.ext4 -y -f %s" % device)
         except:
             logging.exception(
                 "fsck returned with errors, this most likely means it has corrected issues on disk."
