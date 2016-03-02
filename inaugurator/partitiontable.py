@@ -9,8 +9,11 @@ class PartitionTable:
     _DEFAULT_SIZES_GB = dict(
         smallSwap=1,
         bigSwap=8,
-        minimumRoot=14,
-        createRoot=30)
+        smallOsmosisCache=5,
+        bigOsmosisCache=15,
+        minimumRoot=7,
+        createRoot=10)
+    _BOOT_SIZE_MB = 256
     VOLUME_GROUP = "inaugurator"
     _PHYSICAL_PARTITIONS = dict(bios_boot=dict(sizeMB=2, flags="bios_grub"),
                                 boot=dict(sizeMB=256, fs="ext4", flags="boot"),
@@ -67,12 +70,20 @@ class PartitionTable:
         lvmPartitionPath = self._getPartitionPath("lvm")
         sh.run("lvm pvcreate %s" % (lvmPartitionPath,))
         sh.run("lvm vgcreate %s %s" % (self.VOLUME_GROUP, lvmPartitionPath))
-        if self._diskSizeMB() / 1024 >= self._sizesGB['createRoot'] + self._sizesGB['bigSwap']:
+        if self._diskSizeMB() / 1024 >= self._sizesGB['createRoot'] + self._sizesGB['bigSwap'] + \
+                self._sizesGB["bigOsmosisCache"]:
             swapSizeGB = 8
         else:
             swapSizeGB = 1
         sh.run("lvm lvcreate --zero n --name swap --size %dG %s" % (swapSizeGB, self.VOLUME_GROUP))
-        if self._diskSizeMB() / 1024 > self._sizesGB['createRoot'] + swapSizeGB:
+        if self._diskSizeMB() / 1024 > self._sizesGB['createRoot'] + swapSizeGB + \
+                self._sizesGB["bigOsmosisCache"]:
+            osmosisCacheSizeGB = self._sizesGB["bigOsmosisCache"]
+        else:
+            osmosisCacheSizeGB = self._sizesGB["smallOsmosisCache"]
+        sh.run("lvm lvcreate --zero n --name osmosis-cache --size %dG %s" %
+               (osmosisCacheSizeGB, self.VOLUME_GROUP))
+        if self._diskSizeMB() / 1024 > self._sizesGB['createRoot'] + swapSizeGB + osmosisCacheSizeGB:
             rootSize = "--size %dG" % self._sizesGB['createRoot']
         else:
             rootSize = "--extents 100%FREE"
@@ -82,6 +93,8 @@ class PartitionTable:
         sh.run("mkswap /dev/%s/swap -L SWAP" % self.VOLUME_GROUP)
         self._waitForFileToShowUp("/dev/%s/root" % self.VOLUME_GROUP)
         sh.run("mkfs.ext4 /dev/%s/root -L ROOT" % self.VOLUME_GROUP)
+        self._waitForFileToShowUp("/dev/%s/osmosis-cache" % self.VOLUME_GROUP)
+        sh.run("mkfs.ext4 /dev/%s/osmosis-cache" % self.VOLUME_GROUP)
         self._created = True
 
     def parsePartitionTable(self):
@@ -186,18 +199,27 @@ class PartitionTable:
         try:
             swap = self.parseLVMLogicalVolume("swap")
             root = self.parseLVMLogicalVolume("root")
+            osmosis = self.parseLVMLogicalVolume("osmosis-cache")
         except:
             print "Unable to parse logical volume/s"
             traceback.print_exc()
             return "Unable to parse physical volume/s"
         if root['sizeMB'] <= self._sizesGB['minimumRoot'] * 1024 * 0.9:
             return "Root partition is too small"
-        if self._diskSizeMB() / 1024 >= self._sizesGB['createRoot'] + self._sizesGB['bigSwap']:
+        if self._diskSizeMB() / 1024 >= self._sizesGB['createRoot'] + self._sizesGB['bigSwap'] + \
+                self._sizesGB["bigOsmosisCache"]:
             minimumSwapSizeGB = self._sizesGB['bigSwap']
         else:
             minimumSwapSizeGB = self._sizesGB['smallSwap']
         if swap['sizeMB'] <= minimumSwapSizeGB * 1024 * 0.9:
             return "Swap partition is too small"
+        if self._diskSizeMB() / 1024 >= self._sizesGB['createRoot'] + minimumSwapSizeGB + \
+                self._sizesGB["bigOsmosisCache"]:
+            minimumOsmosisCacheSizeGB = self._sizesGB['bigOsmosisCache']
+        else:
+            minimumOsmosisCacheSizeGB = self._sizesGB['smallOsmosisCache']
+        if osmosis['sizeMB'] <= minimumOsmosisCacheSizeGB * 1024 * 0.9:
+            return "Osmosis cache partition is too small (%(sizeMB)sG)" % dict(sizeMB=osmosis["sizeMB"])
 
         return None
 

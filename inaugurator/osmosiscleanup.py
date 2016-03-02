@@ -7,10 +7,9 @@ import logging
 
 
 class OsmosisCleanup:
-    ALLOWED_DISK_USAGE_PERCENT = 50
+    ALLOWED_DISK_USAGE_PERCENT = 66
 
-    def __init__(self, mountPoint):
-        objectStorePath = os.path.join(mountPoint, "var", "lib", "osmosis", "objectstore")
+    def __init__(self, mountPoint, objectStorePath):
         self._objectStore = objectstore.ObjectStore(objectStorePath)
         before = disk.dfPercent(mountPoint)
         if self._objectStoreExists():
