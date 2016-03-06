@@ -8,7 +8,7 @@ dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz:
 	python setup.py bdist
 	python setup.py bdist_egg
 
-KERNEL_VERSION = 3.10.0-123.8.1.el7.x86_64
+KERNEL_VERSION = 3.10.0-327.10.1.el7.x86_64
 build/inaugurator.vmlinuz: /boot/vmlinuz-$(KERNEL_VERSION)
 	-mkdir $(@D)
 	cp $< $@
@@ -81,6 +81,7 @@ build/inaugurator.thin.initrd.dir: dist/inaugurator-${INAUGURATOR_VERSION}.linux
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh isofs
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh ata_piix
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.order
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh aacraid
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.builtin
 	depmod --basedir=$@.tmp $(KERNEL_VERSION)
 	echo "Misc"
