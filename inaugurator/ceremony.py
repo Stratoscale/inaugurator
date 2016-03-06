@@ -59,6 +59,7 @@ class Ceremony:
         self._assertArgsSane()
         self._debugPort = None
         self._isExpectingReboot = False
+        self._grubConfig = None
 
     def ceremony(self):
         before = time.time()
@@ -125,8 +126,20 @@ class Ceremony:
         with self._mountOp.mountBoot() as bootDestination:
             sh.run("rsync -rlpgDS --delete-before %s/boot/ %s/" % (destination, bootDestination))
         with self._mountOp.mountBootInsideRoot():
-            logging.info("Installing grub")
+            if self._args.console is None:
+                logging.warn("a 'console' argument was not given. Cannot tell which serial device to "
+                             "redirect the console output to (default values in the label will be used).")
+            else:
+                serialDevice = self._args.console.split("console=")[1]
+                logging.info("Overriding GRUB2 user settings file to set serial device to %(device)s...",
+                             dict(device=serialDevice))
+                grub.setSerialDevice(serialDevice, destination)
+            logging.info("Installing GRUB2...")
             grub.install(self._targetDevice, destination)
+            logging.info("Reading newly generated GRUB2 configuration file for later use...")
+            grubConfigFilename = os.path.join(destination, "boot", "grub2", "grub.cfg")
+            with open(grubConfigFilename, "r") as grubConfigFile:
+                self._grubConfig = grubConfigFile.read()
 
     def _osmosFromNetwork(self, destination):
         network.Network(
@@ -218,6 +231,7 @@ class Ceremony:
     def _loadKernelForKexecing(self, destination):
         self._loadKernel = loadkernel.LoadKernel()
         self._loadKernel.fromBootPartitionGrubConfig(
+            grubConfig=self._grubConfig,
             bootPath=os.path.join(destination, "boot"), rootPartition=self._mountOp.rootPartition(),
             append=self._args.inauguratorPassthrough)
 
