@@ -1,7 +1,7 @@
 INAUGURATOR_VERSION=$(shell python setup.py --version)
 
 .PHONY: build
-build: build/inaugurator.vmlinuz.checksum build/inaugurator.thin.initrd.img.checksum build/inaugurator.fat.initrd.img.checksum dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
+build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
 
 dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz:
 	python setup.py build
@@ -92,9 +92,6 @@ build/inaugurator.thin.initrd.dir: dist/inaugurator-${INAUGURATOR_VERSION}.linux
 	mkdir $@.tmp/sys
 	find $@.tmp -name "*.pyo" | xargs rm -f
 	mv $@.tmp $@
-
-build/%.checksum: build/%
-	md5sum $? | cut -d " " -f 1 > $@
 
 build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 	echo "Creating fat image. Starting from thin image"
