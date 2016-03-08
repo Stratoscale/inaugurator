@@ -5,16 +5,17 @@ from inaugurator import reportthread
 
 
 class Osmose:
-    def __init__(self, destination, objectStores, withLocalObjectStore, ignoreDirs, talkToServer):
+    def __init__(self, destination, objectStores, withLocalObjectStore, ignoreDirs, talkToServer,
+                 localObjectStore=None):
         absoluteIgnoreDirs = [os.path.join(destination, ignoreDir) for ignoreDir in ignoreDirs]
         logging.info("Osmosing parameters: withLocalObjectStore: %(withLocalObjectStore)s", dict(
             withLocalObjectStore=withLocalObjectStore))
         if withLocalObjectStore:
-            localObjectStore = os.path.join(destination, "var", "lib", "osmosis", "objectstore")
-            absoluteIgnoreDirs.append(localObjectStore)
+            assert localObjectStore is not None, "Must provide local object store path when osmosing " \
+                                                 "from the local object store"
             objectStores = localObjectStore + ("+" + objectStores if objectStores else "")
         extra = []
-        if len(absoluteIgnoreDirs) > 0:
+        if absoluteIgnoreDirs:
             extra += ['--ignore', ":".join(absoluteIgnoreDirs)]
         if talkToServer is not None:
             reportthread.ReportThread(talkToServer)

@@ -1,14 +1,24 @@
 INAUGURATOR_VERSION=$(shell python setup.py --version)
 
 .PHONY: build
-build: build/inaugurator.vmlinuz.checksum build/inaugurator.thin.initrd.img.checksum build/inaugurator.fat.initrd.img.checksum dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
+build:
+ifeq ($(BUILD_HOST),)
+	$(error Please specify the environment variable 'BUILD_HOST', to indicate where to build the host, as either 'local' (build images locally) or 'docker', (build images inside a docker container, which is better if the host does not have all the necessary packages).)
+endif
+ifeq ($(BUILD_HOST),local)
+	$(MAKE) build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
+endif
+ifeq ($(BUILD_HOST),docker)
+	$(MAKE) build_container
+	sudo docker run -v `pwd`:/root/inaugurator -v `pwd`/../osmosis:/root/osmosis build-inaugurator:$(INAUGURATOR_VERSION)
+endif
 
 dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz:
 	python setup.py build
 	python setup.py bdist
 	python setup.py bdist_egg
 
-KERNEL_VERSION = 3.10.0-123.8.1.el7.x86_64
+KERNEL_VERSION = 3.10.0-327.10.1.el7.x86_64
 build/inaugurator.vmlinuz: /boot/vmlinuz-$(KERNEL_VERSION)
 	-mkdir $(@D)
 	cp $< $@
@@ -49,6 +59,7 @@ build/inaugurator.thin.initrd.dir: dist/inaugurator-${INAUGURATOR_VERSION}.linux
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ifconfig
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/route
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/sfdisk
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/parted
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/mkfs.ext4
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/mkswap
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ip
@@ -80,6 +91,7 @@ build/inaugurator.thin.initrd.dir: dist/inaugurator-${INAUGURATOR_VERSION}.linux
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh isofs
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh ata_piix
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.order
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh aacraid
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.builtin
 	depmod --basedir=$@.tmp $(KERNEL_VERSION)
 	echo "Misc"
@@ -92,9 +104,6 @@ build/inaugurator.thin.initrd.dir: dist/inaugurator-${INAUGURATOR_VERSION}.linux
 	find $@.tmp -name "*.pyo" | xargs rm -f
 	mv $@.tmp $@
 
-build/%.checksum: build/%
-	md5sum $? | cut -d " " -f 1 > $@
-
 build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 	echo "Creating fat image. Starting from thin image"
 	cp -a $< $@.tmp
@@ -103,3 +112,12 @@ build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 	depmod --basedir=$@.tmp $(KERNEL_VERSION)
 	cp -a lib $@.tmp/
 	mv $@.tmp $@
+
+.PHONY: build_container
+build_container: docker/build-inaugurator.dockerfile
+ifeq ($(shell sudo docker images | egrep -Ec "^inaugurator[ ]+$(INAUGURATOR_VERSION)" | xargs echo -n),0)
+	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was not built. Trying to build it....)
+	@-mkdir build
+	@cp docker/build-inaugurator.dockerfile build/
+	sudo docker build -f build/build-inaugurator.dockerfile -t build-inaugurator:$(INAUGURATOR_VERSION) build
+endif

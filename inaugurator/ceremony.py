@@ -59,6 +59,8 @@ class Ceremony:
         self._assertArgsSane()
         self._debugPort = None
         self._isExpectingReboot = False
+        self._grubConfig = None
+        self._localObjectStore = None
 
     def ceremony(self):
         before = time.time()
@@ -67,7 +69,8 @@ class Ceremony:
             self._disableNCQ()
         else:
             print 'Skipping the disabling of NCQ.'
-        with self._mountOp.mountRoot() as destination:
+        with self._mountOp.mountRoot() as destination, self._mountOp.mountOsmosisCache() as osmosisCache:
+            self._localObjectStore = osmosisCache
             self._etcLabelFile = etclabelfile.EtcLabelFile(destination)
             self._doOsmosisFromSource(destination)
             logging.info("Osmosis complete")
@@ -125,8 +128,20 @@ class Ceremony:
         with self._mountOp.mountBoot() as bootDestination:
             sh.run("rsync -rlpgDS --delete-before %s/boot/ %s/" % (destination, bootDestination))
         with self._mountOp.mountBootInsideRoot():
-            logging.info("Installing grub")
+            if self._args.console is None:
+                logging.warn("a 'console' argument was not given. Cannot tell which serial device to "
+                             "redirect the console output to (default values in the label will be used).")
+            else:
+                serialDevice = self._args.console.split("console=")[1]
+                logging.info("Overriding GRUB2 user settings file to set serial device to %(device)s...",
+                             dict(device=serialDevice))
+                grub.setSerialDevice(serialDevice, destination)
+            logging.info("Installing GRUB2...")
             grub.install(self._targetDevice, destination)
+            logging.info("Reading newly generated GRUB2 configuration file for later use...")
+            grubConfigFilename = os.path.join(destination, "boot", "grub2", "grub.cfg")
+            with open(grubConfigFilename, "r") as grubConfigFile:
+                self._grubConfig = grubConfigFile.read()
 
     def _osmosFromNetwork(self, destination):
         network.Network(
@@ -142,6 +157,7 @@ class Ceremony:
                 destination=destination,
                 objectStores=self._args.inauguratorOsmosisObjectStores,
                 withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
+                localObjectStore=self._localObjectStore,
                 ignoreDirs=self._args.inauguratorIgnoreDirs,
                 talkToServer=self._talkToServer)
             if self._args.inauguratorServerAMQPURL:
@@ -168,6 +184,7 @@ class Ceremony:
             osmos = osmose.Osmose(
                 destination, objectStores=source + "/osmosisobjectstore",
                 withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
+                localObjectStore=self._localObjectStore,
                 ignoreDirs=self._args.inauguratorIgnoreDirs,
                 talkToServer=self._talkToServer)
             with open("%s/inaugurate_label.txt" % source) as f:
@@ -181,6 +198,7 @@ class Ceremony:
             osmos = osmose.Osmose(
                 destination, objectStores=source + "/osmosisobjectstore",
                 withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
+                localObjectStore=self._localObjectStore,
                 ignoreDirs=self._args.inauguratorIgnoreDirs,
                 talkToServer=self._talkToServer)
             with open("%s/inaugurate_label.txt" % source) as f:
@@ -192,6 +210,7 @@ class Ceremony:
         osmos = osmose.Osmose(
             destination, objectStores=None,
             withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
+            localObjectStore=self._localObjectStore,
             ignoreDirs=self._args.inauguratorIgnoreDirs,
             talkToServer=self._talkToServer)
         self._label = self._args.inauguratorNetworkLabel
@@ -218,11 +237,12 @@ class Ceremony:
     def _loadKernelForKexecing(self, destination):
         self._loadKernel = loadkernel.LoadKernel()
         self._loadKernel.fromBootPartitionGrubConfig(
+            grubConfig=self._grubConfig,
             bootPath=os.path.join(destination, "boot"), rootPartition=self._mountOp.rootPartition(),
             append=self._args.inauguratorPassthrough)
 
     def _doOsmosisFromSource(self, destination):
-        osmosiscleanup.OsmosisCleanup(destination)
+        osmosiscleanup.OsmosisCleanup(destination, objectStorePath=self._localObjectStore)
         if self._args.inauguratorSource == 'network':
             self._osmosFromNetwork(destination)
         elif self._args.inauguratorSource == 'DOK':
