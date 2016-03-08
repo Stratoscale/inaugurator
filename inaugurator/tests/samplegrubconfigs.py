@@ -95,8 +95,8 @@ menuentry 'Fedora' --class gnu-linux --class gnu --class os $menuentry_id_option
     else
       search --no-floppy --fs-uuid --set=root 7281ba4c-2700-4e8c-b2e8-95f97f3dce7c
     fi
-    linux   /boot/vmlinuz-3.11.9-200.fc19.x86_64 root=UUID=7281ba4c-2700-4e8c-b2e8-95f97f3dce7c ro
-    initrd  /boot/initramfs-3.11.9-200.fc19.x86_64.img
+    linux   /vmlinuz-3.11.9-200.fc19.x86_64 root=UUID=7281ba4c-2700-4e8c-b2e8-95f97f3dce7c ro
+    initrd  /initramfs-3.11.9-200.fc19.x86_64.img
 }
 submenu 'Advanced options for Fedora' $menuentry_id_option 'gnulinux-advanced-7281ba4c-2700-4e8c-b2e8-95f97f3dce7c' {
     menuentry 'Fedora, with Linux 3.11.9-200.fc19.x86_64' --class gnu-linux --class gnu --class os $menuentry_id_option 'gnulinux-3.11.9-200.fc19.x86_64-advanced-7281ba4c-2700-4e8c-b2e8-95f97f3dce7c' {
@@ -111,8 +111,8 @@ submenu 'Advanced options for Fedora' $menuentry_id_option 'gnulinux-advanced-72
         else
           search --no-floppy --fs-uuid --set=root 7281ba4c-2700-4e8c-b2e8-95f97f3dce7c
         fi
-        linux   /boot/vmlinuz-3.11.9-200.fc19.x86_64 root=UUID=7281ba4c-2700-4e8c-b2e8-95f97f3dce7c ro
-        initrd  /boot/initramfs-3.11.9-200.fc19.x86_64.img
+        linux   /vmlinuz-3.11.9-200.fc19.x86_64 root=UUID=7281ba4c-2700-4e8c-b2e8-95f97f3dce7c ro
+        initrd  /initramfs-3.11.9-200.fc19.x86_64.img
     }
     menuentry 'Fedora, with Linux 3.11.9-200.fc19.x86_64 (recovery mode)' --class gnu-linux --class gnu --class os $menuentry_id_option 'gnulinux-3.11.9-200.fc19.x86_64-recovery-7281ba4c-2700-4e8c-b2e8-95f97f3dce7c' {
         load_video
@@ -126,8 +126,8 @@ submenu 'Advanced options for Fedora' $menuentry_id_option 'gnulinux-advanced-72
         else
           search --no-floppy --fs-uuid --set=root 7281ba4c-2700-4e8c-b2e8-95f97f3dce7c
         fi
-        linux   /boot/vmlinuz-3.11.9-200.fc19.x86_64 root=UUID=7281ba4c-2700-4e8c-b2e8-95f97f3dce7c ro single
-        initrd  /boot/initramfs-3.11.9-200.fc19.x86_64.img
+        linux   /vmlinuz-3.11.9-200.fc19.x86_64 root=UUID=7281ba4c-2700-4e8c-b2e8-95f97f3dce7c ro single
+        initrd  /initramfs-3.11.9-200.fc19.x86_64.img
     }
 }
 
