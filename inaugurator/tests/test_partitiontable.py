@@ -122,7 +122,7 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''parted -s /dev/sda set 3 lvm on''', ""))
         self.expectedCommands.append(('''busybox mdev -s''', ""))
         self.expectedCommands.append(('''mkfs.ext4 /dev/sda2 -L BOOT''', ""))
-        self.expectedCommands.append(('''lvm pvcreate %(lvmPartition)s''' %
+        self.expectedCommands.append(('''lvm pvcreate -ff %(lvmPartition)s''' %
                                       dict(lvmPartition=self.LVM_PARTITION), ""))
         self.expectedCommands.append(('''lvm vgcreate inaugurator %(lvmPartition)s''' %
                                       dict(lvmPartition=self.LVM_PARTITION), ""))
@@ -221,7 +221,7 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''parted -s /dev/sda set 3 lvm on''', ""))
         self.expectedCommands.append(('''busybox mdev -s''', ""))
         self.expectedCommands.append(('''mkfs.ext4 /dev/sda2 -L BOOT''', ""))
-        self.expectedCommands.append(('''lvm pvcreate %(lvmPartition)s''' %
+        self.expectedCommands.append(('''lvm pvcreate -ff %(lvmPartition)s''' %
                                       dict(lvmPartition=self.LVM_PARTITION), ""))
         self.expectedCommands.append(('''lvm vgcreate inaugurator %(lvmPartition)s''' %
                                       dict(lvmPartition=self.LVM_PARTITION), ""))
