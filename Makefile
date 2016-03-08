@@ -40,7 +40,7 @@ bring_images_from_objectstore:
 
 .PHONY: submitimages
 submitimages:
-	@stat $(IMAGES) || echo "Please use the 'build' makefile recipe to build the images first." && exit 1
+	@stat $(IMAGES) || (echo "Please use the 'build' makefile recipe to build the images first." && exit 1)
 	-mkdir build/images_product
 	cp $(IMAGES) build/images_product
 	solvent submitproduct images build/images_product
