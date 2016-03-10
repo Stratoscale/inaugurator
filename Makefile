@@ -4,7 +4,7 @@ install: images
 	$(MAKE) install_nodeps
 
 clean:
-	rm -fr build dist inaugurator.egg-info
+	rm -fr build remote dist inaugurator.egg-info
 
 check_convention:
 	pep8 inaugurator --max-line-length=109 --exclude=samplegrubconfigs.py
@@ -24,19 +24,24 @@ uninstall:
 	-sudo mkdir /usr/share/inaugurator
 	-yes | sudo pip uninstall inaugurator
 
-IMAGES = build/$(IMAGES_SOURCE)/inaugurator.thin.initrd.img build/$(IMAGES_SOURCE)/inaugurator.fat.initrd.img build/$(IMAGES_SOURCE)/inaugurator.vmlinuz
+IMAGES = $(IMAGES_SOURCE)/inaugurator.thin.initrd.img $(IMAGES_SOURCE)/inaugurator.fat.initrd.img $(IMAGES_SOURCE)/inaugurator.vmlinuz
+remote/%: bring_images_from_objectstore
 
 .PHONY: images
 images:
 ifeq ($(IMAGES_SOURCE),)
 	$(error Please specify the environment variable IMAGES_SOURCE, to indicate how to obtain inaugurator images, as either 'build' (build images locally) or 'remote' (bring images from solvent object store))
 endif
+ifeq ($(IMAGES_SOURCE),remote)
+	$(MAKE) bring_images_from_objectstore
+endif
+ifeq ($(IMAGES_SOURCE),local)
 	$(MAKE) $(IMAGES)
+endif
 
 .PHONY: bring_images_from_objectstore
 bring_images_from_objectstore:
-	-mkdir -p build/remote
-	sudo solvent bring --repositoryBasename=inaugurator --product images --destination=build/remote
+	sudo solvent bring --repositoryBasename=inaugurator --product images --destination=remote
 
 .PHONY: submitimages
 submitimages:
@@ -44,10 +49,6 @@ submitimages:
 	-mkdir build/images_product
 	cp $(IMAGES) build/images_product
 	solvent submitproduct images build/images_product
-
-build/remote/inaugurator.thin.initrd.img: bring_images_from_objectstore
-build/remote/inaugurator.fat.initrd.img: bring_images_from_objectstore
-build/remote/inaugurator.vmlinuz: bring_images_from_objectstore
 
 install_nodeps:
 	-sudo mkdir /usr/share/inaugurator
