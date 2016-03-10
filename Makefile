@@ -1,6 +1,9 @@
+IMAGES_SOURCE=__undefined
+IMAGES = $(IMAGES_SOURCE)/inaugurator.thin.initrd.img $(IMAGES_SOURCE)/inaugurator.fat.initrd.img $(IMAGES_SOURCE)/inaugurator.vmlinuz
+
 all: build unittest check_convention
 
-install: images
+install: $(IMAGES)
 	$(MAKE) install_nodeps
 
 clean:
@@ -24,30 +27,17 @@ uninstall:
 	-sudo mkdir /usr/share/inaugurator
 	-yes | sudo pip uninstall inaugurator
 
-IMAGES = $(IMAGES_SOURCE)/inaugurator.thin.initrd.img $(IMAGES_SOURCE)/inaugurator.fat.initrd.img $(IMAGES_SOURCE)/inaugurator.vmlinuz
-remote/%: bring_images_from_objectstore
-
-.PHONY: images
-images:
-ifeq ($(IMAGES_SOURCE),)
-	$(error Please specify the environment variable IMAGES_SOURCE, to indicate how to obtain inaugurator images, as either 'build' (build images locally) or 'remote' (bring images from solvent object store))
-endif
-ifeq ($(IMAGES_SOURCE),remote)
-	$(MAKE) bring_images_from_objectstore
-endif
-ifeq ($(IMAGES_SOURCE),local)
-	$(MAKE) $(IMAGES)
-endif
-
-.PHONY: bring_images_from_objectstore
-bring_images_from_objectstore:
+remote/%:
 	sudo solvent bring --repositoryBasename=inaugurator --product images --destination=remote
+
+__undefined/%:
+	$(error Please specify the environment variable IMAGES_SOURCE, to indicate how to obtain inaugurator images, as either 'build' (build images locally) or 'remote' (bring images from solvent object store))
 
 .PHONY: submitimages
 submitimages:
-	@stat $(IMAGES) || (echo "Please use the 'build' makefile recipe to build the images first." && exit 1)
+	@(stat $(subst $(IMAGES_SOURCE)/,build/,$(IMAGES)) > /dev/null) || (echo "Please use the 'build' makefile recipe to build the images first." && exit 1)
 	-mkdir build/images_product
-	cp $(IMAGES) build/images_product
+	cp $(subst $(IMAGES_SOURCE)/,build/,$(IMAGES)) build/images_product
 	solvent submitproduct images build/images_product
 
 install_nodeps:
