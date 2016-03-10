@@ -115,9 +115,11 @@ build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 
 .PHONY: build_container
 build_container: docker/build-inaugurator.dockerfile
+ifeq ($(BUILD_HOST),docker)
 ifeq ($(shell sudo docker images | egrep -Ec "^inaugurator[ ]+$(INAUGURATOR_VERSION)" | xargs echo -n),0)
 	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was not built. Trying to build it....)
 	@-mkdir build
 	@cp docker/build-inaugurator.dockerfile build/
 	sudo docker build -f build/build-inaugurator.dockerfile -t build-inaugurator:$(INAUGURATOR_VERSION) build
+endif
 endif
