@@ -134,7 +134,7 @@ class PartitionTable:
 
     def _diskSizeMB(self):
         if self._cachedDiskSize is None:
-            with open(os.path.join("/sys/block/", self._device.lstrip("/dev/"), "size"), "r") as f:
+            with open(os.path.join("/sys/block/", self._device.split("/dev/")[1], "size"), "r") as f:
                 contents = f.read()
             contents = contents.strip()
             nrBlocks = int(contents)
