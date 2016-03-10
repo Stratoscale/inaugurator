@@ -30,7 +30,6 @@ parser.add_argument("--inauguratorIgnoreDirs", nargs='+', default=[])
 parser.add_argument("--inauguratorTargetDeviceCandidate", nargs='+', default=['/dev/vda', '/dev/sda'])
 parser.add_argument("--inauguratorVerify", action="store_true")
 parser.add_argument("--inauguratorDisableNCQ", action="store_true", default=True)
-parser.add_argument("console")
 
 try:
     print "Validating pika version..."

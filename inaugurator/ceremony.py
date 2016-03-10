@@ -19,6 +19,7 @@ from inaugurator import lvmetad
 from inaugurator import verify
 from inaugurator import debugthread
 import os
+import re
 import time
 import logging
 import threading
@@ -124,16 +125,25 @@ class Ceremony:
             passwd.setRootPassword(destination, self._args.inauguratorChangeRootPassword)
             logging.info("Changed root password")
 
+    def _getSerialDevice(self):
+        with open("/proc/cmdline", "r") as cmdLineFile:
+            cmdLine = cmdLineFile.read()
+        pattern = re.compile("(^| )+console=(\S+)( |$)+")
+        match = pattern.search(cmdLine)
+        if match is None:
+            return None
+        return match.groups()[1]
+
     def _createBootAndInstallGrub(self, destination):
         with self._mountOp.mountBoot() as bootDestination:
             sh.run("rsync -rlpgDS --delete-before %s/boot/ %s/" % (destination, bootDestination))
         with self._mountOp.mountBootInsideRoot():
-            if self._args.console is None:
+            serialDevice = self._getSerialDevice()
+            if serialDevice is None:
                 logging.warn("a 'console' argument was not given. Cannot tell which serial device to "
                              "redirect the console output to (default values in the label will be used).")
             else:
-                serialDevice = self._args.console.split("console=")[1]
-                logging.info("Overriding GRUB2 user settings file to set serial device to %(device)s...",
+                logging.info("Overriding GRUB2 user settings to set serial device to '%(device)s'...",
                              dict(device=serialDevice))
                 grub.setSerialDevice(serialDevice, destination)
             logging.info("Installing GRUB2...")
