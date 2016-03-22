@@ -7,7 +7,8 @@ from inaugurator import sh
 class Cdrom:
     _MOUNT_POINT = "/sourceCdrom"
 
-    def __init__(self):
+    def __init__(self, expectedLabel=None):
+        self._expectedLabel = expectedLabel
         self._device = self._findDevice()
 
     @contextlib.contextmanager
@@ -17,7 +18,9 @@ class Cdrom:
 
     @contextlib.contextmanager
     def _mount(self, device):
-        if not os.path.isdir(self._MOUNT_POINT):
+        if os.path.exists(self._MOUNT_POINT):
+            assert os.path.isdir(self._MOUNT_POINT)
+        else:
             os.makedirs(self._MOUNT_POINT)
         sh.run("busybox modprobe isofs")
         sh.run("/usr/sbin/busybox mount -t iso9660 -o ro %s %s" % (
@@ -28,6 +31,8 @@ class Cdrom:
     def _findDevice(self):
         sh.run("busybox modprobe sr_mod")
         sh.run("busybox modprobe isofs")
+        # The following is needed for virtual CDROMs
+        sh.run("busybox modprobe usb_storage")
         for i in xrange(10):
             try:
                 return self._findDeviceOnce()
@@ -37,6 +42,11 @@ class Cdrom:
         return self._findDeviceOnce()
 
     def _findDeviceOnce(self):
+        if self._expectedLabel is None:
+            return self._findDeviceWithoutLabel()
+        return self._findDeviceUsingExpectedLabel()
+
+    def _findDeviceWithoutLabel(self):
         for letter in ['0', '1', '2']:
             candidate = "/dev/sr%s" % letter
             if not os.path.exists(candidate):
@@ -47,3 +57,14 @@ class Cdrom:
                 continue
             return candidate
         raise Exception("Unable to find a device that looks like a the CDROM")
+
+    def _findDeviceUsingExpectedLabel(self):
+        cmd = "/usr/sbin/busybox findfs LABEL=%s" % (self._expectedLabel,)
+        try:
+            content = sh.run(cmd)
+        except:
+            raise Exception("Couldn't find device with '%s' label" % (self._expectedLabel,))
+        device = [line for line in content.split('\n') if line.startswith('/dev/')]
+        if len(device) != 1:
+            raise Exception("Error parsing findfs output: %s" % content)
+        return device[0]
