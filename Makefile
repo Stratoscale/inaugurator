@@ -28,17 +28,14 @@ uninstall:
 	-yes | sudo pip uninstall inaugurator
 
 remote/%:
-	sudo solvent bring --repositoryBasename=inaugurator --product images --destination=remote
+	sudo solvent bring --repositoryBasename=inaugurator --product build --destination=remote
 
 __undefined/%:
 	$(error Please specify the environment variable IMAGES_SOURCE, to indicate how to obtain inaugurator images, as either 'build' (build images locally) or 'remote' (bring images from solvent object store))
 
-.PHONY: submitimages
-submitimages:
-	@(stat $(subst $(IMAGES_SOURCE)/,build/,$(IMAGES)) > /dev/null) || (echo "Please use the 'build' makefile recipe to build the images first." && exit 1)
-	-mkdir build/images_product
-	cp $(subst $(IMAGES_SOURCE)/,build/,$(IMAGES)) build/images_product
-	solvent submitproduct images build/images_product
+.PHONY: submit
+submit:
+	solvent submitproduct build build
 
 install_nodeps:
 	-sudo mkdir /usr/share/inaugurator

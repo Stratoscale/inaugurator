@@ -3,7 +3,7 @@ INAUGURATOR_VERSION=$(shell python setup.py --version)
 .PHONY: build
 build:
 ifeq ($(BUILD_HOST),)
-	$(error Please specify the environment variable 'BUILD_HOST', to indicate where to build the host, as either 'local' (build images locally) or 'docker', (build images inside a docker container, which is better if the host does not have all the necessary packages).)
+	$(error Please specify the environment variable 'BUILD_HOST', to indicate where to build, as either 'local' (build images locally) or 'docker', (build images inside a docker container, which is better if the host does not have all the necessary packages).)
 endif
 ifeq ($(BUILD_HOST),local)
 	$(MAKE) build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
