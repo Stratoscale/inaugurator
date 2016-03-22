@@ -82,7 +82,9 @@ def transferOsmosisLabel(label, mountPoint):
         "--putIfMissing" % (label, mountPoint, objectStores))
 
 
-temp = tempfile.mkdtemp()
+temp = os.path.join("/var", "tmp")
+if not os.path.exists(temp):
+    os.makedirs(temp)
 try:
     with open(os.path.join(temp, "inaugurate_label.txt"), "w") as f:
         f.write(args.label)
@@ -90,13 +92,10 @@ try:
     transferOsmosisLabel(args.label, temp)
     logging.info("Done Transferring label")
     os.makedirs(os.path.join(temp, "isolinux"))
-    shutil.copy("/usr/lib/ISOLINUX/isolinux.bin", os.path.join(temp, "isolinux"))
-    if os.path.exists("/usr/lib/syslinux/modules/bios/ldlinux.c32"):
-        shutil.copy("/usr/lib/syslinux/modules/bios/ldlinux.c32", os.path.join(temp, "isolinux"))
-    else:
-        shutil.copy("/usr/share/syslinux/ldlinux.c32", os.path.join(temp, "isolinux"))
-    INAUGURATOR_KERNEL = "/usr/share/inaugurator/inaugurator.vmlinuz"
-    INAUGURATOR_INITRD = "/usr/share/inaugurator/inaugurator.fat.initrd.img"
+    shutil.copy("resources/isolinux.bin", os.path.join(temp, "isolinux"))
+    shutil.copy("resources/ldlinux.c32", os.path.join(temp, "isolinux"))
+    INAUGURATOR_KERNEL = "resources/inaugurator.vmlinuz"
+    INAUGURATOR_INITRD = "resources/inaugurator.fat.initrd.img"
     shutil.copy(INAUGURATOR_KERNEL, temp)
     shutil.copy(INAUGURATOR_INITRD, temp)
     with open(os.path.join(temp, "isolinux", "message.txt"), "w") as f:
@@ -122,7 +121,7 @@ label Inaugurator
             f.write(data)
     logging.info("Creating ISO")
     subprocess.check_call([
-        "mkisofs", "-r", "-V", args.ISOlabel, "-cache-inodes", "-J", "-R", "-l",
+        "mkisofs", "-allow-limited-size", "-r", "-V", args.ISOlabel, "-cache-inodes", "-J", "-R", "-l",
         "-b", "isolinux/isolinux.bin", "-c", "isolinux/boot.cat", "-no-emul-boot",
         "-boot-load-size", "4", "-boot-info-table", "-o", args.output, "%s/" % temp])
     logging.info("Done creating ISO")

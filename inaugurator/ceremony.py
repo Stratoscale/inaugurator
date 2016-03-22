@@ -29,6 +29,12 @@ class Ceremony:
     def __init__(self, args):
         """
         args is a 'namespace' - an object, or maybe a bunch. The following members are required:
+        inauguratorArgumentsSource - Indicates where the Inaugurator should read arguments from, apart from
+                                     this argument; Either 'kernelCmdline' to read from kernel arguments or
+                                     'processArguments' to read from the process arguments. Should this
+                                     argument appear, it must appear as a process argument. The rest of the
+                                     arguments should appear correspondingly to the value mentioned in this
+                                     argument).
         inauguratorClearDisk - True will cause the disk to be erase even if partition layout is ok
         inauguratorSource - 'network', 'DOK' (Disk On Key), 'CDROM' or 'local' - select from where the label
                             should be osmosed. 'local' means the label is already in the local object
@@ -40,10 +46,6 @@ class Ceremony:
                                   not specified
         inauguratorOsmosisObjectStores - the object store chain used when invoking osmosis (see osmosis
                                          documentation
-        inauguratorUseNICWithMAC - use this specific NIC, with this specific MAC address
-        inauguratorIPAddress - the IP address to configure to that NIC
-        inauguratorNetmask
-        inauguratorGateway
         inauguratorChangeRootPassword - change the password in /etc/shadow to this
         inauguratorWithLocalObjectStore - use /var/lib/osmosis local object store as first tier in chain.
         inauguratorPassthrough - pass parameters to the kexeced kernel. Reminder: kexeced kernel are
@@ -54,6 +56,21 @@ class Ceremony:
                                 usedful for upgrades - to keep the current configuration somewhere.
         inauguratorTargetDeviceCandidate - a list of devices (['/dev/vda', '/dev/sda']) to use as the
                                            inauguration target
+        inauguratorLogfilePath - Path of log file to keep track of shell commands that are run during
+                                 inauguration.
+        inauguratorStages - A comma-seperated list of stages to perform by order. Available stages:
+                            'ceremony','kexec','reboot'.
+        inauguratorExpectedLabel - A label that identifies the source device, when using either a CDROM or
+                                   a Diskonkey (in --inauguratorSource). If not used, then the first device
+                                   of that kind that was found will be used.
+        inauguratorIsNetworkAlreadyConfigured - If not given, and if inauguratorSource is 'network', then
+                                                the network interface will be configured according
+                                                to the following 4 arguments (that in which case, are
+                                                manadtory).
+        inauguratorUseNICWithMAC - use this specific NIC, with this specific MAC address
+        inauguratorIPAddress - the IP address to configure to that NIC
+        inauguratorNetmask
+        inauguratorGateway
         """
         self._args = args
         self._talkToServer = None
@@ -62,9 +79,10 @@ class Ceremony:
         self._isExpectingReboot = False
         self._grubConfig = None
         self._localObjectStore = None
+        sh.logFilepath = self._args.inauguratorLogfilePath
+        self._before = time.time()
 
     def ceremony(self):
-        before = time.time()
         self._makeSureDiskIsMountable()
         if self._args.inauguratorDisableNCQ:
             self._disableNCQ()
@@ -81,32 +99,52 @@ class Ceremony:
             self._loadKernelForKexecing(destination)
             logging.info("kernel loaded")
             self._additionalDownload(destination)
+
+    def kexec(self):
         self._sync()
-        if self._args.inauguratorVerify:
-            self._verify()
-            self._sync()
+        self._verify()
         after = time.time()
         if self._talkToServer is not None:
             self._talkToServer.done()
-        logging.info("Inaugurator took: %(interval).2fs. KEXECing", dict(interval=after - before))
+        if self._before is not None:
+            logging.info("Inaugurator took: %(interval).2fs.", dict(interval=after - self._before))
+        logging.info("KEXECing...")
         self._loadKernel.execute()
+
+    def reboot(self):
+        self._sync()
+        self._verify()
+        sh.run("reboot -f")
 
     def _assertArgsSane(self):
         logging.info("Command line arguments: %(args)s", dict(args=self._args))
-        if self._args.inauguratorSource == "network":
-            assert (
-                (self._args.inauguratorServerAMQPURL or self._args.inauguratorNetworkLabel) and
-                self._args.inauguratorOsmosisObjectStores and
-                self._args.inauguratorUseNICWithMAC and self._args.inauguratorIPAddress and
-                self._args.inauguratorNetmask and self._args.inauguratorGateway), \
-                "If inauguratorSource is 'network', all network command line paramaters must be specified"
-            if self._args.inauguratorServerAMQPURL:
-                assert self._args.inauguratorMyIDForServer, \
-                    'If communicating with server, must specifiy --inauguratorMyIDForServer'
-        elif self._args.inauguratorSource in ["DOK", "local", "CDROM"]:
-            pass
-        else:
-            assert False, "Unknown source for inaugurator: %s" % self._args.inauguratorSource
+        msg = "Unknown source for inaugurator: %s" % self._args.inauguratorSource
+        assert self._args.inauguratorSource in ["network", "DOK", "local", "CDROM"], msg
+        if self._args.inauguratorSource != "network":
+            return
+        if self._args.inauguratorServerAMQPURL is None and self._args.inauguratorNetworkLabel is None:
+            msg = "If inauguratorSource is 'network', either inauguratorServerAMQPURL or " \
+                  "inauguratorNetworkLabel must be specified."
+            raise Exception(msg)
+        if self._args.inauguratorOsmosisObjectStores is None:
+            msg = "If inauguratorSource is 'network', the inauguratorOsmosisObjectStores argument must be " \
+                  " specified."
+            raise Exception(msg)
+        if self._args.inauguratorIsNetworkAlreadyConfigured is None:
+            mandatory = ["inauguratorUseNICWithMAC",
+                         "inauguratorIPAddress",
+                         "inauguratorNetmask",
+                         "inauguratorGateway"]
+            unspecified = [arg for arg in mandatory if getattr(self._args, arg) is None]
+            if unspecified:
+                msg = "If inauguratorIsNetworkAlreadyConfigured is not given, the following network " \
+                      " command line arguments must be specified: %(mandatory)s. The following were not: " \
+                      "%(unspecified)s" % \
+                        dict(mandatory=", ".join(mandatory), unspecified=", ".join(unspecified))
+                raise Exception(msg)
+        if self._args.inauguratorServerAMQPURL is not None:
+            assert self._args.inauguratorMyIDForServer is not None, \
+                'If communicating with server, must specifiy --inauguratorMyIDForServer'
 
     def _createPartitionTable(self):
         lvmetad.Lvmetad()
@@ -154,9 +192,10 @@ class Ceremony:
                 self._grubConfig = grubConfigFile.read()
 
     def _osmosFromNetwork(self, destination):
-        network.Network(
-            macAddress=self._args.inauguratorUseNICWithMAC, ipAddress=self._args.inauguratorIPAddress,
-            netmask=self._args.inauguratorNetmask, gateway=self._args.inauguratorGateway)
+        if not self._args.inauguratorIsNetworkAlreadyConfigured:
+            network.Network(
+                macAddress=self._args.inauguratorUseNICWithMAC, ipAddress=self._args.inauguratorIPAddress,
+                netmask=self._args.inauguratorNetmask, gateway=self._args.inauguratorGateway)
         self._debugPort = debugthread.DebugThread()
         if self._args.inauguratorServerAMQPURL:
             self._talkToServer = talktoserver.TalkToServer(
@@ -189,7 +228,7 @@ class Ceremony:
             raise e
 
     def _osmosFromDOK(self, destination):
-        dok = diskonkey.DiskOnKey()
+        dok = diskonkey.DiskOnKey(self._args.inauguratorExpectedLabel)
         with dok.mount() as source:
             osmos = osmose.Osmose(
                 destination, objectStores=source + "/osmosisobjectstore",
@@ -203,7 +242,7 @@ class Ceremony:
             osmos.wait()
 
     def _osmosFromCDROM(self, destination):
-        cdromInstance = cdrom.Cdrom()
+        cdromInstance = cdrom.Cdrom(self._args.inauguratorExpectedLabel)
         with cdromInstance.mount() as source:
             osmos = osmose.Osmose(
                 destination, objectStores=source + "/osmosisobjectstore",
@@ -229,7 +268,7 @@ class Ceremony:
 
     def _sync(self):
         logging.info("sync...")
-        sh.run(["busybox", "sync"])
+        sh.run("busybox", "sync")
         logging.info("sync done")
 
     def _additionalDownload(self, destination):
@@ -265,9 +304,12 @@ class Ceremony:
             assert False, "Unknown source %s" % self._args.inauguratorSource
 
     def _verify(self):
+        if not self._args.inauguratorVerify:
+            return
+        self._sync()
         verify.Verify.dropCaches()
         with self._mountOp.mountRoot() as destination:
-            verify.Verify(destination, self._label, self._talkToServer).go()
+            verify.Verify(destination, self._label, self._talkToServer, self._localObjectStore).go()
 
     def _getSSDDeviceNames(self):
         blockDevices = os.listdir('/sys/block')

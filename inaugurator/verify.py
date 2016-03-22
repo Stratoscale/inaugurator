@@ -8,10 +8,11 @@ import threading
 
 
 class Verify:
-    def __init__(self, mountPoint, label, talkToServer):
+    def __init__(self, mountPoint, label, talkToServer, objectStore):
         self._mountPoint = mountPoint
         self._hashes = self._readLabel(label)
         self._talkToServer = talkToServer
+        self._objectStore = objectStore
 
     @classmethod
     def dropCaches(cls):
@@ -45,8 +46,7 @@ class Verify:
         logging.info("Verification completed successfully")
 
     def _readLabel(self, label):
-        objectStore = os.path.join(self._mountPoint, "var/lib/osmosis/objectstore")
-        with open(os.path.join(objectStore, "labels", label)) as f:
+        with open(os.path.join(self._objectStore, "labels", label)) as f:
             labelHash = f.read().strip()
         labelFile = os.path.join(objectStore, labelHash[:2], labelHash[2:4], labelHash[4:])
         return self._parseLabelFile(labelFile)
