@@ -41,5 +41,9 @@ RUN curl ftp://195.220.108.108/linux/fedora/linux/releases/23/Everything/x86_64/
 WORKDIR /root
 
 CMD make -C osmosis build -j 10 && \
-    make -C osmosis egg && \
-    BUILD_HOST=local make -C inaugurator build
+    make -C osmosis egg
+
+WORKDIR /root/inaugurator
+ENV BUILD_HOST local
+ENTRYPOINT ["make"]
+CMD ["nothing"]
