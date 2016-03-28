@@ -1,34 +1,45 @@
+KERNEL_VERSION = 3.10.0-327.10.1.el7.x86_64
 INAUGURATOR_VERSION=$(shell python setup.py --version)
 
-.PHONY: build
-build:
-ifeq ($(BUILD_HOST),)
-	$(error Please specify the environment variable 'BUILD_HOST', to indicate where to build, as either 'local' (build images locally) or 'docker', (build images inside a docker container, which is better if the host does not have all the necessary packages).)
-endif
+KERNEL_IMAGE_PATH=define_build_host_msg
+INITRD_IMAGE_PATH=define_build_host_msg
 ifeq ($(BUILD_HOST),local)
-	$(MAKE) build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
+KERNEL_IMAGE_PATH=/boot/vmlinuz-$(KERNEL_VERSION)
+INITRD_IMAGE_PATH=build/inaugurator.%.initrd.dir
 endif
 ifeq ($(BUILD_HOST),docker)
-	$(MAKE) build_container
-	sudo docker run -v `pwd`:/root/inaugurator -v `pwd`/../osmosis:/root/osmosis build-inaugurator:$(INAUGURATOR_VERSION)
+KERNEL_IMAGE_PATH=docker-build/inaugurator.vmlinuz
+INITRD_IMAGE_PATH=docker-build/inaugurator.%.initrd.dir
 endif
+
+.PHONY: define_build_host_msg
+define_build_host_msg:
+	$(error Please specify the environment variable 'BUILD_HOST', to indicate where to build, as either 'local' (build images locally) or 'docker', (build images inside a docker container, which is better if the host does not have all the necessary packages).)
+
+
+.PHONY: build
+build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
 
 dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz:
 	python setup.py build
 	python setup.py bdist
 	python setup.py bdist_egg
 
-KERNEL_VERSION = 3.10.0-327.10.1.el7.x86_64
-build/inaugurator.vmlinuz: /boot/vmlinuz-$(KERNEL_VERSION)
-	-mkdir $(@D)
-	cp $< $@
+build/inaugurator.vmlinuz: $(KERNEL_IMAGE_PATH)
+	cp $(KERNEL_IMAGE_PATH) $@
 
-build/inaugurator.%.initrd.img: build/inaugurator.%.initrd.dir
+docker-build/%:
+	-@mkdir $(@D)
+	$(MAKE) build_container
+	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v `pwd`/../osmosis:/root/osmosis build-inaugurator:$(INAUGURATOR_VERSION) build/$(@F)
+	-@sudo chown -R $(USER):$(USER) docker-build build dist inaugurator.egg-info
+
+build/inaugurator.%.initrd.img: $(INITRD_IMAGE_PATH)
 	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
 	mv $@.tmp $@
 
 build/inaugurator.thin.initrd.dir: dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz
-	-mkdir $(@D)
+	-@mkdir build
 	-rm -fr $@.tmp $@
 	mkdir $@.tmp
 	echo "Installing Inaugurator"
@@ -113,13 +124,15 @@ build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 	cp -a lib $@.tmp/
 	mv $@.tmp $@
 
-.PHONY: build_container
-build_container: docker/build-inaugurator.dockerfile
-ifeq ($(BUILD_HOST),docker)
-ifeq ($(shell sudo docker images | egrep -Ec "^inaugurator[ ]+$(INAUGURATOR_VERSION)" | xargs echo -n),0)
-	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was not built. Trying to build it....)
+build/build-inaugurator.dockerfile:
 	@-mkdir build
-	@cp docker/build-inaugurator.dockerfile build/
+	cp docker/$(@F) $@
+
+.PHONY: build_container
+build_container: build/build-inaugurator.dockerfile
+ifeq ($(BUILD_HOST),docker)
+ifeq ($(shell sudo docker images | egrep -Ec "^build-inaugurator[ ]+$(INAUGURATOR_VERSION)" | xargs echo -n),0)
+	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was not built. Trying to build it....)
 	sudo docker build -f build/build-inaugurator.dockerfile -t build-inaugurator:$(INAUGURATOR_VERSION) build
 endif
 endif
