@@ -163,27 +163,27 @@ class Ceremony:
             passwd.setRootPassword(destination, self._args.inauguratorChangeRootPassword)
             logging.info("Changed root password")
 
-    def _getSerialDevice(self):
+    @staticmethod
+    def _getSerialDevices():
         with open("/proc/cmdline", "r") as cmdLineFile:
             cmdLine = cmdLineFile.read()
-        pattern = re.compile("(^| )+console=(\S+)( |$)+")
-        match = pattern.search(cmdLine)
-        if match is None:
-            return None
-        return match.groups()[1]
+        args = cmdLine.split(" ")
+        keyValuePairs = [arg.split("=") for arg in args if "=" in arg]
+        consoles = [value for key, value in keyValuePairs if key == "console"]
+        return consoles
 
     def _createBootAndInstallGrub(self, destination):
         with self._mountOp.mountBoot() as bootDestination:
             sh.run("rsync -rlpgDS --delete-before %s/boot/ %s/" % (destination, bootDestination))
         with self._mountOp.mountBootInsideRoot():
-            serialDevice = self._getSerialDevice()
-            if serialDevice is None:
+            serialDevices = self._getSerialDevices()
+            if serialDevices:
+                logging.info("Overriding GRUB2 user settings to set serial devices to '%(devices)s'...",
+                             dict(devices=serialDevices))
+                grub.setSerialDevices(serialDevices, destination)
+            else:
                 logging.warn("a 'console' argument was not given. Cannot tell which serial device to "
                              "redirect the console output to (default values in the label will be used).")
-            else:
-                logging.info("Overriding GRUB2 user settings to set serial device to '%(device)s'...",
-                             dict(device=serialDevice))
-                grub.setSerialDevice(serialDevice, destination)
             logging.info("Installing GRUB2...")
             grub.install(self._targetDevice, destination)
             logging.info("Reading newly generated GRUB2 configuration file for later use...")
