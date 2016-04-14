@@ -81,6 +81,7 @@ class Ceremony:
         self._localObjectStore = None
         sh.logFilepath = self._args.inauguratorLogfilePath
         self._before = time.time()
+        self._bootPartitionPath = None
 
     def ceremony(self):
         self._makeSureDiskIsMountable()
@@ -140,7 +141,7 @@ class Ceremony:
                 msg = "If inauguratorIsNetworkAlreadyConfigured is not given, the following network " \
                       " command line arguments must be specified: %(mandatory)s. The following were not: " \
                       "%(unspecified)s" % \
-                        dict(mandatory=", ".join(mandatory), unspecified=", ".join(unspecified))
+                      dict(mandatory=", ".join(mandatory), unspecified=", ".join(unspecified))
                 raise Exception(msg)
         if self._args.inauguratorServerAMQPURL is not None:
             assert self._args.inauguratorMyIDForServer is not None, \
@@ -148,10 +149,12 @@ class Ceremony:
 
     def _createPartitionTable(self):
         lvmetad.Lvmetad()
-        partitionTable = partitiontable.PartitionTable(self._targetDevice)
+        partitionTable = partitiontable.PartitionTable(self._targetDevice,
+                                                       layoutScheme=self._args.inauguratorPartitionLayout)
         if self._args.inauguratorClearDisk:
             partitionTable.clear()
         partitionTable.verify()
+        self._bootPartitionPath = partitionTable.getBootPartitionPath()
 
     def _configureETC(self, destination):
         self._etcLabelFile.write(self._label)
@@ -282,6 +285,8 @@ class Ceremony:
         self._createPartitionTable()
         logging.info("Partitions created")
         self._mountOp = mount.Mount(self._targetDevice)
+        assert self._bootPartitionPath is not None, "Please initialize boot partition path first"
+        self._mountOp.setBootPartitionPath(self._bootPartitionPath)
 
     def _loadKernelForKexecing(self, destination):
         self._loadKernel = loadkernel.LoadKernel()

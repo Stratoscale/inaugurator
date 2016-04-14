@@ -10,16 +10,16 @@ from inaugurator import sh
 class Test(unittest.TestCase):
     BIOS_BOOT_PARTITION_SIZE = 2
     BOOT_PARTITION_SIZE = 256
-    LVM_PARTITION_NR = None
-    LVM_PARTITION = None
+    GPT_LVM_PARTITION_NR = None
+    GPT_LVM_PARTITION = None
     _NR_MBS_IN_GB = 1024
     _BLOCK_SIZE = 512
     _NR_BYTES_IN_GB = None
 
     @classmethod
     def setUpClass(cls):
-        cls.LVM_PARTITION_NR = 3
-        cls.LVM_PARTITION = "/dev/sda%d" % (cls.LVM_PARTITION_NR,)
+        cls.GPT_LVM_PARTITION_NR = 3
+        cls.GPT_LVM_PARTITION = "/dev/sda%d" % (cls.GPT_LVM_PARTITION_NR,)
         NR_BYTES_IN_MB = 1024 ** 2
         cls._NR_BYTES_IN_GB = cls._NR_MBS_IN_GB * NR_BYTES_IN_MB
 
@@ -64,7 +64,7 @@ class Test(unittest.TestCase):
             output = result()
         return output
 
-    def test_ParsePartitionTable(self):
+    def test_ParsePartitionTableGPT(self):
         self.expectedCommands.append(('parted -s -m /dev/sda unit MB print',
                                       self._getPartitionTableInMachineFormat(diskSizeGB=self.diskSizeGB)))
         tested = PartitionTable("/dev/sda")
@@ -78,7 +78,7 @@ class Test(unittest.TestCase):
         self.assertEquals(parsed[1]['sizeMB'], self.BOOT_PARTITION_SIZE)
         self.assertEquals(parsed[1]['fs'], "ext4")
         self.assertEquals(parsed[1]['flags'], "boot")
-        self.assertEquals(parsed[2]['device'], self.LVM_PARTITION)
+        self.assertEquals(parsed[2]['device'], self.GPT_LVM_PARTITION)
         self.assertEquals(parsed[2]['sizeMB'],
                           self.diskSizeGB * self._NR_MBS_IN_GB -
                           (self.BIOS_BOOT_PARTITION_SIZE + self.BOOT_PARTITION_SIZE))
@@ -86,17 +86,35 @@ class Test(unittest.TestCase):
         self.assertEquals(parsed[2]['flags'], "lvm")
         self.assertEquals(len(self.expectedCommands), 0)
 
+    def test_ParsePartitionTableMBR(self):
+        self.expectedCommands.append(('parted -s -m /dev/sda unit MB print',
+                                      self._getMBRPartitionTableInMachineFormat(diskSizeGB=self.diskSizeGB)))
+        tested = PartitionTable("/dev/sda", layoutScheme="MBR")
+        parsed = tested.parsePartitionTable()
+        self.assertEquals(len(parsed), 2)
+        self.assertEquals(parsed[0]['device'], '/dev/sda1')
+        self.assertEquals(parsed[0]['sizeMB'], self.BOOT_PARTITION_SIZE)
+        self.assertEquals(parsed[0]['fs'], "ext4")
+        self.assertEquals(parsed[0]['flags'], "boot")
+        MbrLvmPartition = "/dev/sda2"
+        self.assertEquals(parsed[1]['device'], MbrLvmPartition)
+        self.assertEquals(parsed[1]['sizeMB'],
+                          self.diskSizeGB * self._NR_MBS_IN_GB - self.BOOT_PARTITION_SIZE)
+        self.assertEquals(parsed[1]['fs'], "")
+        self.assertEquals(parsed[1]['flags'], "lvm")
+        self.assertEquals(len(self.expectedCommands), 0)
+
     def test_ParseLVM(self):
         example = "\n".join([
             "  PV        VG    Fmt  Attr PSize  PFree ",
             "  %(lvmPartition)s dummy lvm2 a--  60.00m 60.00m"
-            ""]) % dict(lvmPartition=self.LVM_PARTITION)
+            ""]) % dict(lvmPartition=self.GPT_LVM_PARTITION)
         self.expectedCommands.append(('lvm pvscan --cache %(lvmPartition)s' %
-                                      dict(lvmPartition=self.LVM_PARTITION), ""))
+                                      dict(lvmPartition=self.GPT_LVM_PARTITION), ""))
         self.expectedCommands.append(('lvm pvdisplay --units m --columns %(lvmPartition)s' %
-                                      dict(lvmPartition=self.LVM_PARTITION),
+                                      dict(lvmPartition=self.GPT_LVM_PARTITION),
                                       example))
-        parsed = PartitionTable.parseLVMPhysicalVolume(self.LVM_PARTITION)
+        parsed = PartitionTable.parseLVMPhysicalVolume(self.GPT_LVM_PARTITION)
         self.assertEquals(parsed['name'], 'dummy')
         self.assertEquals(parsed['sizeMB'], 60)
 
@@ -123,9 +141,9 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''busybox mdev -s''', ""))
         self.expectedCommands.append(('''mkfs.ext4 /dev/sda2 -L BOOT''', ""))
         self.expectedCommands.append(('''lvm pvcreate -ff %(lvmPartition)s''' %
-                                      dict(lvmPartition=self.LVM_PARTITION), ""))
+                                      dict(lvmPartition=self.GPT_LVM_PARTITION), ""))
         self.expectedCommands.append(('''lvm vgcreate inaugurator %(lvmPartition)s''' %
-                                      dict(lvmPartition=self.LVM_PARTITION), ""))
+                                      dict(lvmPartition=self.GPT_LVM_PARTITION), ""))
         self.expectedCommands.append(('''lvm lvcreate --zero n --name swap --size 1G inaugurator''', ""))
         self.expectedCommands.append((
             '''lvm lvcreate --zero n --name osmosis-cache --size 5G inaugurator''', ""))
@@ -137,13 +155,13 @@ class Test(unittest.TestCase):
         goodPartitionTable = self._getPartitionTableInMachineFormat(diskSizeGB=self.diskSizeGB)
         self.expectedCommands.append(('parted -s -m /dev/sda unit MB print', goodPartitionTable))
         self.expectedCommands.append(('lvm pvscan --cache %(lvmPartition)s' %
-                                      dict(lvmPartition=self.LVM_PARTITION), ""))
+                                      dict(lvmPartition=self.GPT_LVM_PARTITION), ""))
         goodPhysicalVolume = "\n".join([
             "  PV        VG          Fmt  Attr PSize     PFree ",
             "  %(lvmPartition)s inaugurator lvm2 a--  16128.00m 16128.00m"
-            "" % dict(lvmPartition=self.LVM_PARTITION)])
+            "" % dict(lvmPartition=self.GPT_LVM_PARTITION)])
         self.expectedCommands.append(('lvm pvdisplay --units m --columns %(lvmPartition)s' %
-                                      dict(lvmPartition=self.LVM_PARTITION), goodPhysicalVolume))
+                                      dict(lvmPartition=self.GPT_LVM_PARTITION), goodPhysicalVolume))
         correctSwap = "\n".join([
             "  LV   VG          Attr      LSize  Pool Origin Data%  Move Log Copy%  Convert",
             "  swap inaugurator -wi-a---- 1024.00m",
@@ -164,7 +182,7 @@ class Test(unittest.TestCase):
             'lvm lvdisplay --units m --columns /dev/inaugurator/root', correctRoot))
         self.expectedCommands.append(("lvm pvscan",
                                       "PV %(lvmPartition)s   VG inaugurator   lvm2 [irrelevant size data]"
-                                      % dict(lvmPartition=self.LVM_PARTITION),
+                                      % dict(lvmPartition=self.GPT_LVM_PARTITION),
                                       "Total: 1 more irrelevant data"))
         self.expectedCommands.append(("blkid", ""))
         tested = PartitionTable("/dev/sda")
@@ -222,9 +240,9 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''busybox mdev -s''', ""))
         self.expectedCommands.append(('''mkfs.ext4 /dev/sda2 -L BOOT''', ""))
         self.expectedCommands.append(('''lvm pvcreate -ff %(lvmPartition)s''' %
-                                      dict(lvmPartition=self.LVM_PARTITION), ""))
+                                      dict(lvmPartition=self.GPT_LVM_PARTITION), ""))
         self.expectedCommands.append(('''lvm vgcreate inaugurator %(lvmPartition)s''' %
-                                      dict(lvmPartition=self.LVM_PARTITION), ""))
+                                      dict(lvmPartition=self.GPT_LVM_PARTITION), ""))
         self.expectedCommands.append(('''lvm lvcreate --zero n --name swap --size 8G inaugurator''', ""))
         self.expectedCommands.append(
             ('''lvm lvcreate --zero n --name osmosis-cache --size 15G inaugurator''', ""))
@@ -235,13 +253,13 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('parted -s -m /dev/sda unit MB print',
                                       self._getPartitionTableInMachineFormat(diskSizeGB=self.diskSizeGB)))
         self.expectedCommands.append(('lvm pvscan --cache %(lvmPartition)s' %
-                                      dict(lvmPartition=self.LVM_PARTITION), ""))
+                                      dict(lvmPartition=self.GPT_LVM_PARTITION), ""))
         goodPhysicalVolume = "\n".join([
             "  PV        VG          Fmt  Attr PSize     PFree ",
             "  %(lvmPartition)s inaugurator lvm2 a--  130816.00m 130816.00m"
-            "" % dict(lvmPartition=self.LVM_PARTITION)])
+            "" % dict(lvmPartition=self.GPT_LVM_PARTITION)])
         self.expectedCommands.append(('lvm pvdisplay --units m --columns %(lvmPartition)s' %
-                                      dict(lvmPartition=self.LVM_PARTITION), goodPhysicalVolume))
+                                      dict(lvmPartition=self.GPT_LVM_PARTITION), goodPhysicalVolume))
         correctSwap = "\n".join([
             "  LV   VG          Attr      LSize  Pool Origin Data%  Move Log Copy%  Convert",
             "  swap inaugurator -wi-a---- 8192.00m",
@@ -262,7 +280,7 @@ class Test(unittest.TestCase):
             'lvm lvdisplay --units m --columns /dev/inaugurator/root', correctRoot))
         nrGroups = 1
         pvscanResult = ["PV %(lvmPartition)s   VG inaugurator   lvm2 [irrelevant size data]" %
-                        dict(lvmPartition=self.LVM_PARTITION)]
+                        dict(lvmPartition=self.GPT_LVM_PARTITION)]
         if extraVolumeGroup is not None:
             pvscanResult.append("PV %(physicalVolumeOfExtraVolumeGroup)s VG %(extraVolumeGroup)s "
                                 "[irrelevent size data]" %
@@ -350,6 +368,26 @@ class Test(unittest.TestCase):
                                     lvmPartitionEnd=LVM_PARTITION_START + diskSizeMB,
                                     lvmPartitionSizeMB=diskSizeMB - (cls.BIOS_BOOT_PARTITION_SIZE +
                                                                      cls.BOOT_PARTITION_SIZE))
+        return out
+
+    @classmethod
+    def _getMBRPartitionTableInMachineFormat(cls, diskSizeGB):
+        BOOT_PARTITION_START = 1.05
+        BOOT_PARTITION_END = BOOT_PARTITION_START + cls.BOOT_PARTITION_SIZE
+        LVM_PARTITION_START = BOOT_PARTITION_END
+        out = ["BYT;",
+               "/dev/sda:240057MB:scsi:512:512:gpt:ATA SAMSUNG MZ7WD240:;",
+               "1:%(bootPartitionStart)sMB:%(bootPartitionEnd).2fMB:"
+               "%(bootPartitionSizeMB).2fMB:ext4:primary:boot;",
+               "2:%(lvmPartitionStart)sMB:%(lvmPartitionEnd)sMB:%(lvmPartitionSizeMB)sMB::primary:lvm;",
+               ""]
+        diskSizeMB = diskSizeGB * 1024
+        out = "\n".join(out) % dict(bootPartitionStart=BOOT_PARTITION_START,
+                                    bootPartitionEnd=BOOT_PARTITION_END,
+                                    bootPartitionSizeMB=cls.BOOT_PARTITION_SIZE,
+                                    lvmPartitionStart=LVM_PARTITION_START,
+                                    lvmPartitionEnd=LVM_PARTITION_START + diskSizeMB,
+                                    lvmPartitionSizeMB=diskSizeMB - cls.BOOT_PARTITION_SIZE)
         return out
 
 

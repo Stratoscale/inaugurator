@@ -10,7 +10,7 @@ class Mount:
     _OSMOSIS_CACHE_MOUNT_POINT = "/osmosisCache"
 
     def __init__(self, targetDevice):
-        self._bootPartition = "%s2" % targetDevice
+        self._bootPartition = None
         self._swapPartition = "/dev/%s/swap" % partitiontable.PartitionTable.VOLUME_GROUP
         self._rootPartition = "/dev/%s/root" % partitiontable.PartitionTable.VOLUME_GROUP
         self._osmosisCachePartition = "/dev/%s/osmosis-cache" % partitiontable.PartitionTable.VOLUME_GROUP
@@ -20,6 +20,9 @@ class Mount:
 
     def bootPartition(self):
         return self._bootPartition
+
+    def setBootPartitionPath(self, partitionPath):
+        self._bootPartition = partitionPath
 
     def swapPartition(self):
         return self._swapPartition
@@ -40,6 +43,7 @@ class Mount:
         return self._mountPartition(self._rootPartition, self._ROOT_MOUNT_POINT, optimizePerformance=True)
 
     def mountBoot(self):
+        assert self._bootPartition is not None, "Please initialize the boot partition path first"
         return self._mountPartition(self._bootPartition, self._BOOT_MOUNT_POINT)
 
     def mountOsmosisCache(self):

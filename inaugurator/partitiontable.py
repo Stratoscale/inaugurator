@@ -15,17 +15,26 @@ class PartitionTable:
         createRoot=10)
     _BOOT_SIZE_MB = 256
     VOLUME_GROUP = "inaugurator"
-    _PHYSICAL_PARTITIONS = dict(bios_boot=dict(sizeMB=2, flags="bios_grub"),
-                                boot=dict(sizeMB=256, fs="ext4", flags="boot"),
-                                lvm=dict(flags="lvm", sizeMB="fillUp"))
-    _PHYSICAL_PARTITIONS_ORDER = ("bios_boot", "boot", "lvm")
+    LAYOUT_SCHEMES = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, flags="bios_grub"),
+                                                   boot=dict(sizeMB=256, fs="ext4", flags="boot"),
+                                                   lvm=dict(flags="lvm", sizeMB="fillUp")),
+                                   order=("bios_boot", "boot", "lvm")),
+                          MBR=dict(partitions=dict(boot=dict(sizeMB=256, fs="ext4", flags="boot"),
+                                                   lvm=dict(flags="lvm", sizeMB="fillUp")),
+                                   order=("boot", "lvm")))
 
-    def __init__(self, device, sizesGB=dict()):
+    def __init__(self, device, sizesGB=dict(), layoutScheme="GPT"):
         self._sizesGB = dict(self._DEFAULT_SIZES_GB)
         self._sizesGB.update(sizesGB)
         self._device = device
         self._cachedDiskSize = None
         self._created = False
+        if layoutScheme not in self.LAYOUT_SCHEMES:
+            print "Invalid layout scheme. Possible values: '%s'" % "', '".join(self.LAYOUT_SCHEMES.keys())
+            raise ValueError(layoutScheme)
+        self._layoutScheme = layoutScheme
+        self._physicalPartitions = self.LAYOUT_SCHEMES[layoutScheme]["partitions"]
+        self._physicalPartitionsOrder = self.LAYOUT_SCHEMES[layoutScheme]["order"]
 
     def created(self):
         return self._created
@@ -38,28 +47,10 @@ class PartitionTable:
 
     def _create(self):
         self.clear()
-        biosBootStart = 1
-        biosBootEnd = biosBootStart + self._PHYSICAL_PARTITIONS["bios_boot"]["sizeMB"]
-        bootStart = biosBootEnd
-        bootEnd = bootStart + self._PHYSICAL_PARTITIONS["boot"]["sizeMB"]
-        script = "parted -s %(device)s -- " \
-                 "mklabel gpt mkpart primary ext4 %(biosBootStart)sMiB %(biosBootEnd)sMiB " \
-                 "mkpart primary ext4 %(bootStart)sMiB %(bootEnd)sMiB " \
-                 "mkpart primary ext4 %(lvmStart)sMiB -1" % \
-            dict(device=self._device,
-                 biosBootStart=biosBootStart,
-                 biosBootEnd=biosBootEnd,
-                 bootStart=bootStart,
-                 bootEnd=bootEnd,
-                 lvmStart=bootEnd)
-        print "creating new partition table:", script
+        script = self._getPartitionCommand()
+        print "creating new partition table of layout '%s': \n%s\n", (self._layoutScheme, script)
         sh.run(script)
-        print "Setting first partition as BIOS boot partition..."
-        sh.run("parted -s %s set 1 bios_grub on" % (self._device,))
-        print "Setting second partition as a boot partition..."
-        sh.run("parted -s %s set 2 boot on" % (self._device,))
-        print "Enabling LVM on partition %s" % (self._device,)
-        sh.run("parted -s %s set 3 lvm on" % (self._device,))
+        self._setFlags()
         sh.run("busybox mdev -s")
         sh.run("mkfs.ext4 %s -L BOOT" % self._getPartitionPath("boot"))
         try:
@@ -96,6 +87,41 @@ class PartitionTable:
         self._waitForFileToShowUp("/dev/%s/osmosis-cache" % self.VOLUME_GROUP)
         sh.run("mkfs.ext4 /dev/%s/osmosis-cache" % self.VOLUME_GROUP)
         self._created = True
+
+    def _getPartitionCommand(self):
+        if self._layoutScheme == "MBR":
+            bootStart = 1
+            bootEnd = bootStart + self._physicalPartitions["boot"]["sizeMB"]
+            script = "parted -s %(device)s -- " \
+                     "mklabel msdos mkpart primary ext4 %(bootStart)sMiB %(bootEnd)sMiB " \
+                     "mkpart primary ext4 %(lvmStart)sMiB -1" % \
+                dict(device=self._device,
+                     bootStart=bootStart,
+                     bootEnd=bootEnd,
+                     lvmStart=bootEnd)
+        elif self._layoutScheme == "GPT":
+            biosBootStart = 1
+            biosBootEnd = biosBootStart + self._physicalPartitions["bios_boot"]["sizeMB"]
+            bootStart = biosBootEnd
+            bootEnd = bootStart + self._physicalPartitions["boot"]["sizeMB"]
+            script = "parted -s %(device)s -- " \
+                     "mklabel gpt mkpart primary ext4 %(biosBootStart)sMiB %(biosBootEnd)sMiB " \
+                     "mkpart primary ext4 %(bootStart)sMiB %(bootEnd)sMiB " \
+                     "mkpart primary ext4 %(lvmStart)sMiB -1" % \
+                dict(device=self._device,
+                     biosBootStart=biosBootStart,
+                     biosBootEnd=biosBootEnd,
+                     bootStart=bootStart,
+                     bootEnd=bootEnd,
+                     lvmStart=bootEnd)
+        return script
+
+    def _setFlags(self):
+        for partitionIdx, partition in enumerate(self._physicalPartitionsOrder):
+            partitionNr = partitionIdx + 1
+            flag = self._physicalPartitions[partition]["flags"]
+            print "Setting flag '%s' for partition #%d..." % (flag, partitionNr)
+            sh.run("parted -s %s set %d %s on" % (self._device, partitionNr, flag))
 
     def parsePartitionTable(self):
         cmd = "parted -s -m %(device)s unit MB print" % dict(device=self._device)
@@ -151,11 +177,11 @@ class PartitionTable:
             print "Unable to parse partition table"
             traceback.print_exc()
             return "Unable to parse partition table"
-        if len(parsed) != len(self._PHYSICAL_PARTITIONS):
+        if len(parsed) != len(self._physicalPartitions):
             return "Partition count is not %(nrPartitions)s" % \
-                dict(nrPartitions=len(self._PHYSICAL_PARTITIONS))
-        for partitionPurpose, actualPartition in zip(self._PHYSICAL_PARTITIONS_ORDER, parsed):
-            expectedPartition = self._PHYSICAL_PARTITIONS[partitionPurpose]
+                dict(nrPartitions=len(self._physicalPartitions))
+        for partitionPurpose, actualPartition in zip(self._physicalPartitionsOrder, parsed):
+            expectedPartition = self._physicalPartitions[partitionPurpose]
             for attrName in ("fs", "flags"):
                 if attrName not in expectedPartition:
                     continue
@@ -180,7 +206,7 @@ class PartitionTable:
 
     def _combinedSizeOfAllOtherPartitions(self, partitionPurpose):
         return sum([attrs["sizeMB"] for purpose, attrs in
-                    self._PHYSICAL_PARTITIONS.iteritems() if purpose != partitionPurpose])
+                    self._physicalPartitions.iteritems() if purpose != partitionPurpose])
 
     def _findMismatchInLVM(self):
         lvmPartitionPath = self._getPartitionPath("lvm")
@@ -356,6 +382,9 @@ class PartitionTable:
             time.sleep(0.02)
 
     def _getPartitionPath(self, partitionPurpose):
-        partitionIdx = self._PHYSICAL_PARTITIONS_ORDER.index(partitionPurpose)
+        partitionIdx = self._physicalPartitionsOrder.index(partitionPurpose)
         partitionNr = partitionIdx + 1
         return "%(device)s%(partitionNr)s" % dict(device=self._device, partitionNr=partitionNr)
+
+    def getBootPartitionPath(self):
+        return self._getPartitionPath("boot")

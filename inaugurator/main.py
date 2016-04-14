@@ -36,6 +36,7 @@ parser.add_argument("--inauguratorDisableNCQ", action="store_true", default=True
 parser.add_argument("--inauguratorLogfilePath")
 parser.add_argument("--inauguratorExpectedLabel")
 parser.add_argument("--inauguratorPdbOnError", action="store_true", default=False)
+parser.add_argument("--inauguratorPartitionLayout", default="GPT")
 
 
 def getArgsSource():
