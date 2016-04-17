@@ -13,7 +13,6 @@ class PartitionTable:
         bigOsmosisCache=15,
         minimumRoot=7,
         createRoot=10)
-    _BOOT_SIZE_MB = 256
     VOLUME_GROUP = "inaugurator"
     LAYOUT_SCHEMES = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, flags="bios_grub"),
                                                    boot=dict(sizeMB=256, fs="ext4", flags="boot"),
@@ -48,7 +47,7 @@ class PartitionTable:
     def _create(self):
         self.clear()
         script = self._getPartitionCommand()
-        print "creating new partition table of layout '%s': \n%s\n", (self._layoutScheme, script)
+        print "creating new partition table of layout '%s': \n%s\n" % (self._layoutScheme, script)
         sh.run(script)
         self._setFlags()
         sh.run("busybox mdev -s")
@@ -90,15 +89,9 @@ class PartitionTable:
 
     def _getPartitionCommand(self):
         if self._layoutScheme == "MBR":
-            bootStart = 1
-            bootEnd = bootStart + self._physicalPartitions["boot"]["sizeMB"]
-            script = "parted -s %(device)s -- " \
-                     "mklabel msdos mkpart primary ext4 %(bootStart)sMiB %(bootEnd)sMiB " \
-                     "mkpart primary ext4 %(lvmStart)sMiB -1" % \
-                dict(device=self._device,
-                     bootStart=bootStart,
-                     bootEnd=bootEnd,
-                     lvmStart=bootEnd)
+            bootSize = self._physicalPartitions["boot"]["sizeMB"]
+            script = "echo -ne '8,%s,83\\n,,8e\\n' | sfdisk --unit M %s --in-order --force" % (
+                bootSize, self._device)
         elif self._layoutScheme == "GPT":
             biosBootStart = 1
             biosBootEnd = biosBootStart + self._physicalPartitions["bios_boot"]["sizeMB"]
