@@ -29,6 +29,7 @@ uninstall:
 
 remote/%:
 	sudo solvent bring --repositoryBasename=inaugurator --product build --destination=remote
+	sudo cp $(subst ${IMAGES_SOURCE},remote/inaugurator/build,${IMAGES}) remote/
 
 __undefined/%:
 	$(error Please specify the environment variable IMAGES_SOURCE, to indicate how to obtain inaugurator images, as either 'build' (build images locally) or 'remote' (bring images from solvent object store))
