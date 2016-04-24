@@ -33,7 +33,7 @@ remote/%:
 __undefined/%:
 	$(error Please specify the environment variable IMAGES_SOURCE, to indicate how to obtain inaugurator images, as either 'build' (build images locally) or 'remote' (bring images from solvent object store))
 
-.PHONY: submit
+.PHONY: submitclean
 submitclean:
 	SOLVENT_CLEAN=1 solvent submitbuild
 	SOLVENT_CLEAN=1 solvent approve
