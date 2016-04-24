@@ -30,8 +30,8 @@ class RabbitMQWrapper(threading.Thread):
                 RABBITMQ_NODE_PORT=str(config.PORT)),
                 stdout=log, stderr=log)
         atexit.register(self.cleanup)
-        logging.info("Waiting for 20 seconds for the RabbitMQ Server to start...")
-        time.sleep(20)
+        logging.info("Waiting for 15 seconds for the RabbitMQ Server to start...")
+        time.sleep(15)
         threading.Thread.__init__(self)
         self.daemon = True
         threading.Thread.start(self)
