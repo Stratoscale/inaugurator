@@ -45,19 +45,14 @@ class DiskOnKey:
         return self._findDeviceUsingExpectedLabel()
 
     def _findDeviceWithoutLabel(self):
-        for letter in ['a', 'b', 'c', 'd', 'e', 'f']:
-            candidate = "/dev/sd%s" % letter
-            if not os.path.exists(candidate):
+        for device in self._getAllDevices():
+            if self._deviceSizeGB(device) > 32:
                 continue
-            if self._deviceSizeGB(candidate) > 32:
-                continue
-            return candidate
+            return device
         raise Exception("Unable to find a device that looks like a DOK")
 
     def _findDeviceUsingExpectedLabel(self):
-        devices = glob.glob("/dev/sd*")
-        devices = self._getAllDevices(devices)
-        for device in devices:
+        for device in self._getAllDevices():
             content = sh.run("dosfslabel %s" % device + "1")
             if self._expectedLabel in content:
                 return device
@@ -67,5 +62,8 @@ class DiskOnKey:
         return int(sh.run("sfdisk -s %s" % device)) / 1024 / 1024
 
     @classmethod
-    def _getAllDevices(cls, devices):
-        return [dev for dev in devices if re.match(cls.DEVICES_REGEX_PAT, dev)]
+    def _getAllDevices(cls):
+        devices = glob.glob("/dev/sd*")
+        for device in devices:
+            if re.match(cls.DEVICES_REGEX_PAT, device):
+                yield device
