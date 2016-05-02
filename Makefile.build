@@ -3,14 +3,19 @@ INAUGURATOR_VERSION=$(shell python setup.py --version)
 
 KERNEL_IMAGE_PATH=define_build_host_msg
 INITRD_IMAGE_PATH=define_build_host_msg
+PYTHON_DIST_FILENAME=inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
+PYTHON_DIST_LOCAL_PATH=dist/${PYTHON_DIST_FILENAME}
 ifeq ($(BUILD_HOST),local)
 KERNEL_IMAGE_PATH=/boot/vmlinuz-$(KERNEL_VERSION)
 INITRD_IMAGE_PATH=build/inaugurator.%.initrd.dir
+PYTHON_DIST_RECIPE=build_python_dist_locally
 endif
 ifeq ($(BUILD_HOST),docker)
 KERNEL_IMAGE_PATH=docker-build/inaugurator.vmlinuz
 INITRD_IMAGE_PATH=docker-build/inaugurator.%.initrd.dir
+PYTHON_DIST_RECIPE=docker-dist/${PYTHON_DIST_FILENAME}
 endif
+DOCKER_RUN_CMD=
 
 .PHONY: define_build_host_msg
 define_build_host_msg:
@@ -18,12 +23,26 @@ define_build_host_msg:
 
 
 .PHONY: build
-build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
+build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img ${PYTHON_DIST_PATH}
 
-dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz:
+.PHONY: build_python_dist_locally
+build_python_dist_locally:
 	python setup.py build
 	python setup.py bdist
 	python setup.py bdist_egg
+
+${PYTHON_DIST_LOCAL_PATH}: ${PYTHON_DIST_RECIPE}
+
+.PHONY: chown_stuff
+chown_stuff:
+	-@sudo chown -R $(USER):$(USER) docker-dist-tmp docker-build docker-dist build dist inaugurator.egg-info
+
+docker-dist/${PYTHON_DIST_FILENAME}:
+	-@mkdir $(@D)
+	$(MAKE) build_container
+	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v `pwd`/../osmosis:/root/osmosis -v $(PWD)/docker-dist:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) dist/$(@F)
+	$(MAKE) chown_stuff
+
 
 build/inaugurator.vmlinuz: $(KERNEL_IMAGE_PATH)
 	-@mkdir $(@D)
@@ -31,15 +50,16 @@ build/inaugurator.vmlinuz: $(KERNEL_IMAGE_PATH)
 
 docker-build/%:
 	-@mkdir $(@D)
+	-@mkdir docker-dist-tmp
 	$(MAKE) build_container
-	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v `pwd`/../osmosis:/root/osmosis build-inaugurator:$(INAUGURATOR_VERSION) build/$(@F)
-	-@sudo chown -R $(USER):$(USER) docker-build build dist inaugurator.egg-info
+	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v `pwd`/../osmosis:/root/osmosis -v $(PWD)/docker-dist-tmp:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) build/$(@F)
+	$(MAKE) chown_stuff
 
 build/inaugurator.%.initrd.img: $(INITRD_IMAGE_PATH)
 	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
 	mv $@.tmp $@
 
-build/inaugurator.thin.initrd.dir: dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz
+build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz
 	-@mkdir build
 	-rm -fr $@.tmp $@
 	mkdir $@.tmp

@@ -7,7 +7,7 @@ install: $(IMAGES)
 	$(MAKE) install_nodeps
 
 clean:
-	rm -fr build docker-build remote dist inaugurator.egg-info
+	rm -fr build docker-build docker-dist docker-dist-tmp remote dist inaugurator.egg-info
 
 check_convention:
 	pep8 inaugurator --max-line-length=109 --exclude=samplegrubconfigs.py
