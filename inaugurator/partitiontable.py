@@ -12,7 +12,7 @@ class PartitionTable:
         smallOsmosisCache=5,
         bigOsmosisCache=15,
         minimumRoot=7,
-        createRoot=10)
+        createRoot=30)
     VOLUME_GROUP = "inaugurator"
     LAYOUT_SCHEMES = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, flags="bios_grub"),
                                                    boot=dict(sizeMB=256, fs="ext4", flags="boot"),
