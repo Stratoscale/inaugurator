@@ -5,14 +5,17 @@ logFilepath = None
 
 
 def run(* args, ** kwargs):
+    commandRepr = " ".join(args)
+    message = "\n\nExecuting Command: %s\n\n" % (commandRepr,)
+    if logFilepath is None:
+        print message
     cmdPipe = subprocess.Popen(
         args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True, shell=True, ** kwargs)
     output, _ = cmdPipe.communicate()
-    commandRepr = " ".join(args)
     if logFilepath is not None:
         try:
             with open(logFilepath, "a+") as f:
-                f.write("\n\nExecuting Command: %s\n\n" % (commandRepr,))
+                f.write(message)
                 if output is not None:
                     f.write(output)
                     f.flush()
