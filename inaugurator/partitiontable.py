@@ -58,8 +58,8 @@ class PartitionTable:
             traceback.print_exc()
             print "'lvm vgremove' failed"
         lvmPartitionPath = self._getPartitionPath("lvm")
-        sh.run("lvm pvcreate -ff %s" % (lvmPartitionPath,))
-        sh.run("lvm vgcreate %s %s" % (self.VOLUME_GROUP, lvmPartitionPath))
+        sh.run("lvm pvcreate -y -ff %s" % (lvmPartitionPath,))
+        sh.run("lvm vgcreate -y %s %s" % (self.VOLUME_GROUP, lvmPartitionPath))
         if self._diskSizeMB() / 1024 >= self._sizesGB['createRoot'] + self._sizesGB['bigSwap'] + \
                 self._sizesGB["bigOsmosisCache"]:
             swapSizeGB = 8
