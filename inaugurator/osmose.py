@@ -13,6 +13,13 @@ class Osmose:
         if withLocalObjectStore:
             assert localObjectStore is not None, "Must provide local object store path when osmosing " \
                                                  "from the local object store"
+            osmosisDir = os.path.join(destination, "var", "lib", "osmosis")
+            if os.path.islink(osmosisDir):
+                logging.info("It appears that the osmosis directory is a symbolic link. Removing it...")
+                os.unlink(osmosisDir)
+                logging.info("Sybmolic link removed.")
+            localObjectStore = os.path.join(osmosisDir, "objectstore")
+            absoluteIgnoreDirs.append(localObjectStore)
             objectStores = localObjectStore + ("+" + objectStores if objectStores else "")
         extra = []
         if absoluteIgnoreDirs:
