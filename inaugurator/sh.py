@@ -26,3 +26,10 @@ def run(* args, ** kwargs):
         print "Command '%s' failed: %d\n%s" % (args, cmdPipe.returncode, output)
         raise ex
     return output
+
+def has_tool(rootPath, tool):
+    try:
+        run("/usr/sbin/busybox chroot %s sh -c 'which %s'" % (rootPath, tool))
+        return True
+    except:
+        return False
