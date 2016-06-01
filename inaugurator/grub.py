@@ -47,6 +47,21 @@ def setSerialDevices(serialDevices, destination):
             userSettingsFile.write("GRUB_CMDLINE_LINUX=\"%s\"\n" % (consoleConfiguration,))
 
 
+def grub_prefix(destination):
+    if sh.has_tool(destination, 'grub2-install'):
+        return 'grub2'
+    if sh.has_tool(destination, 'grub-install'):
+        return 'grub'
+    return None
+
+
 def install(targetDevice, destination):
-    chrootScript = 'grub2-install %s && grub2-mkconfig > /boot/grub2/grub.cfg' % targetDevice
+
+    prefix = grub_prefix(destination)
+    if prefix is None:
+        raise Exception("Failed to install grub boot menu grub tools not found")
+
+    chrootScript = '%(prefix)s-install %(targetDevice)s && %(prefix)s-mkconfig > /boot/%(prefix)s/grub.cfg' % dict(
+        prefix=prefix, targetDevice=targetDevice)
+
     sh.run("/usr/sbin/busybox chroot %s sh -c '%s'" % (destination, chrootScript))

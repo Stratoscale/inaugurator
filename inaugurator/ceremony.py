@@ -26,6 +26,7 @@ import threading
 
 
 class Ceremony:
+
     def __init__(self, args):
         """
         args is a 'namespace' - an object, or maybe a bunch. The following members are required:
@@ -190,7 +191,9 @@ class Ceremony:
             logging.info("Installing GRUB2...")
             grub.install(self._targetDevice, destination)
             logging.info("Reading newly generated GRUB2 configuration file for later use...")
-            grubConfigFilename = os.path.join(destination, "boot", "grub2", "grub.cfg")
+            grub_prefix = grub.grub_prefix(destination)
+            assert grub_prefix is not None
+            grubConfigFilename = os.path.join(destination, "boot", grub_prefix, "grub.cfg")
             with open(grubConfigFilename, "r") as grubConfigFile:
                 self._grubConfig = grubConfigFile.read()
 
