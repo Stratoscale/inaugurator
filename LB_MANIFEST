@@ -1,0 +1,3 @@
+COMPONENTS: 
+  inaugurator: inaugurator
+MAKEFILE: Makefile.lb

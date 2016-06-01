@@ -1,0 +1,21 @@
+inaugurator_makefile_dir := $(dir $(lastword $(MAKEFILE_LIST)))
+include $(WORKSPACE_TOP)/common/Makefile.env
+
+MY_COMPONENT_PATH := $(shell component-tool localpath --repo=inaugurator inaugurator)
+
+all: build
+
+build clean:
+	$(Q)$(MAKE) -f $(inaugurator_makefile_dir)/Makefile $@
+
+install: |install_dir
+	$(Q)install  $(inaugurator_makefile_dir)/build/* -D  $(MY_COMPONENT_PATH)/
+
+install_dir: 
+	$(Q)mkdir -p $(MY_COMPONENT_PATH)
+
+checkin:
+	$(Q)component-tool checkin --repo=inaugurator inaugurator
+
+
+.PHONY: install checkin clean build
