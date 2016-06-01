@@ -20,7 +20,11 @@ class Osmose:
                 logging.info("Sybmolic link removed.")
             localObjectStore = os.path.join(osmosisDir, "objectstore")
             absoluteIgnoreDirs.append(localObjectStore)
-            objectStores = localObjectStore + ("+" + objectStores if objectStores else "")
+        elif localObjectStore is not None:
+            localObjectStore = os.path.join(localObjectStore, "objectstore")
+
+        objectStores = localObjectStore + ("+" + objectStores if objectStores else "")
+
         extra = []
         if absoluteIgnoreDirs:
             extra += ['--ignore', ":".join(absoluteIgnoreDirs)]
