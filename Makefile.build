@@ -59,13 +59,17 @@ build/inaugurator.%.initrd.img: $(INITRD_IMAGE_PATH)
 	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
 	mv $@.tmp $@
 
-build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz
+build/osmosis-1.0.linux-x86_64.tar.gz:
+	(cd ../osmosis/ && $(MAKE) clean && $(MAKE) build && $(MAKE) egg)
+	 cp ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz $@
+
+build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} build/osmosis-1.0.linux-x86_64.tar.gz
 	-@mkdir build
 	-rm -fr $@.tmp $@
 	mkdir $@.tmp
 	echo "Installing Inaugurator"
 	tar -xf $< --directory $@.tmp
-	tar -xf ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz --directory $@.tmp
+	tar -xf build/osmosis-1.0.linux-x86_64.tar.gz --directory $@.tmp
 	echo "Copying libraries"
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib64/ld*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/*
