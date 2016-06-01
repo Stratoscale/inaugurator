@@ -55,6 +55,13 @@ docker-build/%:
 	sudo docker run --rm -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v `pwd`/../osmosis:/root/osmosis -v $(PWD)/docker-dist-tmp:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) build/$(@F)
 	$(MAKE) chown_stuff
 
+shell:
+	/bin/bash
+
+docker-shell:
+	$(MAKE) build_container
+	sudo docker run --rm -it -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v `pwd`/../osmosis:/root/osmosis -v $(PWD)/docker-dist-tmp:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) shell
+
 build/inaugurator.%.initrd.img: $(INITRD_IMAGE_PATH)
 	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
 	mv $@.tmp $@
