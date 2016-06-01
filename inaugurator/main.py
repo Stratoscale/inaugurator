@@ -83,6 +83,7 @@ if __name__ == "__main__":
         traceback.print_exc(e)
         if not PDB_ON_ERROR:
             print "For PDB on error, use --inauguratorPdbOnError."
+        raise e
     finally:
         if PDB_ON_ERROR:
             pdb.set_trace()
