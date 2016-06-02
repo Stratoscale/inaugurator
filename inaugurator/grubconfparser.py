@@ -29,10 +29,10 @@ class GrubConfParser:
         return int(match.group(1))
 
     def _entryKernelImage(self, entry):
-        return re.search(r'\n\s*linux(16|efi)?\s+/(\S+)\s', entry).group(2)
+        return re.search(r'\n\s*linux(16|efi)?\s+/boot/(\S+)\s', entry).group(2)
 
     def _entryKernelCommandLine(self, entry):
-        return re.search(r'\n\s*linux(16|efi)?\s+/\S+\s+(.*)', entry).group(2)
+        return re.search(r'\n\s*linux(16|efi)?\s+/boot/\S+\s+(.*)', entry).group(2)
 
     def _entryInitrd(self, entry):
-        return re.search(r'\n\s*initrd(16|efi)?\s+/(\S+)', entry).group(2)
+        return re.search(r'\n\s*initrd(16|efi)?\s+/boot/(\S+)', entry).group(2)
