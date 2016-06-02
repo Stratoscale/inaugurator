@@ -281,7 +281,13 @@ class Ceremony:
 
     def _makeSureDiskIsMountable(self):
         udev.loadAllDrivers()
-        self._targetDevice = targetdevice.TargetDevice.device(self._args.inauguratorTargetDeviceCandidate)
+        if self._args.inauguratorTargetDeviceType is None:
+            candidates = self._args.inauguratorTargetDeviceCandidate
+        else:
+            logging.info("Searching for target devices of type %(deviceType)s",
+                         dict(deviceType=self._args.inauguratorTargetDeviceType))
+            candidates = [self._findFirstDeviceOfType(self._args.inauguratorTargetDeviceType)]
+        self._targetDevice = targetdevice.TargetDevice.device(candidates)
         self._createPartitionTable()
         logging.info("Partitions created")
         self._mountOp = mount.Mount(self._targetDevice)
@@ -316,11 +322,25 @@ class Ceremony:
         with self._mountOp.mountRoot() as destination:
             verify.Verify(destination, self._label, self._talkToServer, self._localObjectStore).go()
 
-    def _getSSDDeviceNames(self):
+    def _getStorageDeviceNames(self):
         blockDevices = os.listdir('/sys/block')
         storageDevices = [dev for dev in blockDevices if dev.startswith('sd')]
+        return storageDevices
+
+    def _getHDDDeviceNames(self):
+        devices = self._getStorageDeviceNames()
+        ssdDevices = self._filterRotationalDevices(devices)
+        nonSSDDevices = [device for device in devices if device not in ssdDevices]
+        return nonSSDDevices
+
+    def _getSSDDeviceNames(self):
+        devices = self._getStorageDeviceNames()
+        ssdDevices = self._filterRotationalDevices(devices)
+        return ssdDevices
+
+    def _filterRotationalDevices(self, devices):
         ssdDevices = []
-        for device in storageDevices:
+        for device in devices:
             isRotationalPathComponents = ['sys', 'block', device, 'queue', 'rotational']
             isRotationalPath = os.path.join(*isRotationalPathComponents)
             with open(isRotationalPath, 'rb') as f:
@@ -344,3 +364,16 @@ class Ceremony:
                 print sh.run('busybox cat {}'.format(queueDepthPath))
             except Exception, ex:
                 print ex.message
+
+    def _findFirstDeviceOfType(self, deviceType):
+        if deviceType == "SSD":
+            devices = self._getSSDDeviceNames()
+        else:
+            assert deviceType == "HDD", deviceType
+            devices = self._getHDDDeviceNames()
+        if not devices:
+            raise Exception("Could not find a device of type %s to be used as a target device" % \
+                            (deviceType,))
+        logging.info("The following devices were found: %s" % (",".join(devices),))
+        devicePath = os.path.join("/dev", devices[0])
+        return devicePath

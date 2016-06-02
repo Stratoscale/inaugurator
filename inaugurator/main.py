@@ -31,6 +31,7 @@ parser.add_argument("--inauguratorPassthrough", default="")
 parser.add_argument("--inauguratorDownload", nargs='+', default=[])
 parser.add_argument("--inauguratorIgnoreDirs", nargs='+', default=[])
 parser.add_argument("--inauguratorTargetDeviceCandidate", nargs='+', default=['/dev/vda', '/dev/sda'])
+parser.add_argument("--inauguratorTargetDeviceType")
 parser.add_argument("--inauguratorVerify", action="store_true")
 parser.add_argument("--inauguratorDisableNCQ", action="store_true", default=True)
 parser.add_argument("--inauguratorLogfilePath")
@@ -45,7 +46,6 @@ def getArgsSource():
     parser.add_argument("--inauguratorArgumentsSource", default="kernelCmdline", choices=choices)
     args = parser.parse_known_args()[0]
     return args.inauguratorArgumentsSource
-
 
 def main():
     # Earlier versions of pika are buggy
