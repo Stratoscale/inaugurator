@@ -20,6 +20,7 @@ class TargetDevice:
         for retry in xrange(RETRIES):
             for device in candidates:
                 if not os.path.exists(device):
+                    print "Device does not exists"
                     continue
                 if not stat.S_ISBLK(os.stat(device).st_mode):
                     continue
