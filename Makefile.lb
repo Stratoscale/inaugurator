@@ -5,8 +5,11 @@ MY_COMPONENT_PATH := $(shell component-tool localpath --repo=inaugurator inaugur
 
 all: build
 
-build clean:
-	$(Q)$(MAKE) -f $(inaugurator_makefile_dir)/Makefile $@
+build:
+	$(Q)$(MAKE) -f $(inaugurator_makefile_dir)/Makefile $@ BUILD_HOST=docker
+
+clean:
+	sudo $(Q)$(MAKE) $(inaugurator_makefile_dir)/Makefile $@
 
 install: |install_dir
 	$(Q)install  $(inaugurator_makefile_dir)/build/* -D  $(MY_COMPONENT_PATH)/
