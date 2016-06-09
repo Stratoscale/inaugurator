@@ -26,6 +26,7 @@ RUN yum install -y \
     make \
     kernel \
     rsync && \
+    tftp && \
     yum -y clean all
 
 RUN pip install pep8 pika>=0.10.0
