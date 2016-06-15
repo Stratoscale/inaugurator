@@ -146,12 +146,9 @@ class Test(unittest.TestCase):
                                       dict(lvmPartition=self.GPT_LVM_PARTITION), ""))
         self.expectedCommands.append(('''lvm lvcreate --zero n --name swap --size 1G inaugurator''', ""))
         self.expectedCommands.append((
-            '''lvm lvcreate --zero n --name osmosis-cache --size 5G inaugurator''', ""))
-        self.expectedCommands.append((
             '''lvm lvcreate --zero n --name root --extents 100%FREE inaugurator''', ""))
         self.validateVolumesCreation()
         self.expectedCommands.append(('''mkfs.ext4 /dev/inaugurator/root -L ROOT''', ""))
-        self.expectedCommands.append(('''mkfs.ext4 /dev/inaugurator/osmosis-cache''', ""))
         goodPartitionTable = self._getPartitionTableInMachineFormat(diskSizeGB=self.diskSizeGB)
         self.expectedCommands.append(('parted -s -m /dev/sda unit MB print', goodPartitionTable))
         self.expectedCommands.append(('lvm pvscan --cache %(lvmPartition)s' %
@@ -168,12 +165,6 @@ class Test(unittest.TestCase):
             ""])
         self.expectedCommands.append((
             'lvm lvdisplay --units m --columns /dev/inaugurator/swap', correctSwap))
-        correctOsmosisCache = "\n".join([
-            "  LV   VG          Attr      LSize  Pool Origin Data%  Move Log Copy%  Convert",
-            "  osmosis-cache inaugurator -wi-a---- 5120.00m",
-            ""])
-        self.expectedCommands.append((
-            'lvm lvdisplay --units m --columns /dev/inaugurator/osmosis-cache', correctOsmosisCache))
         correctRoot = "\n".join([
             "  LV   VG          Attr      LSize  Pool Origin Data%  Move Log Copy%  Convert",
             "  root inaugurator -wi-a---- 15104.00m",
@@ -244,12 +235,9 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''lvm vgcreate inaugurator %(lvmPartition)s''' %
                                       dict(lvmPartition=self.GPT_LVM_PARTITION), ""))
         self.expectedCommands.append(('''lvm lvcreate --zero n --name swap --size 8G inaugurator''', ""))
-        self.expectedCommands.append(
-            ('''lvm lvcreate --zero n --name osmosis-cache --size 15G inaugurator''', ""))
-        self.expectedCommands.append(('''lvm lvcreate --zero n --name root --size 10G inaugurator''', ""))
+        self.expectedCommands.append(('''lvm lvcreate --zero n --name root --size 30G inaugurator''', ""))
         self.validateVolumesCreation()
         self.expectedCommands.append(('''mkfs.ext4 /dev/inaugurator/root -L ROOT''', ""))
-        self.expectedCommands.append(('''mkfs.ext4 /dev/inaugurator/osmosis-cache''', ""))
         self.expectedCommands.append(('parted -s -m /dev/sda unit MB print',
                                       self._getPartitionTableInMachineFormat(diskSizeGB=self.diskSizeGB)))
         self.expectedCommands.append(('lvm pvscan --cache %(lvmPartition)s' %
@@ -266,12 +254,6 @@ class Test(unittest.TestCase):
             ""])
         self.expectedCommands.append((
             'lvm lvdisplay --units m --columns /dev/inaugurator/swap', correctSwap))
-        correctOsmosis = "\n".join([
-            "  LV   VG          Attr      LSize  Pool Origin Data%  Move Log Copy%  Convert",
-            "  osmosis-cache inaugurator -wi-a---- 15360.00m",
-            ""])
-        self.expectedCommands.append((
-            'lvm lvdisplay --units m --columns /dev/inaugurator/osmosis-cache', correctOsmosis))
         correctRoot = "\n".join([
             "  LV   VG          Attr      LSize  Pool Origin Data%  Move Log Copy%  Convert",
             "  root inaugurator -wi-a---- 30720.00m",
@@ -323,9 +305,10 @@ class Test(unittest.TestCase):
         numbers = numbersAtEndOfExpressionFinder.findall(device)
         return numbers
 
-    def generateCreatePathsCallback(self, *paths):
+    def generateCreatePathCallback(self, path, output=""):
         def callback():
-            self.fakeExistingPaths = self.fakeExistingPaths.union(paths)
+            self.fakeExistingPaths.add(path)
+            return output
         return callback
 
     def fakeOSExists(self, path):
@@ -334,11 +317,10 @@ class Test(unittest.TestCase):
     def validateVolumesCreation(self):
         devPath = os.path.join("/dev", "inaugurator")
         swapPath = os.path.join(devPath, "swap")
-        osmosisPath = os.path.join(devPath, "osmosis-cache")
-        createPathCallback = self.generateCreatePathsCallback(swapPath, osmosisPath)
+        createPathCallback = self.generateCreatePathCallback(swapPath)
         self.expectedCommands.append(('''lvm vgscan --mknodes''', createPathCallback))
         rootPath = os.path.join(devPath, "root")
-        createPathCallback = self.generateCreatePathsCallback(rootPath)
+        createPathCallback = self.generateCreatePathCallback(rootPath)
         self.expectedCommands.append(('''mkswap %(path)s -L SWAP''' % dict(path=swapPath),
                                      createPathCallback))
 

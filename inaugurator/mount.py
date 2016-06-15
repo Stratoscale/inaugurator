@@ -7,13 +7,11 @@ import logging
 class Mount:
     _ROOT_MOUNT_POINT = "/destRoot"
     _BOOT_MOUNT_POINT = "/destBoot"
-    _OSMOSIS_CACHE_MOUNT_POINT = "/osmosisCache"
 
-    def __init__(self, targetDevice):
+    def __init__(self):
         self._bootPartition = None
         self._swapPartition = "/dev/%s/swap" % partitiontable.PartitionTable.VOLUME_GROUP
         self._rootPartition = "/dev/%s/root" % partitiontable.PartitionTable.VOLUME_GROUP
-        self._osmosisCachePartition = "/dev/%s/osmosis-cache" % partitiontable.PartitionTable.VOLUME_GROUP
 
     def rootPartition(self):
         return self._rootPartition
@@ -28,28 +26,21 @@ class Mount:
         return self._swapPartition
 
     @contextlib.contextmanager
-    def _mountPartition(self, partitionPath, mountPoint, optimizePerformance=False):
-        self._correctEXT4Errors(partitionPath)
-        sh.run("/usr/sbin/busybox mkdir -p %s" % mountPoint)
-        if optimizePerformance:
-            options = "-o noatime,data=writeback"
-        else:
-            options = ""
-        sh.run("/usr/sbin/busybox mount -t ext4 %s %s %s" % (options, partitionPath, mountPoint))
-        yield mountPoint
-        sh.run("/usr/sbin/busybox umount %s" % mountPoint)
-
     def mountRoot(self):
-        return self._mountPartition(self._rootPartition, self._ROOT_MOUNT_POINT, optimizePerformance=True)
+        self._correctEXT4Errors(self._rootPartition)
+        sh.run("/usr/sbin/busybox mkdir -p %s" % self._ROOT_MOUNT_POINT)
+        sh.run("/usr/sbin/busybox mount -t ext4 -o noatime,data=writeback %s %s" % (
+            self._rootPartition, self._ROOT_MOUNT_POINT))
+        yield self._ROOT_MOUNT_POINT
+        sh.run("/usr/sbin/busybox umount %s" % self._ROOT_MOUNT_POINT)
 
+    @contextlib.contextmanager
     def mountBoot(self):
-        assert self._bootPartition is not None, "Please initialize the boot partition path first"
-        return self._mountPartition(self._bootPartition, self._BOOT_MOUNT_POINT)
-
-    def mountOsmosisCache(self):
-        return self._mountPartition(self._osmosisCachePartition,
-                                    self._OSMOSIS_CACHE_MOUNT_POINT,
-                                    optimizePerformance=True)
+        self._correctEXT4Errors(self._bootPartition)
+        sh.run("/usr/sbin/busybox mkdir -p %s" % self._BOOT_MOUNT_POINT)
+        sh.run("/usr/sbin/busybox mount -t ext4 %s %s" % (self._bootPartition, self._BOOT_MOUNT_POINT))
+        yield self._BOOT_MOUNT_POINT
+        sh.run("/usr/sbin/busybox umount %s" % self._BOOT_MOUNT_POINT)
 
     @contextlib.contextmanager
     def mountBootInsideRoot(self):

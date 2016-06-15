@@ -78,7 +78,6 @@ class Ceremony:
         self._debugPort = None
         self._isExpectingReboot = False
         self._grubConfig = None
-        self._localObjectStore = None
         sh.logFilepath = self._args.inauguratorLogfilePath
         self._before = time.time()
         self._bootPartitionPath = None
@@ -89,8 +88,7 @@ class Ceremony:
             self._disableNCQ()
         else:
             print 'Skipping the disabling of NCQ.'
-        with self._mountOp.mountRoot() as destination, self._mountOp.mountOsmosisCache() as osmosisCache:
-            self._localObjectStore = osmosisCache
+        with self._mountOp.mountRoot() as destination:
             self._etcLabelFile = etclabelfile.EtcLabelFile(destination)
             self._doOsmosisFromSource(destination)
             logging.info("Osmosis complete")
@@ -209,7 +207,6 @@ class Ceremony:
                 destination=destination,
                 objectStores=self._args.inauguratorOsmosisObjectStores,
                 withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
-                localObjectStore=self._localObjectStore,
                 ignoreDirs=self._args.inauguratorIgnoreDirs,
                 talkToServer=self._talkToServer)
             if self._args.inauguratorServerAMQPURL:
@@ -236,7 +233,6 @@ class Ceremony:
             osmos = osmose.Osmose(
                 destination, objectStores=source + "/osmosisobjectstore",
                 withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
-                localObjectStore=self._localObjectStore,
                 ignoreDirs=self._args.inauguratorIgnoreDirs,
                 talkToServer=self._talkToServer)
             with open("%s/inaugurate_label.txt" % source) as f:
@@ -250,7 +246,6 @@ class Ceremony:
             osmos = osmose.Osmose(
                 destination, objectStores=source + "/osmosisobjectstore",
                 withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
-                localObjectStore=self._localObjectStore,
                 ignoreDirs=self._args.inauguratorIgnoreDirs,
                 talkToServer=self._talkToServer)
             with open("%s/inaugurate_label.txt" % source) as f:
@@ -262,7 +257,6 @@ class Ceremony:
         osmos = osmose.Osmose(
             destination, objectStores=None,
             withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
-            localObjectStore=self._localObjectStore,
             ignoreDirs=self._args.inauguratorIgnoreDirs,
             talkToServer=self._talkToServer)
         self._label = self._args.inauguratorNetworkLabel
@@ -284,7 +278,7 @@ class Ceremony:
         self._targetDevice = targetdevice.TargetDevice.device(self._args.inauguratorTargetDeviceCandidate)
         self._createPartitionTable()
         logging.info("Partitions created")
-        self._mountOp = mount.Mount(self._targetDevice)
+        self._mountOp = mount.Mount()
         assert self._bootPartitionPath is not None, "Please initialize boot partition path first"
         self._mountOp.setBootPartitionPath(self._bootPartitionPath)
 
@@ -296,7 +290,7 @@ class Ceremony:
             append=self._args.inauguratorPassthrough)
 
     def _doOsmosisFromSource(self, destination):
-        osmosiscleanup.OsmosisCleanup(destination, objectStorePath=self._localObjectStore)
+        osmosiscleanup.OsmosisCleanup(destination)
         if self._args.inauguratorSource == 'network':
             self._osmosFromNetwork(destination)
         elif self._args.inauguratorSource == 'DOK':
