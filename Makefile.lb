@@ -9,7 +9,7 @@ build:
 	$(Q)$(MAKE) -f $(inaugurator_makefile_dir)/Makefile $@ BUILD_HOST=docker
 
 clean:
-	sudo $(Q)$(MAKE) $(inaugurator_makefile_dir)/Makefile $@
+	$(Q)$(MAKE) $(inaugurator_makefile_dir)/Makefile $@
 
 install: |install_dir
 	$(Q)install  $(inaugurator_makefile_dir)/build/* -D  $(MY_COMPONENT_PATH)/

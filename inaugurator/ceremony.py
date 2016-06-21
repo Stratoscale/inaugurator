@@ -150,6 +150,8 @@ class Ceremony:
 
     def _createPartitionTable(self):
         lvmetad.Lvmetad()
+        logging.info("Target device is %(device)s layout=%(layout)s",
+                     dict(device=self._targetDevice, layout=self._args.inauguratorPartitionLayout)) 
         partitionTable = partitiontable.PartitionTable(self._targetDevice,
                                                        layoutScheme=self._args.inauguratorPartitionLayout)
         if self._args.inauguratorClearDisk:

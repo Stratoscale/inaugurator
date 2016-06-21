@@ -9,3 +9,4 @@ docker-build
 docker-dist-tmp
 .pydevproject
 .project
+.settings

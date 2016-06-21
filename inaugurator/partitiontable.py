@@ -73,10 +73,9 @@ class PartitionTable:
             osmosisCacheSizeGB = self._sizesGB["smallOsmosisCache"]
         sh.run("lvm lvcreate --zero n --name osmosis-cache --size %dG %s" %
                (osmosisCacheSizeGB, self.VOLUME_GROUP))
-        if self._diskSizeMB() / 1024 > self._sizesGB['createRoot'] + swapSizeGB + osmosisCacheSizeGB:
-            rootSize = "--size %dG" % self._sizesGB['createRoot']
-        else:
-            rootSize = "--extents 100%FREE"
+
+        rootSize = "--extents 100%FREE"
+
         sh.run("lvm lvcreate --zero n --name root %s %s" % (rootSize, self.VOLUME_GROUP))
         sh.run("lvm vgscan --mknodes")
         self._waitForFileToShowUp("/dev/%s/swap" % self.VOLUME_GROUP)
