@@ -207,6 +207,7 @@ class Ceremony:
                 destination=destination,
                 objectStores=self._args.inauguratorOsmosisObjectStores,
                 withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
+                noChainTouch=self._args.inauguratorNoChainTouch,
                 ignoreDirs=self._args.inauguratorIgnoreDirs,
                 talkToServer=self._talkToServer)
             if self._args.inauguratorServerAMQPURL:
@@ -233,6 +234,7 @@ class Ceremony:
             osmos = osmose.Osmose(
                 destination, objectStores=source + "/osmosisobjectstore",
                 withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
+                noChainTouch=self._args.inauguratorNoChainTouch,
                 ignoreDirs=self._args.inauguratorIgnoreDirs,
                 talkToServer=self._talkToServer)
             with open("%s/inaugurate_label.txt" % source) as f:
@@ -246,6 +248,7 @@ class Ceremony:
             osmos = osmose.Osmose(
                 destination, objectStores=source + "/osmosisobjectstore",
                 withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
+                noChainTouch=self._args.inauguratorNoChainTouch,
                 ignoreDirs=self._args.inauguratorIgnoreDirs,
                 talkToServer=self._talkToServer)
             with open("%s/inaugurate_label.txt" % source) as f:
@@ -257,6 +260,7 @@ class Ceremony:
         osmos = osmose.Osmose(
             destination, objectStores=None,
             withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
+            noChainTouch=self._args.inauguratorNoChainTouch,
             ignoreDirs=self._args.inauguratorIgnoreDirs,
             talkToServer=self._talkToServer)
         self._label = self._args.inauguratorNetworkLabel

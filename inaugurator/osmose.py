@@ -5,7 +5,8 @@ from inaugurator import reportthread
 
 
 class Osmose:
-    def __init__(self, destination, objectStores, withLocalObjectStore, ignoreDirs, talkToServer):
+    def __init__(self, destination, objectStores, withLocalObjectStore, noChainTouch, ignoreDirs,
+                 talkToServer):
         absoluteIgnoreDirs = [os.path.join(destination, ignoreDir) for ignoreDir in ignoreDirs]
         logging.info("Osmosing parameters: withLocalObjectStore: %(withLocalObjectStore)s", dict(
             withLocalObjectStore=withLocalObjectStore))
@@ -19,6 +20,8 @@ class Osmose:
             absoluteIgnoreDirs.append(localObjectStore)
             objectStores = localObjectStore + ("+" + objectStores if objectStores else "")
         extra = []
+        if noChainTouch:
+            extra += ["--noChainTouch"]
         if len(absoluteIgnoreDirs) > 0:
             extra += ['--ignore', ":".join(absoluteIgnoreDirs)]
         if talkToServer is not None:
