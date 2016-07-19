@@ -3,6 +3,7 @@ import contextlib
 import time
 import glob
 import re
+import logging
 from inaugurator import sh
 
 
@@ -53,7 +54,17 @@ class DiskOnKey:
 
     def _findDeviceUsingExpectedLabel(self):
         for device in self._getAllDevices():
-            content = sh.run("dosfslabel %s" % device + "1")
+            devicePartition = device + "1"
+            if not os.path.exists(devicePartition):
+                logging.info("Will not check device %s for installation since it does not"
+                             "contain any partitions." % (device,))
+                continue
+            try:
+                content = sh.run("dosfslabel %s" % (devicePartition,))
+            except Exception as ex:
+                logging.warning("Failed running dosfslabel on device '%s': '%s'" %
+                                (devicePartition, str(ex)))
+                continue
             if self._expectedLabel in content:
                 return device
         raise Exception("Couldn't find device with '%s' label" % (self._expectedLabel,))
