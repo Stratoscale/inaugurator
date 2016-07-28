@@ -313,7 +313,10 @@ class PartitionTable:
             print "Partition table already set up"
             lvmPartitionPath = self._getPartitionPath("lvm")
             sh.run("lvm pvscan --cache %s" % lvmPartitionPath)
-            sh.run("lvm vgchange --activate y %s" % self.VOLUME_GROUP)
+            for lv in ["root", "swap"]:
+                lv = "%s/%s" % (self.VOLUME_GROUP, lv)
+                print "Activating %s" % (lv,)
+                sh.run("lvm lvchange --activate y %s" % lv)
             sh.run("lvm vgscan --mknodes")
             print "/dev/inaugurator:"
             try:
