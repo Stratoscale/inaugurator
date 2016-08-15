@@ -10,7 +10,7 @@ class PartitionTable:
         smallSwap=1,
         bigSwap=8,
         minimumRoot=14,
-        createRoot=30)
+        createRoot=20)
     VOLUME_GROUP = "inaugurator"
     LAYOUT_SCHEMES = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, flags="bios_grub"),
                                                    boot=dict(sizeMB=256, fs="ext4", flags="boot"),
@@ -212,6 +212,9 @@ class PartitionTable:
             return "Unable to parse physical volume/s"
         if root['sizeMB'] <= self._sizesGB['minimumRoot'] * 1024 * 0.9:
             return "Root partition is too small"
+        if root['sizeMB'] >= self._sizesGB['createRoot'] * 1024 * 1.2:
+            print "Root partition is too big"
+            return "Root partition is too big"
         if self._diskSizeMB() / 1024 >= self._sizesGB['createRoot'] + self._sizesGB['bigSwap']:
             minimumSwapSizeGB = self._sizesGB['bigSwap']
         else:
