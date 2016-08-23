@@ -2,7 +2,7 @@ FROM centos:7.2.1511
 MAINTAINER eliran@stratoscale.com
 
 # Add the EPEL repository and update all packages
-RUN curl http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-6.noarch.rpm -o temp && \
+RUN curl http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-8.noarch.rpm -o temp && \
     rpm -ivh temp && \
     rm temp
 

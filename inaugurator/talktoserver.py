@@ -71,6 +71,7 @@ class TalkToServerSpooler(threading.Thread):
         self._channel.basic_publish(exchange=self._statusExchange, routing_key='', body=body)
 
     def _labelCallback(self, channel, method, properties, body):
+        logging.info("Received message %(message)s",dict(message=body))
         self._receivedLabel = body
         self._channel.stop_consuming()
 
