@@ -23,6 +23,7 @@ import re
 import time
 import logging
 import threading
+import json
 
 
 class Ceremony:
@@ -151,7 +152,7 @@ class Ceremony:
     def _createPartitionTable(self):
         lvmetad.Lvmetad()
         logging.info("Target device is %(device)s layout=%(layout)s",
-                     dict(device=self._targetDevice, layout=self._args.inauguratorPartitionLayout)) 
+                     dict(device=self._targetDevice, layout=self._args.inauguratorPartitionLayout))
         partitionTable = partitiontable.PartitionTable(self._targetDevice,
                                                        layoutScheme=self._args.inauguratorPartitionLayout)
         if self._args.inauguratorClearDisk:
@@ -218,7 +219,8 @@ class Ceremony:
                 ignoreDirs=self._args.inauguratorIgnoreDirs,
                 talkToServer=self._talkToServer)
             if self._args.inauguratorServerAMQPURL:
-                self._label = self._talkToServer.label()
+                message = self._talkToServer.label()
+                self._label = json.loads(message)['rootfs']
             else:
                 self._label = self._args.inauguratorNetworkLabel
             osmos.tellLabel(self._label)
