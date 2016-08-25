@@ -6,3 +6,4 @@ remote
 dist
 inaugurator.egg-info
 docker-build
+docker-dist-tmp
