@@ -65,7 +65,7 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} ../osmosis/dist/osm
 	mkdir $@.tmp
 	echo "Installing Inaugurator"
 	tar -xf $< --directory $@.tmp
-	tar -xf ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz --directory $@.tmp
+	cp ../osmosis/dist/osmosis-1.0-py2.7.egg $@.tmp/usr/lib/
 	echo "Copying libraries"
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib64/ld*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/*
