@@ -1,3 +1,4 @@
 inaugurator:
   inaugurator:
+    - osmosis:osmosis
     - file://.
