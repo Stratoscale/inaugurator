@@ -122,6 +122,7 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} ../osmosis/dist/osm
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh ahci
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh isofs
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh ata_piix
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh cciss
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.order
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh aacraid
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.builtin

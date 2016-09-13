@@ -25,7 +25,12 @@ RUN yum install -y \
     python-pip \
     make \
     kernel \
-    rsync && \
+    rsync
+
+# Add the Elrepo repository and install the CCISS driver
+RUN rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
+    rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-2.el7.elrepo.noarch.rpm && \
+    yum install -y kmod-cciss && \
     yum -y clean all
 
 RUN pip install pep8 pika>=0.10.0
