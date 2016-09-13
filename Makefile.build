@@ -146,9 +146,9 @@ build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 	cp -a lib $@.tmp/
 	mv $@.tmp $@
 
-build/build-inaugurator.dockerfile:
+build/%: docker/%
 	@-mkdir build
-	cp docker/$(@F) $@
+	KERNEL_VERSION=$(KERNEL_VERSION) m4 $< > $@
 	$(MAKE) chown_stuff
 
 .PHONY: build_container

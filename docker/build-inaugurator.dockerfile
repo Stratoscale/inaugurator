@@ -1,3 +1,5 @@
+define(`KERNEL_VERSION', esyscmd(`printf \`\`%s\'\' "$KERNEL_VERSION"'))
+
 FROM centos:7.2.1511
 MAINTAINER eliran@stratoscale.com
 
@@ -24,7 +26,7 @@ RUN yum install -y \
     lvm2 \
     python-pip \
     make \
-    kernel \
+    kernel-KERNEL_VERSION \
     rsync
 
 # Add the Elrepo repository and install the CCISS driver
