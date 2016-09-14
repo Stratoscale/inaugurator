@@ -3,13 +3,9 @@ define(`KERNEL_VERSION', esyscmd(`printf \`\`%s\'\' "$KERNEL_VERSION"'))
 FROM centos:7.2.1511
 MAINTAINER eliran@stratoscale.com
 
-# Add the EPEL repository and update all packages
-RUN curl http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm -o temp && \
-    rpm -ivh temp && \
-    rm temp
-
 # Install other tools
-RUN yum update -y
+RUN yum update -y && \
+    yum -y clean all
 
 RUN yum install -y \
     sudo \
@@ -24,10 +20,15 @@ RUN yum install -y \
     e2fsprogs \
     dosfstools \
     lvm2 \
-    python-pip \
     make \
     kernel-KERNEL_VERSION \
-    rsync
+    rsync && \
+    yum -y clean all
+
+# Install PIP (obtained from EPEL)
+RUN yum install -y epel-release && \
+    yum install -y python-pip && \
+    yum -y clean all
 
 # Add the Elrepo repository and install the CCISS driver
 RUN rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
