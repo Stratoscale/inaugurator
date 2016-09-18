@@ -829,7 +829,7 @@ class Device(Mapping):
             self, ensure_byte_string(property))
         if value is None:
             raise KeyError(property)
-        return ensure_unicode_string(value)
+        return ensure_unicode_string(unicode(value, 'utf-8'))
 
     def asint(self, property):
         """

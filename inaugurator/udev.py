@@ -16,8 +16,13 @@ def loadAllDrivers():
     for device in deviceList:
         if u'MODALIAS' not in device:
             continue
-        for k, v in device.iteritems():
-            print "\t%s: %s" % (k, v)
+        try:
+            for k, v in device.iteritems():
+                print "\t%s: %s" % (k.encode('utf-8'), v.encode('utf-8'))
+        except Exception as e:
+            print str(e)
+            print "WARNING: Failed to print driver details, will not load it. Skipping."
+            continue
         driver = _findDriver(device, aliasTable)
         if driver is None:
             print "No driver, skipping"
