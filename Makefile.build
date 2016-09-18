@@ -2,17 +2,14 @@ KERNEL_VERSION = 3.10.0-327.10.1.el7.x86_64
 INAUGURATOR_VERSION=$(shell python setup.py --version)
 
 KERNEL_IMAGE_PATH=define_build_host_msg
-INITRD_IMAGE_PATH=define_build_host_msg
 PYTHON_DIST_FILENAME=inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
 PYTHON_DIST_LOCAL_PATH=dist/${PYTHON_DIST_FILENAME}
 ifeq ($(BUILD_HOST),local)
 KERNEL_IMAGE_PATH=/boot/vmlinuz-$(KERNEL_VERSION)
-INITRD_IMAGE_PATH=build/inaugurator.%.initrd.dir
 PYTHON_DIST_RECIPE=build_python_dist_locally
 endif
 ifeq ($(BUILD_HOST),docker)
 KERNEL_IMAGE_PATH=docker-build/inaugurator.vmlinuz
-INITRD_IMAGE_PATH=docker-build/inaugurator.%.initrd.dir
 PYTHON_DIST_RECIPE=docker-dist/${PYTHON_DIST_FILENAME}
 endif
 DOCKER_RUN_CMD=
@@ -55,10 +52,15 @@ docker-build/%:
 	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v `pwd`/../osmosis:/root/osmosis -v $(PWD)/docker-dist-tmp:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) build/$(@F)
 	$(MAKE) chown_stuff
 
-build/inaugurator.%.initrd.img: $(INITRD_IMAGE_PATH)
+build/inaugurator.%.initrd.img: build/inaugurator.%.initrd.dir
 	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
 	mv $@.tmp $@
 
+ifeq ($(BUILD_HOST),docker)
+build/inaugurator.thin.initrd.dir: docker-build/inaugurator.thin.initrd.dir
+	mv $< build/
+endif
+ifeq ($(BUILD_HOST),local)
 build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz
 	-@mkdir build
 	-rm -fr $@.tmp $@
@@ -136,6 +138,7 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} ../osmosis/dist/osm
 	mkdir $@.tmp/sys
 	find $@.tmp -name "*.pyo" | xargs rm -f
 	mv $@.tmp $@
+endif
 
 build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 	echo "Creating fat image. Starting from thin image"
@@ -146,17 +149,19 @@ build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 	cp -a lib $@.tmp/
 	mv $@.tmp $@
 
-build/%: docker/%
+build/build-inaugurator.dockerfile: docker/$(@F)
 	@-mkdir build
 	KERNEL_VERSION=$(KERNEL_VERSION) m4 $< > $@
 	$(MAKE) chown_stuff
 
 .PHONY: build_container
-build_container: build/build-inaugurator.dockerfile
+build_container: build/build-inaugurator.dockerfile setup.py
 ifeq ($(BUILD_HOST),docker)
 ifeq ($(shell sudo docker images | egrep -Ec "^build-inaugurator[ ]+$(INAUGURATOR_VERSION)" | xargs echo -n),0)
-	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was not built. Trying to build it....)
+	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was not built. Trying to build it...)
 	sudo docker build -f build/build-inaugurator.dockerfile -t build-inaugurator:$(INAUGURATOR_VERSION) build
 	$(MAKE) chown_stuff
+else
+	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was already built.)
 endif
 endif
