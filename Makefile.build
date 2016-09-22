@@ -37,7 +37,7 @@ chown_stuff:
 docker-dist/${PYTHON_DIST_FILENAME}:
 	-@mkdir $(@D)
 	$(MAKE) build_container
-	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v `pwd`/../osmosis:/root/osmosis -v $(PWD)/docker-dist:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) dist/$(@F)
+	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v `pwd`/../osmosis:/root/osmosis -v $(PWD)/docker-dist:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) make dist/$(@F)
 	$(MAKE) chown_stuff
 
 
@@ -49,7 +49,7 @@ docker-build/%:
 	-@mkdir $(@D)
 	-@mkdir docker-dist-tmp
 	$(MAKE) build_container
-	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v `pwd`/../osmosis:/root/osmosis -v $(PWD)/docker-dist-tmp:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) build/$(@F)
+	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v `pwd`/../osmosis:/root/osmosis -v $(PWD)/docker-dist-tmp:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) make build/$(@F)
 	$(MAKE) chown_stuff
 
 build/inaugurator.%.initrd.img: build/inaugurator.%.initrd.dir
@@ -149,7 +149,7 @@ build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 	cp -a lib $@.tmp/
 	mv $@.tmp $@
 
-build/build-inaugurator.dockerfile: docker/$(@F)
+build/build-inaugurator.dockerfile: docker/build-inaugurator.dockerfile
 	@-mkdir build
 	KERNEL_VERSION=$(KERNEL_VERSION) m4 $< > $@
 	$(MAKE) chown_stuff

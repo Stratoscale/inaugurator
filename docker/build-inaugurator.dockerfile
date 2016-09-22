@@ -53,5 +53,3 @@ CMD make -C osmosis build -j 10 && \
 
 WORKDIR /root/inaugurator
 ENV BUILD_HOST local
-ENTRYPOINT ["make"]
-CMD ["nothing"]
