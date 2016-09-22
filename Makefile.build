@@ -6,11 +6,9 @@ PYTHON_DIST_FILENAME=inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
 PYTHON_DIST_LOCAL_PATH=dist/${PYTHON_DIST_FILENAME}
 ifeq ($(BUILD_HOST),local)
 KERNEL_IMAGE_PATH=/boot/vmlinuz-$(KERNEL_VERSION)
-PYTHON_DIST_RECIPE=build_python_dist_locally
 endif
 ifeq ($(BUILD_HOST),docker)
 KERNEL_IMAGE_PATH=docker-build/inaugurator.vmlinuz
-PYTHON_DIST_RECIPE=docker-dist/${PYTHON_DIST_FILENAME}
 endif
 DOCKER_RUN_CMD=
 
@@ -20,15 +18,7 @@ define_build_host_msg:
 
 
 .PHONY: build
-build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img ${PYTHON_DIST_PATH}
-
-.PHONY: build_python_dist_locally
-build_python_dist_locally:
-	python setup.py build
-	python setup.py bdist
-	python setup.py bdist_egg
-
-${PYTHON_DIST_LOCAL_PATH}: ${PYTHON_DIST_RECIPE}
+build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img ${PYTHON_DIST_LOCAL_PATH}
 
 .PHONY: chown_stuff
 chown_stuff:
@@ -39,7 +29,6 @@ docker-dist/${PYTHON_DIST_FILENAME}:
 	$(MAKE) build_container
 	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v `pwd`/../osmosis:/root/osmosis -v $(PWD)/docker-dist:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) make dist/$(@F)
 	$(MAKE) chown_stuff
-
 
 build/inaugurator.vmlinuz: $(KERNEL_IMAGE_PATH)
 	-@mkdir $(@D)
@@ -54,13 +43,21 @@ docker-build/%:
 
 build/inaugurator.%.initrd.img: build/inaugurator.%.initrd.dir
 	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
-	mv $@.tmp $@
+	cp -rf $@.tmp $@
 
 ifeq ($(BUILD_HOST),docker)
-build/inaugurator.thin.initrd.dir: docker-build/inaugurator.thin.initrd.dir
-	mv $< build/
+build/inaugurator.%.initrd.dir: docker-build/inaugurator.%.initrd.dir
+	cp -rf $< build/
+
+dist/%: docker-dist/%
+	cp -rf $< $(@D)/
 endif
 ifeq ($(BUILD_HOST),local)
+$(PYTHON_DIST_LOCAL_PATH): inaugurator setup.py
+	python setup.py build
+	python setup.py bdist
+	python setup.py bdist_egg
+
 build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz
 	-@mkdir build
 	-rm -fr $@.tmp $@
@@ -138,7 +135,6 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} ../osmosis/dist/osm
 	mkdir $@.tmp/sys
 	find $@.tmp -name "*.pyo" | xargs rm -f
 	mv $@.tmp $@
-endif
 
 build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 	echo "Creating fat image. Starting from thin image"
@@ -148,6 +144,7 @@ build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 	depmod --basedir=$@.tmp $(KERNEL_VERSION)
 	cp -a lib $@.tmp/
 	mv $@.tmp $@
+endif
 
 build/build-inaugurator.dockerfile: docker/build-inaugurator.dockerfile
 	@-mkdir build
