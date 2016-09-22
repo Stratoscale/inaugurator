@@ -39,7 +39,7 @@ parser.add_argument("--inauguratorLogfilePath")
 parser.add_argument("--inauguratorExpectedLabel")
 parser.add_argument("--inauguratorSkipPdbOnError", action="store_true", default=False)
 parser.add_argument("--inauguratorPartitionLayout", default="GPT")
-parser.add_argument("--inauguratorRootPartitionSizeGB", default="20")
+parser.add_argument("--inauguratorRootPartitionSizeGB", type=int, default=20)
 
 
 def getArgsSource():

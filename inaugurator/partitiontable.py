@@ -9,8 +9,7 @@ class PartitionTable:
     _DEFAULT_SIZES_GB = dict(
         smallSwap=1,
         bigSwap=8,
-        minimumRoot=14,
-        createRoot=None)
+        minimumRoot=14)
     VOLUME_GROUP = "inaugurator"
     LAYOUT_SCHEMES = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, flags="bios_grub"),
                                                    boot=dict(sizeMB=256, fs="ext4", flags="boot"),
@@ -32,7 +31,7 @@ class PartitionTable:
         self._layoutScheme = layoutScheme
         self._physicalPartitions = self.LAYOUT_SCHEMES[layoutScheme]["partitions"]
         self._physicalPartitionsOrder = self.LAYOUT_SCHEMES[layoutScheme]["order"]
-        self._DEFAULT_SIZES_GB["createRoot"] = rootPartitionSizeGB
+        self._requestedRootSizeGB = rootPartitionSizeGB
 
     def created(self):
         return self._created
@@ -59,13 +58,13 @@ class PartitionTable:
         lvmPartitionPath = self._getPartitionPath("lvm")
         sh.run("lvm pvcreate -y -ff %s" % (lvmPartitionPath,))
         sh.run("lvm vgcreate -y %s %s" % (self.VOLUME_GROUP, lvmPartitionPath))
-        if self._diskSizeMB() / 1024 >= self._sizesGB['createRoot'] + self._sizesGB['bigSwap']:
+        if self._diskSizeMB() / 1024 >= self._requestedRootSizeGB + self._sizesGB['bigSwap']:
             swapSizeGB = 8
         else:
             swapSizeGB = 1
         sh.run("lvm lvcreate --zero n --name swap --size %dG %s" % (swapSizeGB, self.VOLUME_GROUP))
-        if self._diskSizeMB() / 1024 > self._sizesGB['createRoot'] + swapSizeGB:
-            rootSize = "--size %dG" % self._sizesGB['createRoot']
+        if self._diskSizeMB() / 1024 > self._requestedRootSizeGB + swapSizeGB:
+            rootSize = "--size %dG" % self._requestedRootSizeGB
         else:
             rootSize = "--extents 100%FREE"
         sh.run("lvm lvcreate --zero n --name root %s %s" % (rootSize, self.VOLUME_GROUP))
@@ -213,10 +212,10 @@ class PartitionTable:
             return "Unable to parse physical volume/s"
         if root['sizeMB'] <= self._sizesGB['minimumRoot'] * 1024 * 0.9:
             return "Root partition is too small"
-        if root['sizeMB'] >= self._sizesGB['createRoot'] * 1024 * 1.2:
+        if root['sizeMB'] >= self._requestedRootSizeGB * 1024 * 1.2:
             print "Root partition is too big"
             return "Root partition is too big"
-        if self._diskSizeMB() / 1024 >= self._sizesGB['createRoot'] + self._sizesGB['bigSwap']:
+        if self._diskSizeMB() / 1024 >= self._requestedRootSizeGB + self._sizesGB['bigSwap']:
             minimumSwapSizeGB = self._sizesGB['bigSwap']
         else:
             minimumSwapSizeGB = self._sizesGB['smallSwap']
