@@ -27,7 +27,7 @@ chown_stuff:
 docker-dist/${PYTHON_DIST_FILENAME}:
 	-@mkdir $(@D)
 	$(MAKE) build_container
-	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v `pwd`/../osmosis:/root/osmosis -v $(PWD)/docker-dist:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) make dist/$(@F)
+	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v $(PWD)/docker-dist:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) make dist/$(@F)
 	$(MAKE) chown_stuff
 
 build/inaugurator.vmlinuz: $(KERNEL_IMAGE_PATH)
@@ -38,7 +38,7 @@ docker-build/%:
 	-@mkdir $(@D)
 	-@mkdir docker-dist-tmp
 	$(MAKE) build_container
-	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v `pwd`/../osmosis:/root/osmosis -v $(PWD)/docker-dist-tmp:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) make build/$(@F)
+	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v $(PWD)/docker-dist-tmp:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) make build/$(@F)
 	$(MAKE) chown_stuff
 
 build/inaugurator.%.initrd.img: build/inaugurator.%.initrd.dir
@@ -152,7 +152,11 @@ build/build-inaugurator.dockerfile: docker/build-inaugurator.dockerfile
 	$(MAKE) chown_stuff
 
 .PHONY: build_container
-build_container: build/build-inaugurator.dockerfile setup.py
+build/osmosis: ../osmosis
+	@-mkdir build
+	cp -rf ../osmosis build/
+
+build_container: build/build-inaugurator.dockerfile setup.py build/osmosis
 ifeq ($(BUILD_HOST),docker)
 ifeq ($(shell sudo docker images | egrep -Ec "^build-inaugurator[ ]+$(INAUGURATOR_VERSION)" | xargs echo -n),0)
 	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was not built. Trying to build it...)
