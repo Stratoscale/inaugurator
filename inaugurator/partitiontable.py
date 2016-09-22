@@ -10,7 +10,7 @@ class PartitionTable:
         smallSwap=1,
         bigSwap=8,
         minimumRoot=14,
-        createRoot=20)
+        createRoot=None)
     VOLUME_GROUP = "inaugurator"
     LAYOUT_SCHEMES = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, flags="bios_grub"),
                                                    boot=dict(sizeMB=256, fs="ext4", flags="boot"),
@@ -20,7 +20,7 @@ class PartitionTable:
                                                    lvm=dict(flags="lvm", sizeMB="fillUp")),
                                    order=("boot", "lvm")))
 
-    def __init__(self, device, sizesGB=dict(), layoutScheme="GPT"):
+    def __init__(self, device, sizesGB=dict(), layoutScheme="GPT", rootPartitionSizeGB=20):
         self._sizesGB = dict(self._DEFAULT_SIZES_GB)
         self._sizesGB.update(sizesGB)
         self._device = device
@@ -32,6 +32,7 @@ class PartitionTable:
         self._layoutScheme = layoutScheme
         self._physicalPartitions = self.LAYOUT_SCHEMES[layoutScheme]["partitions"]
         self._physicalPartitionsOrder = self.LAYOUT_SCHEMES[layoutScheme]["order"]
+        self._DEFAULT_SIZES_GB["createRoot"] = rootPartitionSizeGB
 
     def created(self):
         return self._created

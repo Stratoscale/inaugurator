@@ -147,8 +147,12 @@ class Ceremony:
 
     def _createPartitionTable(self):
         lvmetad.Lvmetad()
-        partitionTable = partitiontable.PartitionTable(self._targetDevice,
-                                                       layoutScheme=self._args.inauguratorPartitionLayout)
+        logging.info("Requested root partition size: %(sizeGB)sGB",
+                     dict(sizeGB=self._args.inauguratorRootPartitionSizeGB))
+        partitionTable = partitiontable.PartitionTable(
+            self._targetDevice,
+            layoutScheme=self._args.inauguratorPartitionLayout,
+            rootPartitionSizeGB=self._args.inauguratorRootPartitionSizeGB)
         if self._args.inauguratorClearDisk:
             partitionTable.clear()
         partitionTable.verify()
