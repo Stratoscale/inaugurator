@@ -81,6 +81,7 @@ class Ceremony:
         sh.logFilepath = self._args.inauguratorLogfilePath
         self._before = time.time()
         self._bootPartitionPath = None
+        self._wereDriversLoaded = False
 
     def ceremony(self):
         self._initializeNetworkIfNeeded()
@@ -117,11 +118,15 @@ class Ceremony:
         sh.run("reboot -f")
 
     def _initializeNetworkIfNeeded(self):
+        self._loadAllDriversIfNeeded()
         if self._args.inauguratorSource == 'network' and \
                 not self._args.inauguratorIsNetworkAlreadyConfigured:
             network.Network(
                 macAddress=self._args.inauguratorUseNICWithMAC, ipAddress=self._args.inauguratorIPAddress,
                 netmask=self._args.inauguratorNetmask, gateway=self._args.inauguratorGateway)
+            if self._args.inauguratorServerAMQPURL:
+                self._talkToServer = talktoserver.TalkToServer(
+                    amqpURL=self._args.inauguratorServerAMQPURL, myID=self._args.inauguratorMyIDForServer)
 
     def _assertArgsSane(self):
         logging.info("Command line arguments: %(args)s", dict(args=self._args))
@@ -207,8 +212,6 @@ class Ceremony:
     def _osmosFromNetwork(self, destination):
         self._debugPort = debugthread.DebugThread()
         if self._args.inauguratorServerAMQPURL:
-            self._talkToServer = talktoserver.TalkToServer(
-                amqpURL=self._args.inauguratorServerAMQPURL, myID=self._args.inauguratorMyIDForServer)
             self._talkToServer.checkIn()
         try:
             osmos = osmose.Osmose(
@@ -286,7 +289,7 @@ class Ceremony:
             downloadInstance.download(destination)
 
     def _makeSureDiskIsMountable(self):
-        udev.loadAllDrivers()
+        self._loadAllDriversIfNeeded()
         if self._args.inauguratorTargetDeviceType is None:
             candidates = self._args.inauguratorTargetDeviceCandidate
         else:
@@ -378,8 +381,14 @@ class Ceremony:
             assert deviceType == "HDD", deviceType
             devices = self._getHDDDeviceNames()
         if not devices:
-            raise Exception("Could not find a device of type %s to be used as a target device" % \
-                            (deviceType,))
+            if self._args.inauguratorServerAMQPURL:
+                self._talkToServer.targetDeviceTypeNotFound(deviceType)
+            raise Exception("Could not find a %s device to be used as a target device" % (deviceType,))
         logging.info("The following devices were found: %s" % (",".join(devices),))
         devicePath = os.path.join("/dev", devices[0])
         return devicePath
+
+    def _loadAllDriversIfNeeded(self):
+        if not self._wereDriversLoaded:
+            udev.loadAllDrivers()
+            self._wereDriversLoaded = True

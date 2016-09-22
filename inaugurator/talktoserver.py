@@ -10,6 +10,7 @@ class CannotReuseTalkToServerAfterDone(Exception):
 
 
 class TalkToServerSpooler(threading.Thread):
+
     def __init__(self, amqpURL, statusExchange, labelExchange):
         super(TalkToServerSpooler, self).__init__()
         self.daemon = True
@@ -113,6 +114,9 @@ class TalkToServerSpooler(threading.Thread):
 
 
 class TalkToServer:
+    FAILURE_CODE_SSD_DEVICE_NOT_FOUND = 1
+    FAILURE_CODE_HDD_DEVICE_NOT_FOUND = 2
+
     def __init__(self, amqpURL, myID):
         statusExchange = "inaugurator_status__%s" % myID
         labelExchange = "inaugurator_label__%s" % myID
@@ -134,6 +138,14 @@ class TalkToServer:
     def label(self):
         return self._spooler.getLabel()
 
-    def failed(self, message="Unknown reason"):
+    def failed(self, message="Unknown reason", code=None):
         logging.info("talking to server: failed")
-        self._spooler.publishStatus(status="failed", id=self._myID, message=message)
+        self._spooler.publishStatus(status="failed",
+                                    id=self._myID,
+                                    message=dict(text=message, code=code))
+
+    def targetDeviceTypeNotFound(self, deviceType):
+        message = "Could not find a device of type %(deviceType)s" % dict(deviceType=deviceType,)
+        code = dict(SSD=self.FAILURE_CODE_SSD_DEVICE_NOT_FOUND,
+                    HDD=self.FAILURE_CODE_HDD_DEVICE_NOT_FOUND)[deviceType]
+        self.failed(message=message, code=code)
