@@ -83,6 +83,7 @@ class Ceremony:
         self._bootPartitionPath = None
 
     def ceremony(self):
+        self._initializeNetworkIfNeeded()
         self._makeSureDiskIsMountable()
         if self._args.inauguratorDisableNCQ:
             self._disableNCQ()
@@ -114,6 +115,13 @@ class Ceremony:
         self._sync()
         self._verify()
         sh.run("reboot -f")
+
+    def _initializeNetworkIfNeeded(self):
+        if self._args.inauguratorSource == 'network' and \
+                not self._args.inauguratorIsNetworkAlreadyConfigured:
+            network.Network(
+                macAddress=self._args.inauguratorUseNICWithMAC, ipAddress=self._args.inauguratorIPAddress,
+                netmask=self._args.inauguratorNetmask, gateway=self._args.inauguratorGateway)
 
     def _assertArgsSane(self):
         logging.info("Command line arguments: %(args)s", dict(args=self._args))
@@ -197,10 +205,6 @@ class Ceremony:
                 self._grubConfig = grubConfigFile.read()
 
     def _osmosFromNetwork(self, destination):
-        if not self._args.inauguratorIsNetworkAlreadyConfigured:
-            network.Network(
-                macAddress=self._args.inauguratorUseNICWithMAC, ipAddress=self._args.inauguratorIPAddress,
-                netmask=self._args.inauguratorNetmask, gateway=self._args.inauguratorGateway)
         self._debugPort = debugthread.DebugThread()
         if self._args.inauguratorServerAMQPURL:
             self._talkToServer = talktoserver.TalkToServer(
