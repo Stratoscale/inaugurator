@@ -1,64 +1,29 @@
 KERNEL_VERSION = 3.10.0-327.10.1.el7.x86_64
 INAUGURATOR_VERSION=$(shell python setup.py --version)
-
-KERNEL_IMAGE_PATH=define_build_host_msg
-PYTHON_DIST_FILENAME=inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
-PYTHON_DIST_LOCAL_PATH=dist/${PYTHON_DIST_FILENAME}
-ifeq ($(BUILD_HOST),local)
+PYTHON_DIST_FILENAME=dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
 KERNEL_IMAGE_PATH=/boot/vmlinuz-$(KERNEL_VERSION)
-endif
-ifeq ($(BUILD_HOST),docker)
-KERNEL_IMAGE_PATH=docker-build/inaugurator.vmlinuz
-endif
-DOCKER_RUN_CMD=
-
-.PHONY: define_build_host_msg
-define_build_host_msg:
-	$(error Please specify the environment variable 'BUILD_HOST', to indicate where to build, as either 'local' (build images locally) or 'docker', (build images inside a docker container, which is better if the host does not have all the necessary packages).)
-
 
 .PHONY: build
-build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img ${PYTHON_DIST_LOCAL_PATH}
+build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img ${PYTHON_DIST_FILENAME}
 
 .PHONY: chown_stuff
 chown_stuff:
-	-@sudo chown -R $(USER):$(USER) docker-dist-tmp docker-build docker-dist build dist inaugurator.egg-info
-
-docker-dist/${PYTHON_DIST_FILENAME}:
-	-@mkdir $(@D)
-	$(MAKE) build_container
-	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v $(PWD)/docker-dist:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) make dist/$(@F)
-	$(MAKE) chown_stuff
+	-@sudo chown -R $(USER):$(USER) build dist inaugurator.egg-info
 
 build/inaugurator.vmlinuz: $(KERNEL_IMAGE_PATH)
 	-@mkdir $(@D)
 	cp $(KERNEL_IMAGE_PATH) $@
 
-docker-build/%:
-	-@mkdir $(@D)
-	-@mkdir docker-dist-tmp
-	$(MAKE) build_container
-	sudo docker run -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v $(PWD)/docker-dist-tmp:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) make build/$(@F)
-	$(MAKE) chown_stuff
-
 build/inaugurator.%.initrd.img: build/inaugurator.%.initrd.dir
 	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
 	cp -rf $@.tmp $@
 
-ifeq ($(BUILD_HOST),docker)
-build/inaugurator.%.initrd.dir: docker-build/inaugurator.%.initrd.dir
-	cp -rf $< build/
-
-dist/%: docker-dist/%
-	cp -rf $< $(@D)/
-endif
-ifeq ($(BUILD_HOST),local)
-$(PYTHON_DIST_LOCAL_PATH): inaugurator setup.py
+$(PYTHON_DIST_FILENAME): inaugurator setup.py
 	python setup.py build
 	python setup.py bdist
 	python setup.py bdist_egg
 
-build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz
+build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz
 	-@mkdir build
 	-rm -fr $@.tmp $@
 	mkdir $@.tmp
@@ -144,7 +109,6 @@ build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 	depmod --basedir=$@.tmp $(KERNEL_VERSION)
 	cp -a lib $@.tmp/
 	mv $@.tmp $@
-endif
 
 build/build-inaugurator.dockerfile: docker/build-inaugurator.dockerfile
 	@-mkdir build
