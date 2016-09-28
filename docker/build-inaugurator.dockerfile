@@ -46,10 +46,4 @@ RUN curl ftp://195.220.108.108/linux/fedora/linux/releases/23/Everything/x86_64/
     rpm -ivh temp && \
     rm temp
 
-ADD osmosis /root/osmosis
-
-RUN make -C /root/osmosis clean && \
-    make -C /root/osmosis build -j 10 && \
-    make -C /root/osmosis egg
-
 WORKDIR /root/inaugurator

@@ -23,13 +23,13 @@ $(PYTHON_DIST_FILENAME): inaugurator setup.py
 	python setup.py bdist
 	python setup.py bdist_egg
 
-build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz
+build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} build/osmosis/dist/osmosis-1.0-py2.7.egg build/osmosis/build/cpp/osmosis.bin
 	-@mkdir build
 	-rm -fr $@.tmp $@
 	mkdir $@.tmp
 	echo "Installing Inaugurator"
 	tar -xf $< --directory $@.tmp
-	cp ../osmosis/dist/osmosis-1.0-py2.7.egg $@.tmp/usr/lib/
+	cp build/osmosis/dist/osmosis-1.0-py2.7.egg $@.tmp/usr/lib/
 	echo "Copying libraries"
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib64/ld*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/*
@@ -67,7 +67,7 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} ../osmosis/dist/osmos
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/fsck.ext4
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/bin/rsync
 	DEST=$@.tmp sh/create_busybox_links.sh /usr/sbin/busybox
-	cp -a ../osmosis/build/cpp/osmosis.bin $@.tmp/usr/bin/osmosis
+	cp -a build/osmosis/build/cpp/osmosis.bin $@.tmp/usr/bin/osmosis
 	DEST=$@.tmp sh/relative_copy_executable_dependencies.sh $@.tmp/usr/bin/osmosis
 	echo "Copying drivers"
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh ixgbe
@@ -115,16 +115,18 @@ build/build-inaugurator.dockerfile: docker/build-inaugurator.dockerfile
 	KERNEL_VERSION=$(KERNEL_VERSION) m4 $< > $@
 	$(MAKE) chown_stuff
 
-.PHONY: build_container
 build/osmosis: ../osmosis
 	@-mkdir build
 	cp -rf ../osmosis build/
 
-build_container: build/build-inaugurator.dockerfile setup.py build/osmosis
-ifeq ($(shell sudo docker images | egrep -Ec "^build-inaugurator[ ]+$(INAUGURATOR_VERSION)" | xargs echo -n),0)
+build/osmosis/dist/osmosis-1.0-py2.7.egg: build/osmosis
+	$(MAKE) -C build/osmosis egg
+
+build/osmosis/build/cpp/osmosis.bin: build/osmosis
+	$(MAKE) -j 4 -C build/osmosis build
+
+.PHONY: build_container
+build_container: build/build-inaugurator.dockerfile setup.py
 	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was not built. Trying to build it...)
 	sudo docker build -f build/build-inaugurator.dockerfile -t build-inaugurator:$(INAUGURATOR_VERSION) build
 	$(MAKE) chown_stuff
-else
-	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was already built.)
-endif
