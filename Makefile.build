@@ -121,12 +121,10 @@ build/osmosis: ../osmosis
 	cp -rf ../osmosis build/
 
 build_container: build/build-inaugurator.dockerfile setup.py build/osmosis
-ifeq ($(BUILD_HOST),docker)
 ifeq ($(shell sudo docker images | egrep -Ec "^build-inaugurator[ ]+$(INAUGURATOR_VERSION)" | xargs echo -n),0)
 	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was not built. Trying to build it...)
 	sudo docker build -f build/build-inaugurator.dockerfile -t build-inaugurator:$(INAUGURATOR_VERSION) build
 	$(MAKE) chown_stuff
 else
 	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was already built.)
-endif
 endif

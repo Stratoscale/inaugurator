@@ -53,4 +53,3 @@ RUN make -C /root/osmosis clean && \
     make -C /root/osmosis egg
 
 WORKDIR /root/inaugurator
-ENV BUILD_HOST local
