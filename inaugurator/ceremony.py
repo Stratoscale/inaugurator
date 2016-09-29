@@ -18,6 +18,7 @@ from inaugurator import etclabelfile
 from inaugurator import lvmetad
 from inaugurator import verify
 from inaugurator import debugthread
+from inaugurator import storagedevices
 import os
 import re
 import time
@@ -82,14 +83,12 @@ class Ceremony:
         self._before = time.time()
         self._bootPartitionPath = None
         self._wereDriversLoaded = False
+        self._storageDevices = storagedevices.StorageDevices()
 
     def ceremony(self):
         self._initializeNetworkIfNeeded()
         self._makeSureDiskIsMountable()
-        if self._args.inauguratorDisableNCQ:
-            self._disableNCQ()
-        else:
-            print 'Skipping the disabling of NCQ.'
+        self._disableNCQIfNeeded()
         with self._mountOp.mountRoot() as destination:
             self._etcLabelFile = etclabelfile.EtcLabelFile(destination)
             self._doOsmosisFromSource(destination)
@@ -295,7 +294,8 @@ class Ceremony:
         else:
             logging.info("Searching for target devices of type %(deviceType)s",
                          dict(deviceType=self._args.inauguratorTargetDeviceType))
-            candidates = [self._findFirstDeviceOfType(self._args.inauguratorTargetDeviceType)]
+            device = self._storageDevices.findFirstDeviceOfType(self._args.inauguratorTargetDeviceType)
+            candidates = [device]
         self._targetDevice = targetdevice.TargetDevice.device(candidates)
         self._createPartitionTable()
         logging.info("Partitions created")
@@ -331,64 +331,13 @@ class Ceremony:
         with self._mountOp.mountRoot() as destination:
             verify.Verify(destination, self._label, self._talkToServer, self._localObjectStore).go()
 
-    def _getStorageDeviceNames(self):
-        blockDevices = os.listdir('/sys/block')
-        storageDevices = [dev for dev in blockDevices if dev.startswith('sd')]
-        return storageDevices
-
-    def _getHDDDeviceNames(self):
-        devices = self._getStorageDeviceNames()
-        ssdDevices = self._filterRotationalDevices(devices)
-        nonSSDDevices = [device for device in devices if device not in ssdDevices]
-        return nonSSDDevices
-
-    def _getSSDDeviceNames(self):
-        devices = self._getStorageDeviceNames()
-        ssdDevices = self._filterRotationalDevices(devices)
-        return ssdDevices
-
-    def _filterRotationalDevices(self, devices):
-        ssdDevices = []
-        for device in devices:
-            isRotationalPathComponents = ['sys', 'block', device, 'queue', 'rotational']
-            isRotationalPath = os.path.join(*isRotationalPathComponents)
-            with open(isRotationalPath, 'rb') as f:
-                isRotational = f.read()
-            isRotational = bool(int(isRotational.strip()))
-            if not isRotational:
-                ssdDevices.append(device)
-        return ssdDevices
-
-    def _disableNCQ(self):
-        devices = self._getSSDDeviceNames()
-        if not devices:
-            print 'Did not find any non-rotational storage devices on which to disable NCQ.'
-            return
-        print 'Disabling NCQ for the following SSD devices: {}...'.format(devices)
-        for device in devices:
-            try:
-                queueDepthPath = '/sys/block/{}/device/queue_depth'.format(device)
-                print sh.run('busybox echo 1 > {}'.format(queueDepthPath))
-                print sh.run('busybox echo "{} is now:" '.format(queueDepthPath))
-                print sh.run('busybox cat {}'.format(queueDepthPath))
-            except Exception, ex:
-                print ex.message
-
-    def _findFirstDeviceOfType(self, deviceType):
-        if deviceType == "SSD":
-            devices = self._getSSDDeviceNames()
-        else:
-            assert deviceType == "HDD", deviceType
-            devices = self._getHDDDeviceNames()
-        if not devices:
-            if self._args.inauguratorServerAMQPURL:
-                self._talkToServer.targetDeviceTypeNotFound(deviceType)
-            raise Exception("Could not find a %s device to be used as a target device" % (deviceType,))
-        logging.info("The following devices were found: %s" % (",".join(devices),))
-        devicePath = os.path.join("/dev", devices[0])
-        return devicePath
-
     def _loadAllDriversIfNeeded(self):
         if not self._wereDriversLoaded:
             udev.loadAllDrivers()
             self._wereDriversLoaded = True
+
+    def _disableNCQIfNeeded(self):
+        if self._args.inauguratorDisableNCQ:
+            self._storageDevices.disableNCQ()
+        else:
+            logging.info('Skipping the disabling of NCQ.')
