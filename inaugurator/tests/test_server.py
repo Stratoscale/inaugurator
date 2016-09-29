@@ -28,6 +28,9 @@ class Test(unittest.TestCase):
     def progressInCallback(self):
         pass
 
+    def failedCallback(self):
+        pass
+
     def test_KillSelfInCasePikaConnectionCreationFailed(self):
         originalSelectConnection = server.pika.SelectConnection
         server.pika.SelectConnection = mock.Mock(side_effect=Exception("Catch me"))
@@ -36,7 +39,8 @@ class Test(unittest.TestCase):
         server.threading.Thread.start = mock.Mock()
         server.threading.Thread.daemon = mock.Mock()
         server.threading.Event = mock.Mock()
-        self.tested = server.Server(self.checkInCallback, self.doneInCallback, self.progressInCallback)
+        self.tested = server.Server(self.checkInCallback, self.doneInCallback, self.progressInCallback,
+                                    self.failedCallback)
         with self.assertRaises(Exception):
             self.tested.run()
         self.fakeKill.assert_called_once_with(os.getpid(), signal.SIGTERM)
