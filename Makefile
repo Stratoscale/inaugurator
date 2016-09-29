@@ -1,5 +1,7 @@
 IMAGES_SOURCE=__undefined
 IMAGES = $(IMAGES_SOURCE)/inaugurator.thin.initrd.img $(IMAGES_SOURCE)/inaugurator.fat.initrd.img $(IMAGES_SOURCE)/inaugurator.vmlinuz
+VERBOSITY ?= 0
+TESTS = test_
 
 all: build unittest check_convention
 
@@ -15,10 +17,12 @@ check_convention:
 
 UNITTESTS=$(shell find inaugurator -name 'test*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
 unittest:
-	PYTHONPATH=. python -m unittest $(UNITTESTS)
+	$(info Note: To run a specific test, set TESTS to some substring in the test filename)
+	$(info Note: For different verbosity levels, set VERBOSITY (starting from 0))
+	PYTHONPATH=. python inaugurator/tests/runner.py --tests-pattern="$(TESTS)" --verbosity=$(VERBOSITY)
 
 integration_test:
-	@echo "Note: For specific tests, run with TESTS=(Space seperated test names)."
+	$(info Note: For specific tests, run with TESTS=(Space seperated test names).)
 	@PYTHONPATH=inaugurator python inaugurator/tests/integration_test.py $(TESTS)
 
 include Makefile.build
