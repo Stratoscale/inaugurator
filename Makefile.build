@@ -6,10 +6,6 @@ KERNEL_IMAGE_PATH=/boot/vmlinuz-$(KERNEL_VERSION)
 .PHONY: build
 build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img ${PYTHON_DIST_FILENAME}
 
-.PHONY: chown_stuff
-chown_stuff:
-	-@sudo chown -R $(USER):$(USER) build dist inaugurator.egg-info
-
 build/inaugurator.vmlinuz: $(KERNEL_IMAGE_PATH)
 	-@mkdir $(@D)
 	cp $(KERNEL_IMAGE_PATH) $@
@@ -113,7 +109,6 @@ build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 build/build-inaugurator.dockerfile: docker/build-inaugurator.dockerfile
 	@-mkdir build
 	KERNEL_VERSION=$(KERNEL_VERSION) m4 $< > $@
-	$(MAKE) chown_stuff
 
 build/osmosis: ../osmosis
 	@-mkdir build
@@ -129,4 +124,3 @@ build/osmosis/build/cpp/osmosis.bin: build/osmosis
 build_container: build/build-inaugurator.dockerfile setup.py
 	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was not built. Trying to build it...)
 	sudo docker build -f build/build-inaugurator.dockerfile -t build-inaugurator:$(INAUGURATOR_VERSION) build
-	$(MAKE) chown_stuff
