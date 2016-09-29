@@ -19,7 +19,7 @@ UNITTESTS=$(shell find inaugurator -name 'test*.py' | sed 's@/@.@g' | sed 's/\(.
 unittest:
 	$(info Note: To run a specific test, set TESTS to some substring in the test filename)
 	$(info Note: For different verbosity levels, set VERBOSITY (starting from 0))
-	PYTHONPATH=. python inaugurator/tests/runner.py --tests-pattern="$(TESTS)" --verbosity=$(VERBOSITY)
+	@PYTHONPATH=. python inaugurator/tests/runner.py --tests-pattern="$(TESTS)" --verbosity=$(VERBOSITY)
 
 integration_test:
 	$(info Note: For specific tests, run with TESTS=(Space seperated test names).)
