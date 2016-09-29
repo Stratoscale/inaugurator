@@ -83,7 +83,9 @@ def _findDriver(device, aliasTable):
 if __name__ == "__main__":
     global _kernelVersion
     ver = _kernelVersion()
-    _kernelVersion = lambda: ver
+
+    def _kernelVersion():
+        return ver
 
     def fakeSH(command):
         print "COMMAND", command

@@ -12,7 +12,7 @@ clean:
 	rm -fr build remote dist inaugurator.egg-info
 
 check_convention:
-	pep8 inaugurator --max-line-length=109 --exclude=samplegrubconfigs.py
+	pep8 inaugurator --max-line-length=109 --exclude=samplegrubconfigs.py,inaugurator/pyudev/*
 	sh/check_spelling.sh
 
 UNITTESTS=$(shell find inaugurator -name 'test*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
