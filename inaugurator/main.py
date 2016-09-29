@@ -40,6 +40,7 @@ parser.add_argument("--inauguratorExpectedLabel")
 parser.add_argument("--inauguratorSkipPdbOnError", action="store_true", default=False)
 parser.add_argument("--inauguratorPartitionLayout", default="GPT")
 parser.add_argument("--inauguratorRootPartitionSizeGB", type=int, default=20)
+parser.add_argument("--inauguratorDontReadSmartData", action="store_true", default=False)
 
 
 def getArgsSource():
@@ -48,6 +49,7 @@ def getArgsSource():
     parser.add_argument("--inauguratorArgumentsSource", default="kernelCmdline", choices=choices)
     args = parser.parse_known_args()[0]
     return args.inauguratorArgumentsSource
+
 
 def main():
     # Earlier versions of pika are buggy

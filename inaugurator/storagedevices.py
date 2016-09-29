@@ -1,6 +1,7 @@
 import os
 import os.path
 import logging
+import subprocess
 
 
 class StorageDevices:
@@ -34,6 +35,25 @@ class StorageDevices:
         logging.info("The following devices were found: %s" % (",".join(devices),))
         devicePath = os.path.join("/dev", devices[0])
         return devicePath
+
+    @staticmethod
+    def readSmartDataFromAllDevices(self):
+        devices = self._getSSDDeviceNames() + self._getHDDDeviceNames()
+        if devices:
+            logging.info("Reading SMART data...")
+            for device in devices:
+                self._readSmartDataFromDevice(device)
+        else:
+            logging.warning("No storage devices were found to read SMART data from.")
+
+    @staticmethod
+    def _readSmartDataFromDevice(device):
+        device = "/dev/{}".format(device)
+        cmd = ["smartctl", "-a", "-i", device]
+        logging.info("Reading SMART data from device %(device)s...", dict(device=device))
+        returnCode = subprocess.check_call(cmd)
+        if returnCode != os.EX_OK:
+            logging.error("Failed reading SMART data for device %(device)s", dict(device=device))
 
     @staticmethod
     def _getStorageDeviceNames():

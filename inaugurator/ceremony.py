@@ -89,6 +89,7 @@ class Ceremony:
         self._initializeNetworkIfNeeded()
         self._makeSureDiskIsMountable()
         self._disableNCQIfNeeded()
+        self._readSmartDataIfNeeded()
         with self._mountOp.mountRoot() as destination:
             self._etcLabelFile = etclabelfile.EtcLabelFile(destination)
             self._doOsmosisFromSource(destination)
@@ -341,3 +342,7 @@ class Ceremony:
             self._storageDevices.disableNCQ()
         else:
             logging.info('Skipping the disabling of NCQ.')
+
+    def _readSmartDataIfNeeded(self):
+        if not self._args.inauguratorDontReadSmartData:
+            self._storatedevices.readSmartDataFromAllDevices()
