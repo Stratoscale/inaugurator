@@ -140,9 +140,9 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''parted -s /dev/sda set 3 lvm on''', ""))
         self.expectedCommands.append(('''busybox mdev -s''', ""))
         self.expectedCommands.append(('''mkfs.ext4 /dev/sda2 -L BOOT''', ""))
-        self.expectedCommands.append(('''lvm pvcreate -ff %(lvmPartition)s''' %
+        self.expectedCommands.append(('''lvm pvcreate -y -ff %(lvmPartition)s''' %
                                       dict(lvmPartition=self.GPT_LVM_PARTITION), ""))
-        self.expectedCommands.append(('''lvm vgcreate inaugurator %(lvmPartition)s''' %
+        self.expectedCommands.append(('''lvm vgcreate -y inaugurator %(lvmPartition)s''' %
                                       dict(lvmPartition=self.GPT_LVM_PARTITION), ""))
         self.expectedCommands.append(('''lvm lvcreate --zero n --name swap --size 1G inaugurator''', ""))
         self.expectedCommands.append((
@@ -230,12 +230,12 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('''parted -s /dev/sda set 3 lvm on''', ""))
         self.expectedCommands.append(('''busybox mdev -s''', ""))
         self.expectedCommands.append(('''mkfs.ext4 /dev/sda2 -L BOOT''', ""))
-        self.expectedCommands.append(('''lvm pvcreate -ff %(lvmPartition)s''' %
+        self.expectedCommands.append(('''lvm pvcreate -y -ff %(lvmPartition)s''' %
                                       dict(lvmPartition=self.GPT_LVM_PARTITION), ""))
-        self.expectedCommands.append(('''lvm vgcreate inaugurator %(lvmPartition)s''' %
+        self.expectedCommands.append(('''lvm vgcreate -y inaugurator %(lvmPartition)s''' %
                                       dict(lvmPartition=self.GPT_LVM_PARTITION), ""))
         self.expectedCommands.append(('''lvm lvcreate --zero n --name swap --size 8G inaugurator''', ""))
-        self.expectedCommands.append(('''lvm lvcreate --zero n --name root --size 30G inaugurator''', ""))
+        self.expectedCommands.append(('''lvm lvcreate --zero n --name root --size 20G inaugurator''', ""))
         self.validateVolumesCreation()
         self.expectedCommands.append(('''mkfs.ext4 /dev/inaugurator/root -L ROOT''', ""))
         self.expectedCommands.append(('parted -s -m /dev/sda unit MB print',
@@ -256,7 +256,7 @@ class Test(unittest.TestCase):
             'lvm lvdisplay --units m --columns /dev/inaugurator/swap', correctSwap))
         correctRoot = "\n".join([
             "  LV   VG          Attr      LSize  Pool Origin Data%  Move Log Copy%  Convert",
-            "  root inaugurator -wi-a---- 30720.00m",
+            "  root inaugurator -wi-a---- 20720.00m",
             ""])
         self.expectedCommands.append((
             'lvm lvdisplay --units m --columns /dev/inaugurator/root', correctRoot))
