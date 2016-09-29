@@ -5,8 +5,6 @@ import signal
 import logging
 import unittest
 import pika
-assert 'usr' not in __file__.split(os.path.sep)
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from inaugurator.server import server
 
 

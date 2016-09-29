@@ -3,8 +3,6 @@ import sys
 import mock
 import logging
 import unittest
-assert 'usr' not in __file__.split(os.path.sep)
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from inaugurator.server import idlistener
 from inaugurator.tests.common import PikaChannelMock
 
