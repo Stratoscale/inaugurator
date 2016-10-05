@@ -22,7 +22,8 @@ RUN yum install -y \
     lvm2 \
     make \
     kernel-KERNEL_VERSION \
-    rsync && \
+    rsync \
+    smartmontools && \
     yum -y clean all
 
 # Install PIP (obtained from EPEL)
