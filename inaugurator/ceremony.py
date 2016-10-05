@@ -345,4 +345,4 @@ class Ceremony:
 
     def _readSmartDataIfNeeded(self):
         if not self._args.inauguratorDontReadSmartData:
-            self._storatedevices.readSmartDataFromAllDevices()
+            self._storageDevices.readSmartDataFromAllDevices()

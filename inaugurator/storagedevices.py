@@ -36,13 +36,13 @@ class StorageDevices:
         devicePath = os.path.join("/dev", devices[0])
         return devicePath
 
-    @staticmethod
-    def readSmartDataFromAllDevices(self):
-        devices = self._getSSDDeviceNames() + self._getHDDDeviceNames()
+    @classmethod
+    def readSmartDataFromAllDevices(cls):
+        devices = cls._getSSDDeviceNames() + cls._getHDDDeviceNames()
         if devices:
             logging.info("Reading SMART data...")
             for device in devices:
-                self._readSmartDataFromDevice(device)
+                cls._readSmartDataFromDevice(device)
         else:
             logging.warning("No storage devices were found to read SMART data from.")
 
