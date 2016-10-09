@@ -51,7 +51,7 @@ class StorageDevices:
         device = "/dev/{}".format(device)
         cmd = ["smartctl", "-a", "-i", device]
         logging.info("Reading SMART data from device %(device)s...", dict(device=device))
-        returnCode = subprocess.check_call(cmd)
+        returnCode = subprocess.call(cmd)
         if returnCode != os.EX_OK:
             logging.error("Failed reading SMART data for device %(device)s", dict(device=device))
 
