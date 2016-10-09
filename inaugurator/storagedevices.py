@@ -1,6 +1,7 @@
 import os
 import os.path
 import logging
+import traceback
 import subprocess
 
 
@@ -18,8 +19,8 @@ class StorageDevices:
                 logging.info(sh.run('busybox echo 1 > {}'.format(queueDepthPath)))
                 logging.info(sh.run('busybox echo "{} is now:" '.format(queueDepthPath)))
                 logging.info(sh.run('busybox cat {}'.format(queueDepthPath)))
-            except Exception, ex:
-                logging.info(ex.message)
+            except:
+                logging.info(traceback.format_exc())
 
     @classmethod
     def findFirstDeviceOfType(cls, deviceType, talkToServer=None):
