@@ -295,7 +295,8 @@ class Ceremony:
         else:
             logging.info("Searching for target devices of type %(deviceType)s",
                          dict(deviceType=self._args.inauguratorTargetDeviceType))
-            device = self._storageDevices.findFirstDeviceOfType(self._args.inauguratorTargetDeviceType)
+            device = self._storageDevices.findFirstDeviceOfType(self._args.inauguratorTargetDeviceType,
+                                                                self._talkToServer)
             candidates = [device]
         self._targetDevice = targetdevice.TargetDevice.device(candidates)
         self._createPartitionTable()

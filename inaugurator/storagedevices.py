@@ -22,15 +22,15 @@ class StorageDevices:
                 logging.info(ex.message)
 
     @classmethod
-    def findFirstDeviceOfType(cls, deviceType):
+    def findFirstDeviceOfType(cls, deviceType, talkToServer=None):
         if deviceType == "SSD":
             devices = cls._getSSDDeviceNames()
         else:
             assert deviceType == "HDD", deviceType
             devices = cls._getHDDDeviceNames()
         if not devices:
-            if cls._args.inauguratorServerAMQPURL:
-                cls._talkToServer.targetDeviceTypeNotFound(deviceType)
+            if talkToServer is not None:
+                talkToServer.targetDeviceTypeNotFound(deviceType)
             raise Exception("Could not find a %s device to be used as a target device" % (deviceType,))
         logging.info("The following devices were found: %s" % (",".join(devices),))
         devicePath = os.path.join("/dev", devices[0])
