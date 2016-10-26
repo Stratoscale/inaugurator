@@ -31,7 +31,7 @@ parser.add_argument("--inauguratorNoChainTouch", action="store_true", default=Fa
 parser.add_argument("--inauguratorPassthrough", default="")
 parser.add_argument("--inauguratorDownload", nargs='+', default=[])
 parser.add_argument("--inauguratorIgnoreDirs", nargs='+', default=[])
-parser.add_argument("--inauguratorTargetDeviceCandidate", nargs='+', default=['/dev/vda', '/dev/sda'])
+parser.add_argument("--inauguratorTargetDeviceCandidate", nargs='+')
 parser.add_argument("--inauguratorTargetDeviceType", default="SSD")
 parser.add_argument("--inauguratorVerify", action="store_true")
 parser.add_argument("--inauguratorDisableNCQ", action="store_true", default=True)

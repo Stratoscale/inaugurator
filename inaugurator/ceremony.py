@@ -290,14 +290,14 @@ class Ceremony:
 
     def _makeSureDiskIsMountable(self):
         self._loadAllDriversIfNeeded()
-        if self._args.inauguratorTargetDeviceType is None:
-            candidates = self._args.inauguratorTargetDeviceCandidate
-        else:
+        if self._args.inauguratorTargetDeviceCandidate is None:
             logging.info("Searching for target devices of type %(deviceType)s",
                          dict(deviceType=self._args.inauguratorTargetDeviceType))
             device = self._storageDevices.findFirstDeviceOfType(self._args.inauguratorTargetDeviceType,
                                                                 self._talkToServer)
             candidates = [device]
+        else:
+            candidates = self._args.inauguratorTargetDeviceCandidate
         self._targetDevice = targetdevice.TargetDevice.device(candidates)
         self._createPartitionTable()
         logging.info("Partitions created")
