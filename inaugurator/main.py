@@ -41,6 +41,7 @@ parser.add_argument("--inauguratorSkipPdbOnError", action="store_true", default=
 parser.add_argument("--inauguratorPartitionLayout", default="GPT")
 parser.add_argument("--inauguratorRootPartitionSizeGB", type=int, default=20)
 parser.add_argument("--inauguratorDontReadSmartData", action="store_true", default=False)
+parser.add_argument("--inauguratorDontFailOnFailedDisk", action="store_true", default=False)
 
 
 def getArgsSource():

@@ -116,6 +116,7 @@ class TalkToServerSpooler(threading.Thread):
 class TalkToServer:
     FAILURE_CODE_SSD_DEVICE_NOT_FOUND = 1
     FAILURE_CODE_HDD_DEVICE_NOT_FOUND = 2
+    FAILURE_CODE_DEVICE_HEALTH_TEST_FAILED = 2
 
     def __init__(self, amqpURL, myID):
         statusExchange = "inaugurator_status__%s" % myID
@@ -148,4 +149,9 @@ class TalkToServer:
         message = "Could not find a device of type %(deviceType)s" % dict(deviceType=deviceType,)
         code = dict(SSD=self.FAILURE_CODE_SSD_DEVICE_NOT_FOUND,
                     HDD=self.FAILURE_CODE_HDD_DEVICE_NOT_FOUND)[deviceType]
+        self.failed(message=message, code=code)
+
+    def healthTestFailed(self, device):
+        message = "SMART Self test of device '%(device)s' failed" % dict(device=device)
+        code = self.FAILURE_CODE_HDD_DEVICE_NOT_FOUND
         self.failed(message=message, code=code)

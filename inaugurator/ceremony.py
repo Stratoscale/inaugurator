@@ -346,4 +346,6 @@ class Ceremony:
 
     def _readSmartDataIfNeeded(self):
         if not self._args.inauguratorDontReadSmartData:
-            self._storageDevices.readSmartDataFromAllDevices()
+            self._storageDevices.readSmartDataFromAllDevices(
+                talkToServer=self._talkToServer,
+                failOnFailedHealthTest=not self._args.inauguratorDontFailOnFailedDisk)

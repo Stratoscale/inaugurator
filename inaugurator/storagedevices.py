@@ -5,6 +5,10 @@ import traceback
 import subprocess
 
 
+class DiskFailedSelfTest(Exception):
+    pass
+
+
 class StorageDevices:
     @classmethod
     def disableNCQ(cls):
@@ -38,12 +42,18 @@ class StorageDevices:
         return devicePath
 
     @classmethod
-    def readSmartDataFromAllDevices(cls):
+    def readSmartDataFromAllDevices(cls, talkToServer=None, failOnFailedHealthTest=False):
         devices = cls._getSSDDeviceNames() + cls._getHDDDeviceNames()
         if devices:
             logging.info("Reading SMART data...")
             for device in devices:
-                cls._readSmartDataFromDevice(device)
+                try:
+                    cls._readSmartDataFromDevice(device)
+                except DiskFailedSelfTest as ex:
+                    if failOnFailedHealthTest:
+                        if talkToServer is not None:
+                            talkToServer.healthTestFailed(device)
+                        raise ex
         else:
             logging.warning("No storage devices were found to read SMART data from.")
 
@@ -52,8 +62,12 @@ class StorageDevices:
         device = "/dev/{}".format(device)
         cmd = ["smartctl", "-a", "-i", device]
         logging.info("Reading SMART data from device %(device)s...", dict(device=device))
-        returnCode = subprocess.call(cmd)
-        if returnCode != os.EX_OK:
+        cmdPipe = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
+        output, _ = cmdPipe.communicate()
+        if "overall-health self-assessment test result: FAILED!" in output:
+            raise DiskFailedSelfTest(output)
+        if cmdPipe.returncode != os.EX_OK:
             logging.error("Failed reading SMART data for device %(device)s", dict(device=device))
 
     @staticmethod
