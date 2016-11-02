@@ -313,7 +313,9 @@ class Ceremony:
             append=self._args.inauguratorPassthrough)
 
     def _doOsmosisFromSource(self, destination):
-        osmosiscleanup.OsmosisCleanup(destination)
+        osmosiscleanup.OsmosisCleanup(
+            destination,
+            usageUpperThreshold=self._args.inauguratorCleanupUpperPercentageThreshold)
         if self._args.inauguratorSource == 'network':
             self._osmosFromNetwork(destination)
         elif self._args.inauguratorSource == 'DOK':
