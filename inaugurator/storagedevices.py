@@ -66,6 +66,7 @@ class StorageDevices:
         cmdPipe = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
         output, _ = cmdPipe.communicate()
+        logging.info(output)
         if "overall-health self-assessment test result: FAILED!" in output:
             raise DiskFailedSelfTest(output)
         if cmdPipe.returncode != os.EX_OK:
