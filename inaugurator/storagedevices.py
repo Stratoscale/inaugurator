@@ -3,6 +3,7 @@ import os.path
 import logging
 import traceback
 import subprocess
+from inaugurator import sh
 
 
 class DiskFailedSelfTest(Exception):
