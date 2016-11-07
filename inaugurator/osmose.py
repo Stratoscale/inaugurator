@@ -29,6 +29,7 @@ class Osmose:
             extra += ['--reportFile', reportthread.ReportThread.FIFO]
         cmd = [
             "/usr/bin/osmosis", "checkout", destination, '+', '--MD5', '--putIfMissing',
+            "--reportIntervalSeconds", "6",
             '--removeUnknownFiles', '--objectStores', objectStores] + extra
         print "Running osmosis:\n%s" % " ".join(cmd)
         self._popen = subprocess.Popen(cmd, close_fds=True, stdin=subprocess.PIPE)
