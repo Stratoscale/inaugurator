@@ -1,7 +1,7 @@
 inaugurator_makefile_dir := $(dir $(lastword $(MAKEFILE_LIST)))
 include $(WORKSPACE_TOP)/common/Makefile.env
 
-MY_COMPONENT_PATH := $(shell component-tool localpath --repo=inaugurator --type=$(BUILDTYPE) inaugurator)
+MY_COMPONENT_PATH := $(shell component-tool localpath --repo=inaugurator --type=$(BUILD_TYPE) inaugurator)
 
 all: build
 
@@ -18,7 +18,7 @@ install_dir:
 	$(Q)mkdir -p $(MY_COMPONENT_PATH)
 
 checkin:
-	$(Q)component-tool checkin --repo=inaugurator --type=$(BUILDTYPE) inaugurator
+	$(Q)component-tool checkin --repo=inaugurator --type=$(BUILD_TYPE) inaugurator
 
 
 .PHONY: install checkin clean build
