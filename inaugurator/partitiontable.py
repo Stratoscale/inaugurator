@@ -11,11 +11,14 @@ class PartitionTable:
         bigSwap=8,
         minimumRoot=14)
     VOLUME_GROUP = "inaugurator"
+    BOOT_PARTITION_SIZE = 512
     LAYOUT_SCHEMES = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, flags="bios_grub"),
-                                                   boot=dict(sizeMB=256, fs="ext4", flags="boot"),
+                                                   boot=dict(sizeMB=BOOT_PARTITION_SIZE, fs="ext4",
+                                                             flags="boot"),
                                                    lvm=dict(flags="lvm", sizeMB="fillUp")),
                                    order=("bios_boot", "boot", "lvm")),
-                          MBR=dict(partitions=dict(boot=dict(sizeMB=256, fs="ext4", flags="boot"),
+                          MBR=dict(partitions=dict(boot=dict(sizeMB=BOOT_PARTITION_SIZE, fs="ext4",
+                                                             flags="boot"),
                                                    lvm=dict(flags="lvm", sizeMB="fillUp")),
                                    order=("boot", "lvm")))
 

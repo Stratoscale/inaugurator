@@ -9,7 +9,7 @@ from inaugurator import sh
 
 class Test(unittest.TestCase):
     BIOS_BOOT_PARTITION_SIZE = 2
-    BOOT_PARTITION_SIZE = 256
+    BOOT_PARTITION_SIZE = 512
     GPT_LVM_PARTITION_NR = None
     GPT_LVM_PARTITION = None
     _NR_MBS_IN_GB = 1024
@@ -22,6 +22,9 @@ class Test(unittest.TestCase):
         cls.GPT_LVM_PARTITION = "/dev/sda%d" % (cls.GPT_LVM_PARTITION_NR,)
         NR_BYTES_IN_MB = 1024 ** 2
         cls._NR_BYTES_IN_GB = cls._NR_MBS_IN_GB * NR_BYTES_IN_MB
+        biosBootEnd = 3
+        bootPartitionStart = biosBootEnd
+        cls.bootPartitionEnd = bootPartitionStart + cls.BOOT_PARTITION_SIZE
 
     def setUp(self):
         self.expectedCommands = []
@@ -132,8 +135,9 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('parted -s -m /dev/sda unit MB print', ""))
         self.expectedCommands.append(('''busybox dd if=/dev/zero of=/dev/sda bs=1M count=512''', ""))
         self.expectedCommands.append(('''parted -s /dev/sda -- mklabel gpt mkpart primary ext4 1MiB '''
-                                      '''3MiB mkpart primary ext4 3MiB 259MiB mkpart primary ext4 '''
-                                      '''259MiB -1''',
+                                      '''3MiB mkpart primary ext4 3MiB %(bootPartitionEnd)sMiB mkpart '''
+                                      '''primary ext4 %(bootPartitionEnd)sMiB -1''' %
+                                      dict(bootPartitionEnd=self.bootPartitionEnd),
                                       ""))
         self.expectedCommands.append(('''parted -s /dev/sda set 1 bios_grub on''', ""))
         self.expectedCommands.append(('''parted -s /dev/sda set 2 boot on''', ""))
@@ -222,8 +226,9 @@ class Test(unittest.TestCase):
         self.expectedCommands.append(('parted -s -m /dev/sda unit MB print', ""))
         self.expectedCommands.append(('''busybox dd if=/dev/zero of=/dev/sda bs=1M count=512''', ""))
         self.expectedCommands.append(('''parted -s /dev/sda -- mklabel gpt mkpart primary ext4 1MiB '''
-                                      '''3MiB mkpart primary ext4 3MiB 259MiB mkpart primary ext4 '''
-                                      '''259MiB -1''',
+                                      '''3MiB mkpart primary ext4 3MiB %(bootPartitionEnd)sMiB mkpart '''
+                                      '''primary ext4 %(bootPartitionEnd)sMiB -1''' %
+                                      dict(bootPartitionEnd=self.bootPartitionEnd),
                                       ""))
         self.expectedCommands.append(('''parted -s /dev/sda set 1 bios_grub on''', ""))
         self.expectedCommands.append(('''parted -s /dev/sda set 2 boot on''', ""))
