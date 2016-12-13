@@ -86,6 +86,7 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} build/osmosis/dist/os
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh cciss
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.order
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh aacraid
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh dm-snapshot
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.builtin
 	depmod --basedir=$@.tmp $(KERNEL_VERSION)
 	echo "Misc"
