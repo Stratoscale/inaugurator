@@ -48,5 +48,13 @@ def setSerialDevices(serialDevices, destination):
 
 
 def install(targetDevice, destination):
-    chrootScript = 'grub2-install %s && grub2-mkconfig > /boot/grub2/grub.cfg' % targetDevice
-    sh.run("/usr/sbin/busybox chroot %s sh -c '%s'" % (destination, chrootScript))
+    try:
+        chrootScript = 'grub2-install %s && grub2-mkconfig > /boot/grub2/grub.cfg' % targetDevice
+        sh.run("/usr/sbin/busybox chroot %s sh -c '%s'" % (destination, chrootScript))
+        return '/boot/grub2/grub.cfg'
+    except:
+        logging.warning("Failed to run grub2-install or grub2-mkconfig. Is the dest rootfs a debian-like?")
+        logging.warning("Trying to run grub-install and grub-mkconfig instead")
+        chrootScript = 'grub-install %s && grub-mkconfig > /boot/grub/grub.cfg' % targetDevice
+        sh.run("/usr/sbin/busybox chroot %s sh -c '%s'" % (destination, chrootScript))
+        return '/boot/grub/grub.cfg'

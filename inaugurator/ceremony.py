@@ -204,10 +204,10 @@ class Ceremony:
                 logging.warn("a 'console' argument was not given. Cannot tell which serial device to "
                              "redirect the console output to (default values in the label will be used).")
             logging.info("Installing GRUB2...")
-            grub.install(self._targetDevice, destination)
+            grubConfigPath = grub.install(self._targetDevice, destination)
             logging.info("Reading newly generated GRUB2 configuration file for later use...")
-            grubConfigFilename = os.path.join(destination, "boot", "grub2", "grub.cfg")
-            with open(grubConfigFilename, "r") as grubConfigFile:
+            grubConfigPathInDest = destination + grubConfigPath
+            with open(grubConfigPathInDest, "r") as grubConfigFile:
                 self._grubConfig = grubConfigFile.read()
 
     def _osmosFromNetwork(self, destination):
