@@ -27,6 +27,7 @@ def setSerialDevices(serialDevices, destination):
         return
     wasGrubCmdlineLinuxParameterWritten = False
     logging.info("Modifying GRUB2 user settings file...")
+    consoleConfiguration = " ".join(["console=%s" % (device,) for device in serialDevices])
     with open(destUserSettingsFilename, "wb") as userSettingsFile:
         for line in existingConfiguration.splitlines():
             line = line.strip()
@@ -36,7 +37,6 @@ def setSerialDevices(serialDevices, destination):
                 cmdline = line.split("=", maxSplit)[1].strip(" \"")
                 argsWithoutConsole = [arg for arg in cmdline.split(" ") if not arg.startswith("console=")]
                 configurationWithoutConsole = " ".join(argsWithoutConsole)
-                consoleConfiguration = " ".join(["console=%s" % (device,) for device in serialDevices])
                 line = "GRUB_CMDLINE_LINUX=\"%(configurationWithoutConsole)s %(consoleConfiguration)s\"" % \
                     dict(configurationWithoutConsole=configurationWithoutConsole,
                          consoleConfiguration=consoleConfiguration)
