@@ -115,6 +115,7 @@ build/build-inaugurator.dockerfile: docker/build-inaugurator.dockerfile
 build/osmosis: ../osmosis
 	@-mkdir build
 	cp -rf ../osmosis build/
+	$(MAKE) -C build/osmosis clean
 
 build/osmosis/dist/osmosis-1.0-py2.7.egg: build/osmosis
 	$(MAKE) -C build/osmosis egg

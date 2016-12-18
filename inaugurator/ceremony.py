@@ -165,7 +165,8 @@ class Ceremony:
         partitionTable = partitiontable.PartitionTable(
             self._targetDevice,
             layoutScheme=self._args.inauguratorPartitionLayout,
-            rootPartitionSizeGB=self._args.inauguratorRootPartitionSizeGB)
+            rootPartitionSizeGB=self._args.inauguratorRootPartitionSizeGB,
+            bootPartitionSizeMB=self._args.inauguratorBootPartitionSizeMB)
         if self._args.inauguratorClearDisk:
             partitionTable.clear()
         partitionTable.verify()
