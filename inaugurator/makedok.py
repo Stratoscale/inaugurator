@@ -22,9 +22,16 @@ def deviceSizeGB(device):
 
 def transferOsmosisLabel(label, mountPoint):
     objectStores = sh.run("solvent printobjectstores").strip()
-    sh.run(
-        "osmosis transfer %s --transferDestination=%s/osmosisobjectstore --objectStores=%s "
-        "--putIfMissing" % (label, mountPoint, objectStores))
+    tmplocation = tempfile.mkdtemp()
+    store_dirname = "osmosisobjectstore"
+
+    logging.info("Transferring to tmp dir")
+    sh.run("osmosis transfer %s --transferDestination=%s/%s --objectStores=%s "
+           "--putIfMissing" % (label, tmplocation, store_dirname,
+                               objectStores))
+    logging.info("copying to DOK. This might take a while.")
+    shutil.copytree("%s/%s" % (tmplocation, store_dirname),
+                    "%s/%s" % (mountPoint, store_dirname))
 
 
 def installInaugurator(device, mountPoint):
