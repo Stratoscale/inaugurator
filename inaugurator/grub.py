@@ -27,6 +27,7 @@ def setSerialDevices(serialDevices, destination):
         return
     wasGrubCmdlineLinuxParameterWritten = False
     logging.info("Modifying GRUB2 user settings file...")
+    consoleConfiguration = " ".join(["console=%s" % (device,) for device in serialDevices])
     with open(destUserSettingsFilename, "wb") as userSettingsFile:
         for line in existingConfiguration.splitlines():
             line = line.strip()
@@ -36,7 +37,6 @@ def setSerialDevices(serialDevices, destination):
                 cmdline = line.split("=", maxSplit)[1].strip(" \"")
                 argsWithoutConsole = [arg for arg in cmdline.split(" ") if not arg.startswith("console=")]
                 configurationWithoutConsole = " ".join(argsWithoutConsole)
-                consoleConfiguration = " ".join(["console=%s" % (device,) for device in serialDevices])
                 line = "GRUB_CMDLINE_LINUX=\"%(configurationWithoutConsole)s %(consoleConfiguration)s\"" % \
                     dict(configurationWithoutConsole=configurationWithoutConsole,
                          consoleConfiguration=consoleConfiguration)
@@ -48,5 +48,13 @@ def setSerialDevices(serialDevices, destination):
 
 
 def install(targetDevice, destination):
-    chrootScript = 'grub2-install %s && grub2-mkconfig > /boot/grub2/grub.cfg' % targetDevice
-    sh.run("/usr/sbin/busybox chroot %s sh -c '%s'" % (destination, chrootScript))
+    try:
+        chrootScript = 'grub2-install %s && grub2-mkconfig > /boot/grub2/grub.cfg' % targetDevice
+        sh.run("/usr/sbin/busybox chroot %s sh -c '%s'" % (destination, chrootScript))
+        return '/boot/grub2/grub.cfg'
+    except:
+        logging.exception("Failed to run grub2-install or grub2-mkconfig. Is the dest rootfs a debian-like?")
+        logging.warning("Trying to run grub-install and grub-mkconfig instead")
+        chrootScript = 'grub-install %s && grub-mkconfig > /boot/grub/grub.cfg' % targetDevice
+        sh.run("/usr/sbin/busybox chroot %s sh -c '%s'" % (destination, chrootScript))
+        return '/boot/grub/grub.cfg'
