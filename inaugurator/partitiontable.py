@@ -11,29 +11,20 @@ class PartitionTable:
         bigSwap=8,
         minimumRoot=14)
     VOLUME_GROUP = "inaugurator"
-    BOOT_PARTITION_SIZE = 512
-    LAYOUT_SCHEMES = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, flags="bios_grub"),
-                                                   boot=dict(sizeMB=BOOT_PARTITION_SIZE, fs="ext4",
-                                                             flags="boot"),
-                                                   lvm=dict(flags="lvm", sizeMB="fillUp")),
-                                   order=("bios_boot", "boot", "lvm")),
-                          MBR=dict(partitions=dict(boot=dict(sizeMB=BOOT_PARTITION_SIZE, fs="ext4",
-                                                             flags="boot"),
-                                                   lvm=dict(flags="lvm", sizeMB="fillUp")),
-                                   order=("boot", "lvm")))
 
-    def __init__(self, device, sizesGB=dict(), layoutScheme="GPT", rootPartitionSizeGB=20):
+    def __init__(self, device, sizesGB=dict(), layoutScheme="GPT", rootPartitionSizeGB=20, bootPartitionSizeMB=512):
         self._sizesGB = dict(self._DEFAULT_SIZES_GB)
         self._sizesGB.update(sizesGB)
+        self._buildLayoutSchemes(bootPartitionSizeMB)
         self._device = device
         self._cachedDiskSize = None
         self._created = False
-        if layoutScheme not in self.LAYOUT_SCHEMES:
-            print "Invalid layout scheme. Possible values: '%s'" % "', '".join(self.LAYOUT_SCHEMES.keys())
+        if layoutScheme not in self._layoutSchemes:
+            print "Invalid layout scheme. Possible values: '%s'" % "', '".join(self._layoutSchemes.keys())
             raise ValueError(layoutScheme)
         self._layoutScheme = layoutScheme
-        self._physicalPartitions = self.LAYOUT_SCHEMES[layoutScheme]["partitions"]
-        self._physicalPartitionsOrder = self.LAYOUT_SCHEMES[layoutScheme]["order"]
+        self._physicalPartitions = self._layoutSchemes[layoutScheme]["partitions"]
+        self._physicalPartitionsOrder = self._layoutSchemes[layoutScheme]["order"]
         self._requestedRootSizeGB = rootPartitionSizeGB
 
     def created(self):
@@ -44,6 +35,13 @@ class PartitionTable:
             device = self._device
         sh.run("busybox dd if=/dev/zero of=%(device)s bs=1M count=%(count)s" % dict(device=device,
                                                                                     count=count))
+
+    def _buildLayoutSchemes(self, bootPartitionSizeMB):
+        self._layoutSchemes = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, flags="bios_grub"),
+                                            boot=dict(sizeMB=bootPartitionSizeMB, fs="ext4", flags="boot"),
+                                            lvm=dict(flags="lvm", sizeMB="fillUp")), order=("bios_boot", "boot", "lvm")),
+                                   MBR=dict(partitions=dict(boot=dict(sizeMB=bootPartitionSizeMB, fs="ext4", flags="boot"),
+                                            lvm=dict(flags="lvm", sizeMB="fillUp")),order=("boot", "lvm")))
 
     def _create(self):
         self.clear()

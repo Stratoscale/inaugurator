@@ -40,6 +40,7 @@ parser.add_argument("--inauguratorExpectedLabel")
 parser.add_argument("--inauguratorSkipPdbOnError", action="store_true", default=False)
 parser.add_argument("--inauguratorPartitionLayout", default="GPT")
 parser.add_argument("--inauguratorRootPartitionSizeGB", type=int, default=20)
+parser.add_argument("--inauguratorBootPartitionSizeMB", type=int, default=512)
 parser.add_argument("--inauguratorDontReadSmartData", action="store_true", default=False)
 parser.add_argument("--inauguratorDontFailOnFailedDisk", action="store_true", default=False)
 parser.add_argument("--inauguratorCleanupUpperPercentageThreshold", type=int, default=65)
@@ -69,6 +70,7 @@ def main():
     if args.inauguratorSkipPdbOnError:
         global PDB_ON_ERROR
         PDB_ON_ERROR = False
+
     ceremonyInstance = ceremony.Ceremony(args)
     for stage in args.inauguratorStages.split(","):
         print "Inaugurator stage: '%s'" % (stage,)
