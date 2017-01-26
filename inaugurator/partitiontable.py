@@ -10,7 +10,7 @@ class PartitionTable:
         smallSwap=1,
         bigSwap=8,
         smallOsmosisCache=5,
-        bigOsmosisCache=15,
+        bigOsmosisCache=30,
         minimumRoot=7,
         createRoot=10)
     VOLUME_GROUP = "inaugurator"

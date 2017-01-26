@@ -7,18 +7,18 @@ import logging
 
 
 class OsmosisCleanup:
-    ALLOWED_DISK_USAGE_PERCENT = 66
+    ALLOWED_DISK_USAGE_PERCENT = 80
 
     def __init__(self, mountPoint, objectStorePath):
         self._objectStore = objectstore.ObjectStore(objectStorePath)
-        before = disk.dfPercent(mountPoint)
+        before = disk.dfPercent(objectStorePath)
         if self._objectStoreExists():
             self._attemptObjectStoreCleanup()
         logging.info("Disk usage: before cleanup: %(before)s%%, after: %(after)s%%", dict(
-            before=before, after=disk.dfPercent(mountPoint)))
-        if disk.dfPercent(mountPoint) > self.ALLOWED_DISK_USAGE_PERCENT:
+            before=before, after=disk.dfPercent(objectStorePath)))
+        if disk.dfPercent(objectStorePath) > self.ALLOWED_DISK_USAGE_PERCENT:
             logging.info("Erasing disk - osmosis cleanup did not help")
-            self._eraseEverything(mountPoint)
+            self._eraseEverything(objectStorePath)
 
     def _objectStoreExists(self):
         try:
@@ -34,5 +34,5 @@ class OsmosisCleanup:
         except cleanupremovelabelsuntildiskusage.ObjectStoreEmptyException:
             pass
 
-    def _eraseEverything(self, mountPoint):
-        sh.run("busybox rm -fr %s/*" % mountPoint)
+    def _eraseEverything(self, objectStorePath):
+        sh.run("busybox rm -fr %s/*" % objectStorePath)
