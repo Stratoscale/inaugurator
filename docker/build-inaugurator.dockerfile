@@ -33,6 +33,7 @@ RUN yum install -y \
     python-pip \
     make \
     kernel \
+    lshw \
     rsync && \
     yum -y clean all
 
