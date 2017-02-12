@@ -1,4 +1,4 @@
-KERNEL_VERSION = 3.10.0-327.36.3.el7.x86_64
+KERNEL_VERSION = 3.10.0-514.6.1.el7.x86_64
 INAUGURATOR_VERSION=$(shell python setup.py --version)
 
 KERNEL_IMAGE_PATH=define_build_host_msg
