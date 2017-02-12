@@ -1,4 +1,4 @@
-KERNEL_VERSION = 3.10.0-327.36.3.el7.x86_64
+KERNEL_VERSION = 3.10.0-514.6.1.el7.x86_64
 INAUGURATOR_VERSION=$(shell python setup.py --version)
 
 KERNEL_IMAGE_PATH=define_build_host_msg
@@ -113,6 +113,7 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} build/osmosis-1.0.l
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/lvmetad
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/fsck.ext4
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/bin/rsync
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/lshw
 	DEST=$@.tmp sh/create_busybox_links.sh /usr/sbin/busybox
 	cp -a ../osmosis/build/cpp/osmosis.bin $@.tmp/usr/bin/osmosis
 	DEST=$@.tmp sh/relative_copy_executable_dependencies.sh $@.tmp/usr/bin/osmosis
