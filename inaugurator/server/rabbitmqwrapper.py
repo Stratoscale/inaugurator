@@ -24,6 +24,7 @@ class RabbitMQWrapper(threading.Thread):
             self._popen = subprocess.Popen(["/usr/lib/rabbitmq/bin/rabbitmq-server"], env=dict(
                 os.environ,
                 HOME=self._filesPath,
+                HOSTNAME="localhost",
                 RABBITMQ_CONFIG_FILE=configFile[:-len(".config")],
                 RABBITMQ_MNESIA_BASE=os.path.join(self._filesPath, "rabbit", "mnesia"),
                 RABBITMQ_LOG_BASE=os.path.join(self._filesPath, "rabbit", "logs"),
