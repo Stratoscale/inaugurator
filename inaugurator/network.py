@@ -28,7 +28,7 @@ class Network:
             except:
                 print "Ping attempt #%d failed." % (attemptNr,)
         if not linkIsUp:
-            raise Expception("No response from %s when trying to test if link was up" % (self._gateway,))
+            raise Exception("No response from %s when trying to test if link was up" % (self._gateway,))
 
     def _interfacesTable(self):
         REGEX = re.compile(r'\d+:\s+([^:]+):\s+.*\s+link/ether\s+((?:[a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2})')
