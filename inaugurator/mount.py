@@ -5,7 +5,7 @@ import logging
 
 
 class Mount:
-    _ROOT_MOUNT_POINT = "/destRoot"
+    ROOT_MOUNT_POINT = "/destRoot"
     _BOOT_MOUNT_POINT = "/destBoot"
 
     def __init__(self):
@@ -28,11 +28,11 @@ class Mount:
     @contextlib.contextmanager
     def mountRoot(self):
         self._correctEXT4Errors(self._rootPartition)
-        sh.run("/usr/sbin/busybox mkdir -p %s" % self._ROOT_MOUNT_POINT)
+        sh.run("/usr/sbin/busybox mkdir -p %s" % self.ROOT_MOUNT_POINT)
         sh.run("/usr/sbin/busybox mount -t ext4 -o noatime,data=writeback %s %s" % (
-            self._rootPartition, self._ROOT_MOUNT_POINT))
-        yield self._ROOT_MOUNT_POINT
-        sh.run("/usr/sbin/busybox umount %s" % self._ROOT_MOUNT_POINT)
+            self._rootPartition, self.ROOT_MOUNT_POINT))
+        yield self.ROOT_MOUNT_POINT
+        sh.run("/usr/sbin/busybox umount %s" % self.ROOT_MOUNT_POINT)
 
     @contextlib.contextmanager
     def mountBoot(self):
@@ -45,12 +45,12 @@ class Mount:
     @contextlib.contextmanager
     def mountBootInsideRoot(self):
         sh.run("/usr/sbin/busybox mount -t ext4 %s %s/boot" % (
-            self._bootPartition, self._ROOT_MOUNT_POINT))
-        sh.run("/usr/sbin/busybox cp -a /dev/* %s/dev/" % self._ROOT_MOUNT_POINT)
-        sh.run("/usr/sbin/busybox mount -t proc none %s/proc" % self._ROOT_MOUNT_POINT)
-        yield self._ROOT_MOUNT_POINT
-        sh.run("/usr/sbin/busybox umount %s/proc" % self._ROOT_MOUNT_POINT)
-        sh.run("/usr/sbin/busybox umount %s/boot" % self._ROOT_MOUNT_POINT)
+            self._bootPartition, self.ROOT_MOUNT_POINT))
+        sh.run("/usr/sbin/busybox cp -a /dev/* %s/dev/" % self.ROOT_MOUNT_POINT)
+        sh.run("/usr/sbin/busybox mount -t proc none %s/proc" % self.ROOT_MOUNT_POINT)
+        yield self.ROOT_MOUNT_POINT
+        sh.run("/usr/sbin/busybox umount %s/proc" % self.ROOT_MOUNT_POINT)
+        sh.run("/usr/sbin/busybox umount %s/boot" % self.ROOT_MOUNT_POINT)
 
     def _correctEXT4Errors(self, device):
         try:

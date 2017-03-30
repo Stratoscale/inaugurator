@@ -84,13 +84,16 @@ class Ceremony:
         self._bootPartitionPath = None
         self._wereDriversLoaded = False
         self._storageDevices = storagedevices.StorageDevices()
+        self._fileHandler = None
 
     def ceremony(self):
-        self._initializeNetworkIfNeeded()
+        self._loadAllDriversIfNeeded()
         self._makeSureDiskIsMountable()
-        self._disableNCQIfNeeded()
-        self._readSmartDataIfNeeded()
         with self._mountOp.mountRoot() as destination:
+            self._configureLogfileIfThereIsNone()
+            self._initializeNetworkIfNeeded()
+            self._disableNCQIfNeeded()
+            self._readSmartDataIfNeeded()
             self._etcLabelFile = etclabelfile.EtcLabelFile(destination)
             self._doOsmosisFromSource(destination)
             logging.info("Osmosis complete")
@@ -100,6 +103,7 @@ class Ceremony:
             self._loadKernelForKexecing(destination)
             logging.info("kernel loaded")
             self._additionalDownload(destination)
+            self._closeLogfileIfNeeded()
 
     def kexec(self):
         self._sync()
@@ -117,8 +121,27 @@ class Ceremony:
         self._verify()
         sh.run("reboot -f")
 
+    def _configureLogfileIfThereIsNone(self):
+        if sh.logFilepath is None:
+            commandsLogpath = os.path.join(self._mountOp.ROOT_MOUNT_POINT, "inaugurator.commands.log")
+            print "Configuring commands log filepath (by default) to: %s" % (commandsLogpath,)
+            sh.logFilepath = commandsLogpath
+            logFilepath = os.path.join(self._mountOp.ROOT_MOUNT_POINT, "inaugurator.log")
+            print "Configuring log filepath (by default) to: %s" % (logFilepath,)
+            self._fileHandler = logging.FileHandler(logFilepath)
+            self._fileHandler.setLevel(logging.DEBUG)
+            logger = logging.getLogger()
+            logger.setLevel(logging.DEBUG)
+            logger.addHandler(self._fileHandler)
+
+    def _closeLogfileIfNeeded(self):
+        if self._fileHandler is not None:
+            print "Closing log file..."
+            self._fileHandler.close()
+            logger = logging.getLogger()
+            logger.removeHandler(self._fileHandler)
+
     def _initializeNetworkIfNeeded(self):
-        self._loadAllDriversIfNeeded()
         if self._args.inauguratorSource == 'network' and \
                 not self._args.inauguratorIsNetworkAlreadyConfigured:
             network.Network(
@@ -290,7 +313,6 @@ class Ceremony:
             downloadInstance.download(destination)
 
     def _makeSureDiskIsMountable(self):
-        self._loadAllDriversIfNeeded()
         if self._args.inauguratorTargetDeviceCandidate is None:
             logging.info("Searching for target devices of type %(deviceType)s",
                          dict(deviceType=self._args.inauguratorTargetDeviceType))
