@@ -189,7 +189,8 @@ class Ceremony:
             self._targetDevice,
             layoutScheme=self._args.inauguratorPartitionLayout,
             rootPartitionSizeGB=self._args.inauguratorRootPartitionSizeGB,
-            bootPartitionSizeMB=self._args.inauguratorBootPartitionSizeMB)
+            bootPartitionSizeMB=self._args.inauguratorBootPartitionSizeMB,
+            wipeOldInstallations=args.inauguratorWipeOldInauguratorInstallations)
         if self._args.inauguratorClearDisk:
             partitionTable.clear()
         partitionTable.verify()

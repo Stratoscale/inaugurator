@@ -44,6 +44,8 @@ parser.add_argument("--inauguratorBootPartitionSizeMB", type=int, default=512)
 parser.add_argument("--inauguratorDontReadSmartData", action="store_true", default=False)
 parser.add_argument("--inauguratorDontFailOnFailedDisk", action="store_true", default=False)
 parser.add_argument("--inauguratorCleanupUpperPercentageThreshold", type=int, default=65)
+parser.add_argument("--inauguratorWipeOldInauguratorInstallations", type=bool, action="store_true",
+                    optional=False)
 
 
 def getArgsSource():

@@ -12,7 +12,8 @@ class PartitionTable:
         minimumRoot=14)
     VOLUME_GROUP = "inaugurator"
 
-    def __init__(self, device, sizesGB=dict(), layoutScheme="GPT", rootPartitionSizeGB=20, bootPartitionSizeMB=512):
+    def __init__(self, device, sizesGB=dict(), layoutScheme="GPT", rootPartitionSizeGB=20,
+                 bootPartitionSizeMB=512, wipeOldInstallations=False):
         self._sizesGB = dict(self._DEFAULT_SIZES_GB)
         self._sizesGB.update(sizesGB)
         self._buildLayoutSchemes(bootPartitionSizeMB)
@@ -26,6 +27,7 @@ class PartitionTable:
         self._physicalPartitions = self._layoutSchemes[layoutScheme]["partitions"]
         self._physicalPartitionsOrder = self._layoutSchemes[layoutScheme]["order"]
         self._requestedRootSizeGB = rootPartitionSizeGB
+        self._wipeOldInstallations = wipeOldInstallations
 
     def created(self):
         return self._created
@@ -327,15 +329,19 @@ class PartitionTable:
                 print sh.run("busybox find /dev/inaugurator")
             except Exception as e:
                 print "Unable: %s" % e
-            self._wipeOtherPartitionsWithSameVolumeGroup()
-            self._wipeOtherPartitionsWithBootLabel()
+            if self._wipeOldInstallations:
+                logging.info("Checking (and possibly deleting) old Inaugurator installations...")
+                self._wipeOtherPartitionsWithSameVolumeGroup()
+                self._wipeOtherPartitionsWithBootLabel()
             return
         self._create()
         for retry in xrange(5):
             mismatch = self._findMismatch()
             if mismatch is None:
-                self._wipeOtherPartitionsWithSameVolumeGroup()
-                self._wipeOtherPartitionsWithBootLabel()
+                if self._wipeOldInstallations:
+                    logging.info("Checking (and possibly deleting) old Inaugurator installations...")
+                    self._wipeOtherPartitionsWithSameVolumeGroup()
+                    self._wipeOtherPartitionsWithBootLabel()
                 return
             else:
                 print "Partition table not correct even after %d retries: '%s'" % (
