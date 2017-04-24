@@ -269,6 +269,36 @@ class PartitionTable:
         numbers = self._getPhysicalDeviceOfPartition(device)
         return bool(numbers)
 
+    @classmethod
+    def getDevicesWithLabel(self, label):
+        output = sh.run("blkid")
+        print "blkid output:\n"
+        print output
+        for line in output.splitlines():
+            line = line.strip()
+            parts = line.split(":", 1)
+            if len(parts) != 2:
+                continue
+            device, data = parts
+            if " LABEL=\"%s\"" % label in data:
+                device = device.strip()
+                yield device
+
+    def _wipeOldInstallationsIfAllowed(self):
+        if self._wipeOldInstallations:
+            print "Checking (and possibly deleting) old Inaugurator installations..."
+            self._wipeOtherPartitionsWithSameVolumeGroup()
+            self._wipeOtherPartitionsWithBootLabel()
+
+    def _wipeOtherPartitionsWithBootLabel(self):
+        print "Validating that device %(device)s is the only one with BOOT label..." % \
+              dict(device=self._getPartitionPath("boot"))
+        for device in self.getDevicesWithLabel("BOOT"):
+            if device != self._getPartitionPath("boot") and device != self._device:
+                print "Wiping '%(device)s' since it is labeled as BOOT (probably leftovers from previous " \
+                      "inaugurations)..." % (dict(device=device))
+                self.clear(device=device, count=1)
+
     def _wipeOtherPartitionsWithSameVolumeGroup(self):
         print "Validating that volume group %(vg)s is bound only to one device..." % \
               dict(vg=self.VOLUME_GROUP)
@@ -291,29 +321,6 @@ class PartitionTable:
                           "group..." % dict(physicalDevice=physicalDevice)
                     self.clear(device=physicalDevice, count=1)
 
-    def _getDevicesLabeledAsBoot(self):
-        output = sh.run("blkid")
-        print "blkid output:\n"
-        print output
-        for line in output.splitlines():
-            line = line.strip()
-            parts = line.split(":", 1)
-            if len(parts) != 2:
-                continue
-            device, data = parts
-            if " LABEL=\"BOOT\"" in data:
-                device = device.strip()
-                yield device
-
-    def _wipeOtherPartitionsWithBootLabel(self):
-        print "Validating that device %(device)s is the only one with BOOT label..." % \
-              dict(device=self._getPartitionPath("boot"))
-        for device in self._getDevicesLabeledAsBoot():
-            if device != self._getPartitionPath("boot") and device != self._device:
-                print "Wiping '%(device)s' since it is labeled as BOOT (probably leftovers from previous " \
-                      "inaugurations)..." % (dict(device=device))
-                self.clear(device=device, count=1)
-
     def verify(self):
         if not self._findMismatch():
             print "Partition table already set up"
@@ -329,19 +336,13 @@ class PartitionTable:
                 print sh.run("busybox find /dev/inaugurator")
             except Exception as e:
                 print "Unable: %s" % e
-            if self._wipeOldInstallations:
-                logging.info("Checking (and possibly deleting) old Inaugurator installations...")
-                self._wipeOtherPartitionsWithSameVolumeGroup()
-                self._wipeOtherPartitionsWithBootLabel()
+            self._wipeOldInstallationsIfAllowed()
             return
         self._create()
         for retry in xrange(5):
             mismatch = self._findMismatch()
             if mismatch is None:
-                if self._wipeOldInstallations:
-                    logging.info("Checking (and possibly deleting) old Inaugurator installations...")
-                    self._wipeOtherPartitionsWithSameVolumeGroup()
-                    self._wipeOtherPartitionsWithBootLabel()
+                self._wipeOldInstallationsIfAllowed()
                 return
             else:
                 print "Partition table not correct even after %d retries: '%s'" % (

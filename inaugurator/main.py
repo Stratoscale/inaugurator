@@ -31,8 +31,6 @@ parser.add_argument("--inauguratorNoChainTouch", action="store_true", default=Fa
 parser.add_argument("--inauguratorPassthrough", default="")
 parser.add_argument("--inauguratorDownload", nargs='+', default=[])
 parser.add_argument("--inauguratorIgnoreDirs", nargs='+', default=[])
-parser.add_argument("--inauguratorTargetDeviceCandidate", nargs='+')
-parser.add_argument("--inauguratorTargetDeviceType", default="SSD")
 parser.add_argument("--inauguratorVerify", action="store_true")
 parser.add_argument("--inauguratorDisableNCQ", action="store_true", default=True)
 parser.add_argument("--inauguratorLogfilePath")
@@ -44,8 +42,10 @@ parser.add_argument("--inauguratorBootPartitionSizeMB", type=int, default=512)
 parser.add_argument("--inauguratorDontReadSmartData", action="store_true", default=False)
 parser.add_argument("--inauguratorDontFailOnFailedDisk", action="store_true", default=False)
 parser.add_argument("--inauguratorCleanupUpperPercentageThreshold", type=int, default=65)
-parser.add_argument("--inauguratorWipeOldInauguratorInstallations", type=bool, action="store_true",
-                    optional=False)
+parser.add_argument("--inauguratorWipeOldInauguratorInstallations", action="store_true", default=False)
+parser.add_argument("--inauguratorTargetDeviceCandidate", nargs='+', help="This parameter is mutually exclusive with inauguratorTargetDeviceLabel and inauguratorTargetDeviceType")
+parser.add_argument("--inauguratorTargetDeviceLabel", default="", help="This parameter is mutually exclusive with inauguratorTargetDeviceCandidate and inauguratorTargetDeviceType")
+parser.add_argument("--inauguratorTargetDeviceType", default="", help="This parameter is mutually exclusive with inauguratorTargetDeviceCandidate and inauguratorTargetDeviceLabel")
 
 
 def getArgsSource():
@@ -72,6 +72,12 @@ def main():
     if args.inauguratorSkipPdbOnError:
         global PDB_ON_ERROR
         PDB_ON_ERROR = False
+
+    if [bool(args.inauguratorTargetDeviceCandidate),
+        bool(args.inauguratorTargetDeviceLabel),
+        bool(args.inauguratorTargetDeviceType)].count(True) != 1:
+        raise Exception("Invalid input arguments: inauguratorTargetDeviceCandidate, "
+                        "inauguratorTargetDeviceLabel and inauguratorTargetDeviceType are mutually exclusive")
 
     ceremonyInstance = ceremony.Ceremony(args)
     for stage in args.inauguratorStages.split(","):

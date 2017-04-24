@@ -190,7 +190,7 @@ class Ceremony:
             layoutScheme=self._args.inauguratorPartitionLayout,
             rootPartitionSizeGB=self._args.inauguratorRootPartitionSizeGB,
             bootPartitionSizeMB=self._args.inauguratorBootPartitionSizeMB,
-            wipeOldInstallations=args.inauguratorWipeOldInauguratorInstallations)
+            wipeOldInstallations=self._args.inauguratorWipeOldInauguratorInstallations)
         if self._args.inauguratorClearDisk:
             partitionTable.clear()
         partitionTable.verify()
@@ -314,20 +314,32 @@ class Ceremony:
             downloadInstance.download(destination)
 
     def _makeSureDiskIsMountable(self):
-        if self._args.inauguratorTargetDeviceCandidate is None:
-            logging.info("Searching for target devices of type %(deviceType)s",
-                         dict(deviceType=self._args.inauguratorTargetDeviceType))
-            device = self._storageDevices.findFirstDeviceOfType(self._args.inauguratorTargetDeviceType,
-                                                                self._talkToServer)
-            candidates = [device]
-        else:
-            candidates = self._args.inauguratorTargetDeviceCandidate
-        self._targetDevice = targetdevice.TargetDevice.device(candidates)
+        self._setTargetDevice()
         self._createPartitionTable()
         logging.info("Partitions created")
         self._mountOp = mount.Mount()
         assert self._bootPartitionPath is not None, "Please initialize boot partition path first"
         self._mountOp.setBootPartitionPath(self._bootPartitionPath)
+
+    def _setTargetDevice(self):
+        if self._args.inauguratorTargetDeviceCandidate is not None:
+            logging.info("Explicit target devices indicated: %(deviceCandidates)s",
+                         dict(deviceCandidates=self._args.inauguratorTargetDeviceCandidate))
+            candidates = self._args.inauguratorTargetDeviceCandidate
+        elif self._args.inauguratorTargetDeviceType is not None:
+            logging.info("Searching for target devices of type %(deviceType)s",
+                         dict(deviceType=self._args.inauguratorTargetDeviceType))
+            device = self._storageDevices.findFirstDeviceOfType(self._args.inauguratorTargetDeviceType,
+                                                                self._talkToServer)
+            candidates = [device]
+        elif self._args.inauguratorTargetDeviceLabel is not None:
+            logging.info("Searching for target devices with label %(deviceLabel)s",
+                         dict(deviceLabel=self._args.inauguratorTargetDeviceLabel))
+            candidates = partitiontable.PartitionTable.getDevicesWithLabel(self._args.inauguratorTargetDeviceLabel)
+            if not candidates:
+                raise Exception("No devices found with label %s" % self._args.inauguratorTargetDeviceLabel)
+
+        self._targetDevice = targetdevice.TargetDevice.device(candidates)
 
     def _loadKernelForKexecing(self, destination):
         self._loadKernel = loadkernel.LoadKernel()
