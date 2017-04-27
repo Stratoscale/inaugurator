@@ -271,6 +271,8 @@ class PartitionTable:
 
     @classmethod
     def getDevicesWithLabel(self, label):
+        os.system("/usr/sbin/busybox mdev -s")
+        time.sleep(1)
         output = sh.run("blkid")
         print "blkid output:\n"
         print output
@@ -283,6 +285,10 @@ class PartitionTable:
             if " LABEL=\"%s\"" % label in data:
                 device = device.strip()
                 yield device
+
+    @classmethod
+    def getOriginDevices(self, devices):
+        return [os.path.join("/dev", sh.run("lsblk -no pkname %s" % dev).strip()) for dev in devices]
 
     def _wipeOldInstallationsIfAllowed(self):
         if self._wipeOldInstallations:

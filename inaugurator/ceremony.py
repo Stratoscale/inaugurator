@@ -335,11 +335,24 @@ class Ceremony:
         elif self._args.inauguratorTargetDeviceLabel is not None:
             logging.info("Searching for target devices with label %(deviceLabel)s",
                          dict(deviceLabel=self._args.inauguratorTargetDeviceLabel))
-            candidates = partitiontable.PartitionTable.getDevicesWithLabel(self._args.inauguratorTargetDeviceLabel)
-            if not candidates:
-                raise Exception("No devices found with label %s" % self._args.inauguratorTargetDeviceLabel)
-
+            candidates = self._getDevicesWithLabel(self._args.inauguratorTargetDeviceLabel)
+        print("The following devices are the candidates for inauguration %s" % candidates)
+        if len(candidates) > 1:
+            raise Exception("Cannot have more than 1 device as candidate, candidates %s" % candidates) 
         self._targetDevice = targetdevice.TargetDevice.device(candidates)
+
+    def _getDevicesWithLabel(self, label):
+        RETRIES = 5
+        for retry in xrange(RETRIES):
+            candidates = list(partitiontable.PartitionTable.getDevicesWithLabel(label))
+            if candidates:
+                break
+            else:
+                print("No devices found with label %s, retry %s" % (label, retry))
+        else:
+            raise Exception("No devices found with label %s" % label)
+        print("Found the following devices wuth label %s - %s" % (label, candidates))
+        return partitiontable.PartitionTable.getOriginDevices(candidates)
 
     def _loadKernelForKexecing(self, destination):
         self._loadKernel = loadkernel.LoadKernel()
@@ -349,9 +362,10 @@ class Ceremony:
             append=self._args.inauguratorPassthrough)
 
     def _doOsmosisFromSource(self, destination):
-        osmosiscleanup.OsmosisCleanup(
-            destination,
-            usageUpperThreshold=self._args.inauguratorCleanupUpperPercentageThreshold)
+        if self._args.inauguratorWipeOsmosisObjectStoreIfNeeded:
+            osmosiscleanup.OsmosisCleanup(
+                destination,
+                usageUpperThreshold=self._args.inauguratorCleanupUpperPercentageThreshold)
         if self._args.inauguratorSource == 'network':
             self._osmosFromNetwork(destination)
         elif self._args.inauguratorSource == 'DOK':
