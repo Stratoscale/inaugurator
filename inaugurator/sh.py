@@ -20,7 +20,7 @@ def run(* args, ** kwargs):
                     f.write(output)
                     f.flush()
         except Exception as ex:
-            print "Cannot write to log file: %s" % ex.args
+            print "Cannot write to log file: %s" % (str(ex.args),)
     if cmdPipe.returncode != 0:
         ex = subprocess.CalledProcessError(cmdPipe.returncode, commandRepr, output)
         print "Command '%s' failed: %d\n%s" % (args, cmdPipe.returncode, output)
