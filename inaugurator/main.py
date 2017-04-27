@@ -43,9 +43,10 @@ parser.add_argument("--inauguratorDontReadSmartData", action="store_true", defau
 parser.add_argument("--inauguratorDontFailOnFailedDisk", action="store_true", default=False)
 parser.add_argument("--inauguratorCleanupUpperPercentageThreshold", type=int, default=65)
 parser.add_argument("--inauguratorWipeOldInauguratorInstallations", action="store_true", default=False)
+parser.add_argument("--inauguratorWipeOsmosisObjectStoreIfNeeded", action="store_true", default=False)
 parser.add_argument("--inauguratorTargetDeviceCandidate", nargs='+', help="This parameter is mutually exclusive with inauguratorTargetDeviceLabel and inauguratorTargetDeviceType")
-parser.add_argument("--inauguratorTargetDeviceLabel", default="", help="This parameter is mutually exclusive with inauguratorTargetDeviceCandidate and inauguratorTargetDeviceType")
-parser.add_argument("--inauguratorTargetDeviceType", default="", help="This parameter is mutually exclusive with inauguratorTargetDeviceCandidate and inauguratorTargetDeviceLabel")
+parser.add_argument("--inauguratorTargetDeviceLabel", help="This parameter is mutually exclusive with inauguratorTargetDeviceCandidate and inauguratorTargetDeviceType")
+parser.add_argument("--inauguratorTargetDeviceType", help="This parameter is mutually exclusive with inauguratorTargetDeviceCandidate and inauguratorTargetDeviceLabel")
 
 
 def getArgsSource():
@@ -54,6 +55,13 @@ def getArgsSource():
     parser.add_argument("--inauguratorArgumentsSource", default="kernelCmdline", choices=choices)
     args = parser.parse_known_args()[0]
     return args.inauguratorArgumentsSource
+
+def assertArgsSane(args):
+    if [bool(args.inauguratorTargetDeviceCandidate),
+        bool(args.inauguratorTargetDeviceLabel),
+        bool(args.inauguratorTargetDeviceType)].count(True) != 1:
+        raise Exception("Invalid input arguments: inauguratorTargetDeviceCandidate, "
+                        "inauguratorTargetDeviceLabel and inauguratorTargetDeviceType are mutually exclusive")
 
 
 def main():
@@ -73,11 +81,7 @@ def main():
         global PDB_ON_ERROR
         PDB_ON_ERROR = False
 
-    if [bool(args.inauguratorTargetDeviceCandidate),
-        bool(args.inauguratorTargetDeviceLabel),
-        bool(args.inauguratorTargetDeviceType)].count(True) != 1:
-        raise Exception("Invalid input arguments: inauguratorTargetDeviceCandidate, "
-                        "inauguratorTargetDeviceLabel and inauguratorTargetDeviceType are mutually exclusive")
+    assertArgsSane(args)
 
     ceremonyInstance = ceremony.Ceremony(args)
     for stage in args.inauguratorStages.split(","):
