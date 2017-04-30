@@ -47,6 +47,7 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} build/osmosis/dist/os
 	DEST=$@.tmp sh/relative_copy_executable.sh /bin/sh
 	DEST=$@.tmp sh/relative_copy_executable.sh /bin/python2.7
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/busybox
+	DEST=$@.tmp sh/relative_copy_executable.sh /bin/lsblk
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/kexec
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/ifconfig
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/route
