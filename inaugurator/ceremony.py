@@ -124,10 +124,10 @@ class Ceremony:
     def _configureLogfileIfThereIsNone(self):
         if sh.logFilepath is None:
             commandsLogpath = os.path.join(self._mountOp.ROOT_MOUNT_POINT, "inaugurator.commands.log")
-            print "Configuring commands log filepath (by default) to: %s" % (commandsLogpath,)
+            logging.info("Configuring commands log filepath (by default) to: %s" % (commandsLogpath,))
             sh.logFilepath = commandsLogpath
             logFilepath = os.path.join(self._mountOp.ROOT_MOUNT_POINT, "inaugurator.log")
-            print "Configuring log filepath (by default) to: %s" % (logFilepath,)
+            logging.info("Configuring log filepath (by default) to: %s" % (logFilepath,))
             self._fileHandler = logging.FileHandler(logFilepath)
             self._fileHandler.setLevel(logging.DEBUG)
             logger = logging.getLogger()
@@ -136,7 +136,7 @@ class Ceremony:
 
     def _closeLogfileIfNeeded(self):
         if self._fileHandler is not None:
-            print "Closing log file..."
+            logging.info("Closing log file...")
             self._fileHandler.close()
             logger = logging.getLogger()
             logger.removeHandler(self._fileHandler)
@@ -183,7 +183,7 @@ class Ceremony:
         if [bool(self._args.inauguratorTargetDeviceCandidate),
             bool(self._args.inauguratorTargetDeviceLabel),
             bool(self._args.inauguratorTargetDeviceType)].count(True) != 1:
-            logging.info("Invalid input arguments: inauguratorTargetDeviceCandidate, "
+            raise Exception("Invalid input arguments: inauguratorTargetDeviceCandidate, "
                             "inauguratorTargetDeviceLabel and inauguratorTargetDeviceType are mutually exclusive")
 
     def _createPartitionTable(self):
@@ -341,7 +341,7 @@ class Ceremony:
             logging.info("Searching for target devices with label %(deviceLabel)s",
                          dict(deviceLabel=self._args.inauguratorTargetDeviceLabel))
             candidates = self._getDevicesWithLabel(self._args.inauguratorTargetDeviceLabel)
-        print("The following devices are the candidates for inauguration %s" % candidates)
+        logging.info("The following devices are the candidates for inauguration %s" % candidates)
         if len(candidates) > 1:
             raise Exception("Cannot have more than 1 device as candidate, candidates %s" % candidates) 
         self._targetDevice = targetdevice.TargetDevice.device(candidates)
@@ -353,10 +353,10 @@ class Ceremony:
             if candidates:
                 break
             else:
-                print("No devices found with label %s, retry %s" % (label, retry))
+                logging.info("No devices found with label %s, retry %s" % (label, retry))
         else:
             raise Exception("No devices found with label %s" % label)
-        print("Found the following devices wuth label %s - %s" % (label, candidates))
+        logging.info("Found the following devices wuth label %s - %s" % (label, candidates))
         return partitiontable.PartitionTable.getOriginDevices(candidates)
 
     def _loadKernelForKexecing(self, destination):

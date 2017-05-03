@@ -48,7 +48,6 @@ parser.add_argument("--inauguratorTargetDeviceCandidate", nargs='+', help="This 
 parser.add_argument("--inauguratorTargetDeviceLabel", help="This parameter is mutually exclusive with inauguratorTargetDeviceCandidate and inauguratorTargetDeviceType")
 parser.add_argument("--inauguratorTargetDeviceType", help="This parameter is mutually exclusive with inauguratorTargetDeviceCandidate and inauguratorTargetDeviceLabel")
 
-
 def getArgsSource():
     parser = argparse.ArgumentParser(add_help=False)
     choices = ["kernelCmdline", "processArguments"]
@@ -62,11 +61,11 @@ def main():
     packagesvalidation.validateMinimumVersions(pika="0.10.0")
     argsSource = getArgsSource()
     if argsSource == "kernelCmdline":
-        print "Reading arguments from kernel command line..."
+        logging.info("Reading arguments from kernel command line...")
         cmdLine = open("/proc/cmdline").read().strip()
         args = parser.parse_known_args(cmdLine.split(' '))[0]
     elif argsSource == "processArguments":
-        print "Reading arguments from process command line..."
+        logging.info("Reading arguments from process command line...")
         args = parser.parse_known_args()[0]
     else:
         assert False, argsSource
@@ -76,7 +75,7 @@ def main():
 
     ceremonyInstance = ceremony.Ceremony(args)
     for stage in args.inauguratorStages.split(","):
-        print "Inaugurator stage: '%s'" % (stage,)
+        logging.info("Inaugurator stage: '%s'" % (stage,))
         if stage == "ceremony":
             ceremonyInstance.ceremony()
         elif stage == "kexec":
@@ -90,10 +89,10 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        print "Inaugurator raised exception: "
+        logging.info("Inaugurator raised exception: ")
         traceback.print_exc(e)
         if not PDB_ON_ERROR:
-            print "For PDB on error, don't use --inauguratorSkipPdbOnError."
+            logging.info("For PDB on error, don't use --inauguratorSkipPdbOnError.")
         raise e
     finally:
         if PDB_ON_ERROR:

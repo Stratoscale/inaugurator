@@ -1,5 +1,6 @@
 from inaugurator import pyudev
 from inaugurator import sh
+import logging
 import os
 import fnmatch
 
@@ -18,24 +19,24 @@ def loadAllDrivers():
             continue
         try:
             for k, v in device.iteritems():
-                print "\t%s: %s" % (k.encode('utf-8'), v.encode('utf-8'))
+                logging.info("\t%s: %s" % (k.encode('utf-8'), v.encode('utf-8')))
         except Exception as e:
-            print str(e)
-            print "WARNING: Failed to print driver details, will not load it. Skipping."
+            logging.info(str(e))
+            logging.info("WARNING: Failed to logging.info(driver details, will not load it. Skipping.")
             continue
         driver = _findDriver(device, aliasTable)
         if driver is None:
-            print "No driver, skipping"
+            logging.info("No driver, skipping")
         else:
             _loadDriver(driver)
 
 
 def _loadDriver(driver):
     "This is for upwards dependency, not modprobe like dependency"
-    print "Driver: %s, modprobing" % driver
+    logging.info("Driver: %s, modprobing" % driver)
     sh.run("busybox modprobe %s" % driver)
     if driver in _ALSO:
-        print "Additional drivers must be loaded for '%s': %s" % (driver, _ALSO[driver])
+        logging.info("Additional drivers must be loaded for '%s': %s" % (driver, _ALSO[driver]))
         for also in _ALSO[driver]:
             _loadDriver(also)
 
@@ -57,7 +58,7 @@ def _loadAliasTable():
             subsystem = alias.split(":")[0]
             if subsystem not in table:
                 table[subsystem] = dict()
-                print alias
+                logging.info(alias)
             table[subsystem][alias] = driver
     return table
 
@@ -88,6 +89,6 @@ if __name__ == "__main__":
         return ver
 
     def fakeSH(command):
-        print "COMMAND", command
+        logging.info("COMMAND - %s", command)
     sh.run = fakeSH
     loadAllDrivers()

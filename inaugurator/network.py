@@ -1,4 +1,5 @@
 import re
+import logging
 from inaugurator import sh
 
 
@@ -16,17 +17,17 @@ class Network:
         self._validateLinkIsUp()
 
     def _validateLinkIsUp(self):
-        print "Waiting for the connection to actually be up by pinging %s..." % (self._gateway,)
+        logging.info("Waiting for the connection to actually be up by pinging %s..." % (self._gateway,))
         linkIsUp = False
         for attemptIdx in xrange(self._NR_PING_ATTEMPTS):
             attemptNr = attemptIdx + 1
             try:
                 result = sh.run("busybox ping -w 1 -c 1 %s" % (self._gateway,))
                 linkIsUp = True
-                print "Ping attempt #%d succeeded." % (attemptNr,)
+                logging.info("Ping attempt #%d succeeded." % (attemptNr,))
                 break
             except:
-                print "Ping attempt #%d failed." % (attemptNr,)
+                logging.info("Ping attempt #%d failed." % (attemptNr,))
         if not linkIsUp:
             raise Exception("No response from %s when trying to test if link was up" % (self._gateway,))
 

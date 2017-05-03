@@ -1,6 +1,7 @@
 import os
 import stat
 import time
+import logging
 from inaugurator import sh
 
 
@@ -20,7 +21,7 @@ class TargetDevice:
         for retry in xrange(RETRIES):
             for device in candidates:
                 if not os.path.exists(device):
-                    print "Device does not exists"
+                    logging.info("Device does not exists")
                     continue
                 if not stat.S_ISBLK(os.stat(device).st_mode):
                     continue
@@ -32,9 +33,9 @@ class TargetDevice:
                             "the HD driver was not loaded correctly")
                 except:
                     pass
-                print "Found target device %s" % device
+                logging.info("Found target device %s" % device)
                 return device
-            print "didn't find target device, sleeping before retry %d" % retry
+            logging.info("didn't find target device, sleeping before retry %d" % retry)
             time.sleep(1)
             os.system("/usr/sbin/busybox mdev -s")
         raise Exception("Failed finding target device")

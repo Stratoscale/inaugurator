@@ -2,6 +2,7 @@ import re
 import traceback
 import time
 import os
+import logging
 from inaugurator import sh
 
 
@@ -21,7 +22,7 @@ class PartitionTable:
         self._cachedDiskSize = None
         self._created = False
         if layoutScheme not in self._layoutSchemes:
-            print "Invalid layout scheme. Possible values: '%s'" % "', '".join(self._layoutSchemes.keys())
+            logging.info("Invalid layout scheme. Possible values: '%s'" % "', '".join(self._layoutSchemes.keys()))
             raise ValueError(layoutScheme)
         self._layoutScheme = layoutScheme
         self._physicalPartitions = self._layoutSchemes[layoutScheme]["partitions"]
@@ -48,7 +49,7 @@ class PartitionTable:
     def _create(self):
         self.clear()
         script = self._getPartitionCommand()
-        print "creating new partition table of layout '%s': \n%s\n" % (self._layoutScheme, script)
+        logging.info("creating new partition table of layout '%s': \n%s\n" % (self._layoutScheme, script))
         sh.run(script)
         self._setFlags()
         sh.run("busybox mdev -s")
@@ -57,7 +58,7 @@ class PartitionTable:
             sh.run("lvm vgremove -f %s" % (self.VOLUME_GROUP, ))
         except:
             traceback.print_exc()
-            print "'lvm vgremove' failed"
+            logging.info("'lvm vgremove' failed")
         lvmPartitionPath = self._getPartitionPath("lvm")
         sh.run("lvm pvcreate -y -ff %s" % (lvmPartitionPath,))
         sh.run("lvm vgcreate -y %s %s" % (self.VOLUME_GROUP, lvmPartitionPath))
@@ -104,13 +105,13 @@ class PartitionTable:
         for partitionIdx, partition in enumerate(self._physicalPartitionsOrder):
             partitionNr = partitionIdx + 1
             flag = self._physicalPartitions[partition]["flags"]
-            print "Setting flag '%s' for partition #%d..." % (flag, partitionNr)
+            logging.info("Setting flag '%s' for partition #%d..." % (flag, partitionNr))
             sh.run("parted -s %s set %d %s on" % (self._device, partitionNr, flag))
 
     def parsePartitionTable(self):
         cmd = "parted -s -m %(device)s unit MB print" % dict(device=self._device)
         output = sh.run(cmd)
-        print "Output of parted: %(output)s" % dict(output=output)
+        logging.info("Output of parted: %(output)s" % dict(output=output))
         lines = [line.strip() for line in output.split(";")]
         lines = [line for line in lines if line]
         partitionsLines = lines[2:]
@@ -157,8 +158,9 @@ class PartitionTable:
     def _findMismatchInPartitionTable(self):
         try:
             parsed = self.parsePartitionTable()
+            logging.info("Parsed partition table is:\n%s", parsed)
         except:
-            print "Unable to parse partition table"
+            logging.info("Unable to parse partition table")
             traceback.print_exc()
             return "Unable to parse partition table"
         if len(parsed) != len(self._physicalPartitions):
@@ -166,11 +168,14 @@ class PartitionTable:
                 dict(nrPartitions=len(self._physicalPartitions))
         for partitionPurpose, actualPartition in zip(self._physicalPartitionsOrder, parsed):
             expectedPartition = self._physicalPartitions[partitionPurpose]
+            logging.info("Expected Partition properties are:\n%s", expectedPartition)
             for attrName in ("fs", "flags"):
                 if attrName not in expectedPartition:
                     continue
                 actual = actualPartition[attrName]
+                logging.info("Actual partition name is: %s", actual)
                 expected = expectedPartition[attrName]
+                logging.info("Expected partition name is: %s", expected)
                 if expected != actual:
                     return "Expected attribute %(attrName)s of %(partitionPurpose)s partition to be " \
                            "'%(expected)s', not '%(actual)s'" % \
@@ -182,7 +187,9 @@ class PartitionTable:
             expectedSize = expectedPartition["sizeMB"]
             if expectedPartition["sizeMB"] == "fillUp":
                 sizeOfOthers = self._combinedSizeOfAllOtherPartitions(partitionPurpose)
+                logging.info("Size of all other partitions is: %s", sizeOfOthers)
                 expectedSize = self._diskSizeMB() - sizeOfOthers
+                logging.info("Expected  partition size is: %s", expectedSize)
             if not self._approximatelyEquals(expectedSize, actualPartition["sizeMB"]):
                 return "Expected partition %(partitionPurpose)s to be approximately %(expectedSize)sMB" % \
                     dict(partitionPurpose=partitionPurpose, expectedSize=expectedSize)
@@ -197,7 +204,7 @@ class PartitionTable:
         try:
             physical = self.parseLVMPhysicalVolume(lvmPartitionPath)
         except:
-            print "Unable to parse physical volume"
+            logging.info("Unable to parse physical volume")
             traceback.print_exc()
             return "Unable to parse physical volume"
         if physical['name'] != self.VOLUME_GROUP:
@@ -210,13 +217,13 @@ class PartitionTable:
             swap = self.parseLVMLogicalVolume("swap")
             root = self.parseLVMLogicalVolume("root")
         except:
-            print "Unable to parse logical volume/s"
+            logging.info("Unable to parse logical volume/s")
             traceback.print_exc()
             return "Unable to parse physical volume/s"
         if root['sizeMB'] <= self._sizesGB['minimumRoot'] * 1024 * 0.9:
             return "Root partition is too small"
         if root['sizeMB'] >= self._requestedRootSizeGB * 1024 * 1.2:
-            print "Root partition is too big"
+            logging.info("Root partition is too big")
             return "Root partition is too big"
         if self._diskSizeMB() / 1024 >= self._requestedRootSizeGB + self._sizesGB['bigSwap']:
             minimumSwapSizeGB = self._sizesGB['bigSwap']
@@ -238,7 +245,7 @@ class PartitionTable:
 
     def _parseVGs(self):
         pvscanOutput = sh.run("lvm pvscan")
-        print "`pvscan` output:\n %(pvscanOutput)s" % dict(pvscanOutput=pvscanOutput)
+        logging.info("`pvscan` output:\n %(pvscanOutput)s" % dict(pvscanOutput=pvscanOutput))
         vgs = dict()
         if "No matching physical volumes found" in pvscanOutput:
             return vgs
@@ -274,8 +281,8 @@ class PartitionTable:
         os.system("/usr/sbin/busybox mdev -s")
         time.sleep(1)
         output = sh.run("blkid")
-        print "blkid output:\n"
-        print output
+        logging.info("blkid output:\n")
+        logging.info(output)
         for line in output.splitlines():
             line = line.strip()
             parts = line.split(":", 1)
@@ -292,58 +299,62 @@ class PartitionTable:
 
     def _wipeOldInstallationsIfAllowed(self):
         if self._wipeOldInstallations:
-            print "Checking (and possibly deleting) old Inaugurator installations..."
+            logging.info("Checking (and possibly deleting) old Inaugurator installations...")
             self._wipeOtherPartitionsWithSameVolumeGroup()
             self._wipeOtherPartitionsWithBootLabel()
 
     def _wipeOtherPartitionsWithBootLabel(self):
-        print "Validating that device %(device)s is the only one with BOOT label..." % \
-              dict(device=self._getPartitionPath("boot"))
+        logging.info("Validating that device %(device)s is the only one with BOOT label..." % \
+              dict(device=self._getPartitionPath("boot")))
         for device in self.getDevicesWithLabel("BOOT"):
             if device != self._getPartitionPath("boot") and device != self._device:
-                print "Wiping '%(device)s' since it is labeled as BOOT (probably leftovers from previous " \
-                      "inaugurations)..." % (dict(device=device))
+                logging.info("Wiping '%(device)s' since it is labeled as BOOT (probably leftovers from previous " \
+                      "inaugurations)..." % (dict(device=device)))
                 self.clear(device=device, count=1)
 
     def _wipeOtherPartitionsWithSameVolumeGroup(self):
-        print "Validating that volume group %(vg)s is bound only to one device..." % \
-              dict(vg=self.VOLUME_GROUP)
+        logging.info("Validating that volume group %(vg)s is bound only to one device..." % \
+              dict(vg=self.VOLUME_GROUP))
         vgs = self._parseVGs()
         if not vgs:
             raise Exception("No volume group was found after configuration of LVM.")
         targetPhysicalVolumeForVolumeGroup = self._getPartitionPath("lvm")
         for physicalVolume, volumeGroup in vgs.iteritems():
             if physicalVolume != targetPhysicalVolumeForVolumeGroup and volumeGroup == self.VOLUME_GROUP:
-                print "Wiping '%(physicalVolume)s' since it contains another copy of the volume group..." \
-                      % dict(physicalVolume=physicalVolume)
+                logging.info("Wiping '%(physicalVolume)s' since it contains another copy of the volume group..." \
+                      % dict(physicalVolume=physicalVolume))
                 self.clear(device=physicalVolume, count=1)
                 if self._isPartitionOfPhysicalDevice(physicalVolume):
                     physicalDevice = self._getPhysicalDeviceOfPartition(physicalVolume)
                     if physicalDevice == self._device:
-                        print "Skipping wipe of the physical device that contained the volume group since" \
-                              " it's the target divice."
+                        logging.info("Skipping wipe of the physical device that contained the volume group since" \
+                              " it's the target device.")
                         continue
-                    print "Wiping the physical device '%(physicalDevice)s' which contained the volume " \
-                          "group..." % dict(physicalDevice=physicalDevice)
+                    logging.info("Wiping the physical device '%(physicalDevice)s' which contained the volume " \
+                          "group..." % dict(physicalDevice=physicalDevice))
                     self.clear(device=physicalDevice, count=1)
 
     def verify(self):
-        if not self._findMismatch():
-            print "Partition table already set up"
+        mismatch = self._findMismatch()
+        if not mismatch:
+            logging.info("Partition table already set up")
             lvmPartitionPath = self._getPartitionPath("lvm")
             sh.run("lvm pvscan --cache %s" % lvmPartitionPath)
             for lv in ["root", "swap"]:
                 lv = "%s/%s" % (self.VOLUME_GROUP, lv)
-                print "Activating %s" % (lv,)
+                logging.info("Activating %s" % (lv,))
                 sh.run("lvm lvchange --activate y %s" % lv)
             sh.run("lvm vgscan --mknodes")
-            print "/dev/inaugurator:"
+            logging.info("/dev/inaugurator:")
             try:
-                print sh.run("busybox find /dev/inaugurator")
+                logging.info(sh.run("busybox find /dev/inaugurator"))
             except Exception as e:
-                print "Unable: %s" % e
+                logging.info("Unable: %s" % e)
             self._wipeOldInstallationsIfAllowed()
             return
+        logging.warning("Found mismatch in partition layout - %s", mismatch)
+        if not self._wipeOldInstallations:
+            raise Exception("Found mismatch in partition layout. we cannot continue without wiping data")    
         self._create()
         for retry in xrange(5):
             mismatch = self._findMismatch()
@@ -351,19 +362,18 @@ class PartitionTable:
                 self._wipeOldInstallationsIfAllowed()
                 return
             else:
-                print "Partition table not correct even after %d retries: '%s'" % (
-                    retry, mismatch)
+                logging.info("Partition table not correct even after %d retries: '%s'" % (retry, mismatch))
                 time.sleep(0.2)
-        print "Found Partition Table:", self.parsePartitionTable()
+        logging.info("Found Partition Table: %s", self.parsePartitionTable())
         try:
-            print "Found LVM physical:", self.parseLVMPhysicalVolume()
+            logging.info("Found LVM physical: %s", self.parseLVMPhysicalVolume())
         except:
-            print "Can't get physical LVM"
+            logging.info("Can't get physical LVM")
         try:
-            print "Found LVM logical:", self.parseLVMLogicalVolume()
+            logging.info("Found LVM logical: %s", self.parseLVMLogicalVolume())
         except:
-            print "Can't get logical LVM"
-        print "Mismatch:", self._findMismatch()
+            logging.info("Can't get logical LVM")
+        logging.info("Mismatch: %s", self._findMismatch())
         raise Exception("Created partition table isn't as expected")
 
     def _waitForFileToShowUp(self, path):
