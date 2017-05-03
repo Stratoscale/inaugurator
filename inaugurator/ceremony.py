@@ -180,6 +180,11 @@ class Ceremony:
         if self._args.inauguratorServerAMQPURL is not None:
             assert self._args.inauguratorMyIDForServer is not None, \
                 'If communicating with server, must specifiy --inauguratorMyIDForServer'
+        if [bool(self._args.inauguratorTargetDeviceCandidate),
+            bool(self._args.inauguratorTargetDeviceLabel),
+            bool(self._args.inauguratorTargetDeviceType)].count(True) != 1:
+            logging.info("Invalid input arguments: inauguratorTargetDeviceCandidate, "
+                            "inauguratorTargetDeviceLabel and inauguratorTargetDeviceType are mutually exclusive")
 
     def _createPartitionTable(self):
         lvmetad.Lvmetad()

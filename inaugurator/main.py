@@ -56,13 +56,6 @@ def getArgsSource():
     args = parser.parse_known_args()[0]
     return args.inauguratorArgumentsSource
 
-def assertArgsSane(args):
-    if [bool(args.inauguratorTargetDeviceCandidate),
-        bool(args.inauguratorTargetDeviceLabel),
-        bool(args.inauguratorTargetDeviceType)].count(True) != 1:
-        raise Exception("Invalid input arguments: inauguratorTargetDeviceCandidate, "
-                        "inauguratorTargetDeviceLabel and inauguratorTargetDeviceType are mutually exclusive")
-
 
 def main():
     # Earlier versions of pika are buggy
@@ -80,8 +73,6 @@ def main():
     if args.inauguratorSkipPdbOnError:
         global PDB_ON_ERROR
         PDB_ON_ERROR = False
-
-    assertArgsSane(args)
 
     ceremonyInstance = ceremony.Ceremony(args)
     for stage in args.inauguratorStages.split(","):
