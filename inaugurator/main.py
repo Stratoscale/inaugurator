@@ -5,11 +5,12 @@ import pdb
 import logging
 import sys
 from inaugurator import packagesvalidation
+from inaugurator import log
+from inaugurator import consts
 
+log.addStdoutHandler()
+log.addFileHandler(consts.INAUGURATOR_RAM_LOG_FILE_NAME)
 
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logging.getLogger('pika').setLevel(logging.INFO)
 PDB_ON_ERROR = True
 
 parser = argparse.ArgumentParser(add_help=False)

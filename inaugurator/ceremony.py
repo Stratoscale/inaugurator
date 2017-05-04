@@ -19,11 +19,13 @@ from inaugurator import lvmetad
 from inaugurator import verify
 from inaugurator import debugthread
 from inaugurator import storagedevices
+from inaugurator import consts
 import os
 import re
 import time
 import logging
 import threading
+import shutil
 
 
 class Ceremony:
@@ -90,7 +92,8 @@ class Ceremony:
         self._loadAllDriversIfNeeded()
         self._makeSureDiskIsMountable()
         with self._mountOp.mountRoot() as destination:
-            self._configureLogfileIfThereIsNone()
+            self._copyInauguratorLog(destination)
+            self._changeLogFileHandler(destination)
             self._initializeNetworkIfNeeded()
             self._disableNCQIfNeeded()
             self._readSmartDataIfNeeded()
@@ -103,7 +106,6 @@ class Ceremony:
             self._loadKernelForKexecing(destination)
             logging.info("kernel loaded")
             self._additionalDownload(destination)
-            self._closeLogfileIfNeeded()
 
     def kexec(self):
         self._sync()
@@ -120,26 +122,6 @@ class Ceremony:
         self._sync()
         self._verify()
         sh.run("reboot -f")
-
-    def _configureLogfileIfThereIsNone(self):
-        if sh.logFilepath is None:
-            commandsLogpath = os.path.join(self._mountOp.ROOT_MOUNT_POINT, "inaugurator.commands.log")
-            logging.info("Configuring commands log filepath (by default) to: %s" % (commandsLogpath,))
-            sh.logFilepath = commandsLogpath
-            logFilepath = os.path.join(self._mountOp.ROOT_MOUNT_POINT, "inaugurator.log")
-            logging.info("Configuring log filepath (by default) to: %s" % (logFilepath,))
-            self._fileHandler = logging.FileHandler(logFilepath)
-            self._fileHandler.setLevel(logging.DEBUG)
-            logger = logging.getLogger()
-            logger.setLevel(logging.DEBUG)
-            logger.addHandler(self._fileHandler)
-
-    def _closeLogfileIfNeeded(self):
-        if self._fileHandler is not None:
-            logging.info("Closing log file...")
-            self._fileHandler.close()
-            logger = logging.getLogger()
-            logger.removeHandler(self._fileHandler)
 
     def _initializeNetworkIfNeeded(self):
         if self._args.inauguratorSource == 'network' and \
@@ -317,6 +299,18 @@ class Ceremony:
         if self._args.inauguratorDownload:
             downloadInstance = download.Download(self._args.inauguratorDownload)
             downloadInstance.download(destination)
+
+    def _copyInauguratorLog(self, dst):
+        logging.info("Copying %s to %s", consts.INAUGURATOR_LOG_FILE_NAME, dst)
+        dstLogFile = os.path.join(dst, consts.INAUGURATOR_LOG_FILE_NAME)
+        if os.path.exists(dstLogFile):
+            logging.info("Log file %s exists, removing it", dstLogFile)
+            os.remove(dstLogFile)
+        shutil.copyfile(consts.INAUGURATOR_RAM_LOG_FILE_NAME, dstLogFile)
+        
+    def _changeLogFileHandler(self, dst):
+        log.removeAllFileHandlers()
+        log.addFileHandler(os.path.join(dst, consts.INAUGURATOR_LOG_FILE_NAME))
 
     def _makeSureDiskIsMountable(self):
         self._setTargetDevice()
