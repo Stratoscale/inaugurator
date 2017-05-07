@@ -8,9 +8,6 @@ from inaugurator import packagesvalidation
 from inaugurator import log
 from inaugurator import consts
 
-log.addStdoutHandler()
-log.addFileHandler(consts.INAUGURATOR_RAM_LOG_FILE_NAME)
-
 PDB_ON_ERROR = True
 
 parser = argparse.ArgumentParser(add_help=False)
@@ -57,6 +54,8 @@ def getArgsSource():
 
 
 def main():
+    log.addStdoutHandler()
+    log.addFileHandler(consts.INAUGURATOR_RAM_LOG_FILE_NAME)
     # Earlier versions of pika are buggy
     packagesvalidation.validateMinimumVersions(pika="0.10.0")
     argsSource = getArgsSource()
