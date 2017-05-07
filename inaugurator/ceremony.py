@@ -20,6 +20,7 @@ from inaugurator import verify
 from inaugurator import debugthread
 from inaugurator import storagedevices
 from inaugurator import consts
+from inaugurator import log
 import os
 import re
 import time
@@ -59,8 +60,6 @@ class Ceremony:
                                 usedful for upgrades - to keep the current configuration somewhere.
         inauguratorTargetDeviceCandidate - a list of devices (['/dev/vda', '/dev/sda']) to use as the
                                            inauguration target
-        inauguratorLogfilePath - Path of log file to keep track of shell commands that are run during
-                                 inauguration.
         inauguratorStages - A comma-seperated list of stages to perform by order. Available stages:
                             'ceremony','kexec','reboot'.
         inauguratorExpectedLabel - A label that identifies the source device, when using either a CDROM or
@@ -81,7 +80,6 @@ class Ceremony:
         self._debugPort = None
         self._isExpectingReboot = False
         self._grubConfig = None
-        sh.logFilepath = self._args.inauguratorLogfilePath
         self._before = time.time()
         self._bootPartitionPath = None
         self._wereDriversLoaded = False
@@ -335,6 +333,10 @@ class Ceremony:
             logging.info("Searching for target devices with label %(deviceLabel)s",
                          dict(deviceLabel=self._args.inauguratorTargetDeviceLabel))
             candidates = self._getDevicesWithLabel(self._args.inauguratorTargetDeviceLabel)
+        else:
+            msg = "Must specify at least one of the following arguments - " \
+                  "inauguratorTargetDeviceCandidate, inauguratorTargetDeviceType, inauguratorTargetDeviceLabel"
+            raise Exception(msg)
         logging.info("The following devices are the candidates for inauguration %s" % candidates)
         if len(candidates) > 1:
             raise Exception("Cannot have more than 1 device as candidate, candidates %s" % candidates) 

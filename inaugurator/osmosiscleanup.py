@@ -24,7 +24,10 @@ class OsmosisCleanup:
                 logging.info("Erasing disk - osmosis cleanup did not help")
                 self._eraseEverything(mountPoint)
             else:
-                raise Exception("Disk usage is - %s bigger than the upper threshold - %s", (diskUsage, self._usageUpperThreshold))
+                msg = "Disk usage is - %s bigger than the upper threshold - %s" \
+                      "and inaugurator was configured not to wipe objectstore" % \
+                      (diskUsage, self._usageUpperThreshold)
+                raise Exception(msg)
 
     def _objectStoreExists(self):
         try:

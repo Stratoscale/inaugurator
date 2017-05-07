@@ -22,7 +22,7 @@ class PartitionTable:
         self._cachedDiskSize = None
         self._created = False
         if layoutScheme not in self._layoutSchemes:
-            logging.info("Invalid layout scheme. Possible values: '%s'" % "', '".join(self._layoutSchemes.keys()))
+            logging.error("Invalid layout scheme. Possible values: '%s'" % "', '".join(self._layoutSchemes.keys()))
             raise ValueError(layoutScheme)
         self._layoutScheme = layoutScheme
         self._physicalPartitions = self._layoutSchemes[layoutScheme]["partitions"]

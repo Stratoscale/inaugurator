@@ -22,7 +22,7 @@ def loadAllDrivers():
                 logging.info("\t%s: %s" % (k.encode('utf-8'), v.encode('utf-8')))
         except Exception as e:
             logging.info(str(e))
-            logging.info("WARNING: Failed to logging.info(driver details, will not load it. Skipping.")
+            logging.warning("WARNING: Failed to logging.info(driver details, will not load it. Skipping.")
             continue
         driver = _findDriver(device, aliasTable)
         if driver is None:
