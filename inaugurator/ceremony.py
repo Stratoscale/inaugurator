@@ -104,6 +104,7 @@ class Ceremony:
             self._loadKernelForKexecing(destination)
             logging.info("kernel loaded")
             self._additionalDownload(destination)
+            log.removeAllFileHandlers()
 
     def kexec(self):
         self._sync()
