@@ -92,6 +92,7 @@ class Ceremony:
         with self._mountOp.mountRoot() as destination:
             self._copyInauguratorLog(destination)
             self._changeLogFileHandler(destination)
+            import pdb; pdb.set_trace()
             self._initializeNetworkIfNeeded()
             self._disableNCQIfNeeded()
             self._readSmartDataIfNeeded()
