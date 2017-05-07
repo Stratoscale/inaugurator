@@ -230,7 +230,7 @@ class Ceremony:
                 objectStores=self._args.inauguratorOsmosisObjectStores,
                 withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
                 noChainTouch=self._args.inauguratorNoChainTouch,
-                ignoreDirs=self._args.inauguratorIgnoreDirs,
+                ignoreDirs=self._args.inauguratorIgnoreDirs + [consts.INAUGURATOR_LOG_FILE_NAME],
                 talkToServer=self._talkToServer)
             if self._args.inauguratorServerAMQPURL:
                 self._label = self._talkToServer.label()
@@ -257,7 +257,7 @@ class Ceremony:
                 destination, objectStores=source + "/osmosisobjectstore",
                 withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
                 noChainTouch=self._args.inauguratorNoChainTouch,
-                ignoreDirs=self._args.inauguratorIgnoreDirs,
+                ignoreDirs=self._args.inauguratorIgnoreDirs + [consts.INAUGURATOR_LOG_FILE_NAME],
                 talkToServer=self._talkToServer)
             with open("%s/inaugurate_label.txt" % source) as f:
                 self._label = f.read().strip()
@@ -271,7 +271,7 @@ class Ceremony:
                 destination, objectStores=source + "/osmosisobjectstore",
                 withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
                 noChainTouch=self._args.inauguratorNoChainTouch,
-                ignoreDirs=self._args.inauguratorIgnoreDirs,
+                ignoreDirs=self._args.inauguratorIgnoreDirs + [consts.INAUGURATOR_LOG_FILE_NAME],
                 talkToServer=self._talkToServer)
             with open("%s/inaugurate_label.txt" % source) as f:
                 self._label = f.read().strip()
@@ -283,7 +283,7 @@ class Ceremony:
             destination, objectStores=None,
             withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
             noChainTouch=self._args.inauguratorNoChainTouch,
-            ignoreDirs=self._args.inauguratorIgnoreDirs,
+            ignoreDirs=self._args.inauguratorIgnoreDirs + [consts.INAUGURATOR_LOG_FILE_NAME],
             talkToServer=self._talkToServer)
         self._label = self._args.inauguratorNetworkLabel
         osmos.tellLabel(self._label)
