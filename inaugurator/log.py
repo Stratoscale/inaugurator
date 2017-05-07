@@ -1,4 +1,5 @@
 import logging
+from logging import handlers
 from inaugurator import consts
 import sys
 
@@ -20,7 +21,7 @@ def addFileHandler(filename):
     logging.info("Logger - Adding file handler %s", filename)
     log = getRootLogger()
     log.setLevel(logging.INFO)
-    fh = logging.handlers.RotatingFileHandler(filename, maxBytes=(1048576 * 5), backupCount=7)
+    fh = handlers.RotatingFileHandler(filename, maxBytes=(1048576 * 5), backupCount=7)
     fh.setFormatter(FORMAT)
     log.addHandler(fh)
     logging.info("Logger - File handler %s has been added", filename)
