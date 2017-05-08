@@ -22,7 +22,8 @@ class PartitionTable:
         self._cachedDiskSize = None
         self._created = False
         if layoutScheme not in self._layoutSchemes:
-            logging.error("Invalid layout scheme. Possible values: '%s'" % "', '".join(self._layoutSchemes.keys()))
+            logging.error("Invalid layout scheme. Possible values: '%s'",
+                          "', '".join(self._layoutSchemes.keys()))
             raise ValueError(layoutScheme)
         self._layoutScheme = layoutScheme
         self._physicalPartitions = self._layoutSchemes[layoutScheme]["partitions"]
@@ -42,9 +43,11 @@ class PartitionTable:
     def _buildLayoutSchemes(self, bootPartitionSizeMB):
         self._layoutSchemes = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, flags="bios_grub"),
                                             boot=dict(sizeMB=bootPartitionSizeMB, fs="ext4", flags="boot"),
-                                            lvm=dict(flags="lvm", sizeMB="fillUp")), order=("bios_boot", "boot", "lvm")),
-                                   MBR=dict(partitions=dict(boot=dict(sizeMB=bootPartitionSizeMB, fs="ext4", flags="boot"),
-                                            lvm=dict(flags="lvm", sizeMB="fillUp")),order=("boot", "lvm")))
+                                            lvm=dict(flags="lvm", sizeMB="fillUp")),
+                                            order=("bios_boot", "boot", "lvm")),
+                                   MBR=dict(partitions=dict(boot=dict(sizeMB=bootPartitionSizeMB,
+                                                                      fs="ext4", flags="boot"),
+                                            lvm=dict(flags="lvm", sizeMB="fillUp")), order=("boot", "lvm")))
 
     def _create(self):
         self.clear()
@@ -304,34 +307,35 @@ class PartitionTable:
             self._wipeOtherPartitionsWithBootLabel()
 
     def _wipeOtherPartitionsWithBootLabel(self):
-        logging.info("Validating that device %(device)s is the only one with BOOT label..." % \
-              dict(device=self._getPartitionPath("boot")))
+        logging.info("Validating that device %(device)s is the only one with BOOT label...",
+                     dict(device=self._getPartitionPath("boot")))
         for device in self.getDevicesWithLabel("BOOT"):
             if device != self._getPartitionPath("boot") and device != self._device:
-                logging.info("Wiping '%(device)s' since it is labeled as BOOT (probably leftovers from previous " \
-                      "inaugurations)..." % (dict(device=device)))
+                logging.info("Wiping '%(device)s' since it is labeled as BOOT (probably leftovers from "
+                             "previous inaugurations)...", dict(device=device))
                 self.clear(device=device, count=1)
 
     def _wipeOtherPartitionsWithSameVolumeGroup(self):
-        logging.info("Validating that volume group %(vg)s is bound only to one device..." % \
-              dict(vg=self.VOLUME_GROUP))
+        logging.info("Validating that volume group %(vg)s is bound only to one device...",
+                     dict(vg=self.VOLUME_GROUP))
         vgs = self._parseVGs()
         if not vgs:
             raise Exception("No volume group was found after configuration of LVM.")
         targetPhysicalVolumeForVolumeGroup = self._getPartitionPath("lvm")
         for physicalVolume, volumeGroup in vgs.iteritems():
             if physicalVolume != targetPhysicalVolumeForVolumeGroup and volumeGroup == self.VOLUME_GROUP:
-                logging.info("Wiping '%(physicalVolume)s' since it contains another copy of the volume group..." \
-                      % dict(physicalVolume=physicalVolume))
+                logging.info("Wiping '%(physicalVolume)s' since it contains another copy of the volume "
+                             "group...",
+                             dict(physicalVolume=physicalVolume))
                 self.clear(device=physicalVolume, count=1)
                 if self._isPartitionOfPhysicalDevice(physicalVolume):
                     physicalDevice = self._getPhysicalDeviceOfPartition(physicalVolume)
                     if physicalDevice == self._device:
-                        logging.info("Skipping wipe of the physical device that contained the volume group since" \
-                              " it's the target device.")
+                        logging.info("Skipping wipe of the physical device that contained the volume "
+                                     "group since it's the target device.")
                         continue
-                    logging.info("Wiping the physical device '%(physicalDevice)s' which contained the volume " \
-                          "group..." % dict(physicalDevice=physicalDevice))
+                    logging.info("Wiping the physical device '%(physicalDevice)s' which contained the "
+                                 "volume group...", dict(physicalDevice=physicalDevice))
                     self.clear(device=physicalDevice, count=1)
 
     def verify(self):
@@ -354,7 +358,7 @@ class PartitionTable:
             return
         logging.warning("Found mismatch in partition layout - %s", mismatch)
         if not self._wipeOldInstallations:
-            raise Exception("Found mismatch in partition layout. we cannot continue without wiping data")    
+            raise Exception("Found mismatch in partition layout. we cannot continue without wiping data")
         self._create()
         for retry in xrange(5):
             mismatch = self._findMismatch()

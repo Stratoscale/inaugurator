@@ -162,10 +162,11 @@ class Ceremony:
             assert self._args.inauguratorMyIDForServer is not None, \
                 'If communicating with server, must specifiy --inauguratorMyIDForServer'
         if [bool(self._args.inauguratorTargetDeviceCandidate),
-            bool(self._args.inauguratorTargetDeviceLabel),
-            bool(self._args.inauguratorTargetDeviceType)].count(True) != 1:
+                bool(self._args.inauguratorTargetDeviceLabel),
+                bool(self._args.inauguratorTargetDeviceType)].count(True) != 1:
             raise Exception("Invalid input arguments: inauguratorTargetDeviceCandidate, "
-                            "inauguratorTargetDeviceLabel and inauguratorTargetDeviceType are mutually exclusive")
+                            "inauguratorTargetDeviceLabel and inauguratorTargetDeviceType are "
+                            "mutually exclusive")
 
     def _createPartitionTable(self):
         lvmetad.Lvmetad()
@@ -306,7 +307,7 @@ class Ceremony:
             logging.info("Log file %s exists, removing it", dstLogFile)
             os.remove(dstLogFile)
         shutil.copyfile(consts.INAUGURATOR_RAM_LOG_FILE_NAME, dstLogFile)
-        
+
     def _changeLogFileHandler(self, dst):
         log.removeAllFileHandlers()
         log.addFileHandler(os.path.join(dst, consts.INAUGURATOR_LOG_FILE_NAME))
@@ -335,12 +336,14 @@ class Ceremony:
                          dict(deviceLabel=self._args.inauguratorTargetDeviceLabel))
             candidates = self._getDevicesWithLabel(self._args.inauguratorTargetDeviceLabel)
         else:
-            msg = "Must specify at least one of the following arguments - " \
-                  "inauguratorTargetDeviceCandidate, inauguratorTargetDeviceType, inauguratorTargetDeviceLabel"
+            msg = ("Must specify at least one of the following arguments - "
+                   "inauguratorTargetDeviceCandidate, inauguratorTargetDeviceType, "
+                   "inauguratorTargetDeviceLabel")
             raise Exception(msg)
         logging.info("The following devices are the candidates for inauguration %s" % candidates)
         if len(candidates) > 1:
-            raise Exception("Cannot have more than 1 device as candidate, candidates %s" % candidates) 
+            raise Exception(("Cannot have more than 1 device as candidate, candidates %s" %
+                             candidates))
         self._targetDevice = targetdevice.TargetDevice.device(candidates)
 
     def _getDevicesWithLabel(self, label):

@@ -5,8 +5,10 @@ import sys
 
 FORMAT = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
+
 def getRootLogger():
     return logging.getLogger()
+
 
 def addStdoutHandler():
     logging.info("Logger - Adding stdout handler")
@@ -17,6 +19,7 @@ def addStdoutHandler():
     log.addHandler(ch)
     logging.info("Logger - stdout handler has been added")
 
+
 def addFileHandler(filename):
     logging.info("Logger - Adding file handler %s", filename)
     log = getRootLogger()
@@ -25,6 +28,7 @@ def addFileHandler(filename):
     fh.setFormatter(FORMAT)
     log.addHandler(fh)
     logging.info("Logger - File handler %s has been added", filename)
+
 
 def removeAllFileHandlers():
     log = getRootLogger()

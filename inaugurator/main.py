@@ -41,9 +41,14 @@ parser.add_argument("--inauguratorDontFailOnFailedDisk", action="store_true", de
 parser.add_argument("--inauguratorCleanupUpperPercentageThreshold", type=int, default=65)
 parser.add_argument("--inauguratorWipeOldInauguratorInstallations", action="store_true", default=False)
 parser.add_argument("--inauguratorWipeOsmosisObjectStoreIfNeeded", action="store_true", default=False)
-parser.add_argument("--inauguratorTargetDeviceCandidate", nargs='+', help="This parameter is mutually exclusive with inauguratorTargetDeviceLabel and inauguratorTargetDeviceType")
-parser.add_argument("--inauguratorTargetDeviceLabel", help="This parameter is mutually exclusive with inauguratorTargetDeviceCandidate and inauguratorTargetDeviceType")
-parser.add_argument("--inauguratorTargetDeviceType", help="This parameter is mutually exclusive with inauguratorTargetDeviceCandidate and inauguratorTargetDeviceLabel")
+parser.add_argument("--inauguratorTargetDeviceCandidate", nargs='+',
+                    help="This parameter is mutually exclusive with inauguratorTargetDeviceLabel "
+                         "and inauguratorTargetDeviceType")
+parser.add_argument("--inauguratorTargetDeviceLabel", help="This parameter is mutually exclusive "
+                    "with inauguratorTargetDeviceCandidate and inauguratorTargetDeviceType")
+parser.add_argument("--inauguratorTargetDeviceType", help="This parameter is mutually exclusive "
+                    "with inauguratorTargetDeviceCandidate and inauguratorTargetDeviceLabel")
+
 
 def getArgsSource():
     parser = argparse.ArgumentParser(add_help=False)
