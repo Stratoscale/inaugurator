@@ -14,12 +14,12 @@ class PartitionTable:
         minimumRoot=7,
         createRoot=10)
     VOLUME_GROUP = "inaugurator"
-    LAYOUT_SCHEMES = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, flags="bios_grub"),
-                                                   boot=dict(sizeMB=256, fs="ext4", flags="boot"),
-                                                   lvm=dict(flags="lvm", sizeMB="fillUp")),
+    LAYOUT_SCHEMES = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, set_flags="bios_grub", flags="bios_grub"),
+                                                   boot=dict(sizeMB=256, fs="ext4", flags="boot, esp", set_flags="boot"),
+                                                   lvm=dict(set_flags="lvm", flags="lvm", sizeMB="fillUp")),
                                    order=("bios_boot", "boot", "lvm")),
-                          MBR=dict(partitions=dict(boot=dict(sizeMB=256, fs="ext4", flags="boot"),
-                                                   lvm=dict(flags="lvm", sizeMB="fillUp")),
+                          MBR=dict(partitions=dict(boot=dict(sizeMB=256, fs="ext4", set_flags="boot", flags="boot"),
+                                                   lvm=dict(set_flags="lvm", flags="lvm", sizeMB="fillUp")),
                                    order=("boot", "lvm")))
 
     def __init__(self, device, sizesGB=dict(), layoutScheme="GPT"):
@@ -111,7 +111,7 @@ class PartitionTable:
     def _setFlags(self):
         for partitionIdx, partition in enumerate(self._physicalPartitionsOrder):
             partitionNr = partitionIdx + 1
-            flag = self._physicalPartitions[partition]["flags"]
+            flag = self._physicalPartitions[partition]["set_flags"]
             print "Setting flag '%s' for partition #%d..." % (flag, partitionNr)
             sh.run("parted -s %s set %d %s on" % (self._device, partitionNr, flag))
 
