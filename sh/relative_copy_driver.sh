@@ -5,7 +5,7 @@
 
 #Blacklist of firmware binaries not found in the distribution
 # See: http://www.spinics.net/lists/linux-scsi/msg85340.html
-FIRMWARE_BLACKLIST="-e ql2600_fw.bin -e ql2700_fw.bin -e ql8300_fw.bin"
+FIRMWARE_BLACKLIST="-e ql2600_fw.bin -e ql2700_fw.bin -e ql8300_fw.bin -e netronome -e wd719x"
 
 set -e
 for ko in `modprobe --show-depends $1 --set-version=$KERNEL_UNAME_R | sed 's/insmod //'`; do
