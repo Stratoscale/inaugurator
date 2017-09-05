@@ -15,7 +15,7 @@ class IDListener:
         self._callback = callback
         self._notListeningAnymore = False
         self._channel.exchange_declare(
-            self._onExchangeDeclared, exchange=statusExchange(self._id), type='fanout')
+            self._onExchangeDeclared, exchange=statusExchange(self._id), exchange_type='fanout')
 
     def stopListening(self):
         if self._notListeningAnymore:
