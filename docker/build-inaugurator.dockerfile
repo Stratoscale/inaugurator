@@ -1,7 +1,7 @@
 define(`KERNEL_VERSION', esyscmd(`printf \`\`%s\'\' "$KERNEL_VERSION"'))
 
-FROM centos:7.2.1511
-MAINTAINER eliran@stratoscale.com
+FROM centos:7.3.1611
+MAINTAINER korabel@stratoscale.com
 
 # Install other tools
 RUN yum update -y && \

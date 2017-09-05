@@ -57,9 +57,9 @@ class TalkToServerSpooler(threading.Thread):
         logging.info("Creating a pika channel...")
         self._channel = self._connection.channel()
         logging.info("Declaring a RabbitMQ exchange %(exchange)s...", dict(exchange=self._statusExchange))
-        self._channel.exchange_declare(exchange=self._statusExchange, type='fanout')
+        self._channel.exchange_declare(exchange=self._statusExchange, exchange_type='fanout')
         logging.info("Declaring a RabbitMQ exchange %(exchange)s...", dict(exchange=self._labelExchange))
-        self._channel.exchange_declare(exchange=self._labelExchange, type='fanout')
+        self._channel.exchange_declare(exchange=self._labelExchange, exchange_type='fanout')
         logging.info("Declaring an exclusive RabbitMQ label queue...")
         frame = self._channel.queue_declare(exclusive=True)
         self._labelQueue = frame.method.queue

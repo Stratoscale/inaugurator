@@ -7,7 +7,7 @@ def read(fname):
 
 setup(
     name="inaugurator",
-    version="1.4.4",
+    version="1.5.4",
     author="Shlomo Matichin",
     author_email="shlomomatichin@gmail.com",
     description=(
