@@ -57,7 +57,7 @@ class Server(threading.Thread):
             self._idsWithLabelExchanges.add(id)
             _logger.info("Label exchange '%(exchange)s' declared", dict(exchange=labelExchange))
 
-        self._channel.exchange_declare(onLabelExchangeDeclared, type='fanout', exchange=labelExchange)
+        self._channel.exchange_declare(onLabelExchangeDeclared, exchange_type='fanout', exchange=labelExchange)
 
     def _stopListeningOnID(self, id):
         if id not in self._listeners:

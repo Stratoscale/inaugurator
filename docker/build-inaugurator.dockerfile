@@ -1,6 +1,6 @@
 define(`KERNEL_VERSION', esyscmd(`printf \`\`%s\'\' "$KERNEL_VERSION"'))
 
-FROM centos:7.2.1511
+FROM centos:7.3.1611
 MAINTAINER eliran@stratoscale.com
 
 # Install other tools

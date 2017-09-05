@@ -61,7 +61,7 @@ class PikaChannelMock:
                     return True
             return Any()
 
-        self.exchange_declare.assert_called_with(Any(int), exchange=expectedStatusExchange, type='fanout')
+        self.exchange_declare.assert_called_with(Any(int), exchange=expectedStatusExchange, exchange_type='fanout')
         statusExchangeDeclaredCallback = self._getCallback(self.exchange_declare)
         statusExchangeDeclaredCallback(MethodFrameMock())
 
