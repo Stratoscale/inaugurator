@@ -3,6 +3,7 @@ import traceback
 import time
 import os
 import logging
+import pdb
 from inaugurator import sh
 
 
@@ -390,7 +391,13 @@ class PartitionTable:
     def _getPartitionPath(self, partitionPurpose):
         partitionIdx = self._physicalPartitionsOrder.index(partitionPurpose)
         partitionNr = partitionIdx + 1
-        return "%(device)s%(partitionNr)s" % dict(device=self._device, partitionNr=partitionNr)
+        nativeDevice = "%(device)s%(partitionNr)s" % dict(device=self._device, partitionNr=partitionNr)
+        if os.path.exists(nativeDevice):
+            return nativeDevice
+        nvmeDevice = "%(device)sp%(partitionNr)s" % dict(device=self._device, partitionNr=partitionNr)
+        if os.path.exists(nvmeDevice):
+            return nvmeDevice
+        pdb.set_trace()
 
     def getBootPartitionPath(self):
         return self._getPartitionPath("boot")

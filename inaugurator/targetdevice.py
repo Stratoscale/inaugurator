@@ -26,7 +26,10 @@ class TargetDevice:
                 if not stat.S_ISBLK(os.stat(device).st_mode):
                     continue
                 try:
-                    output = sh.run("dosfslabel", device + 1)
+                    if os.path.exists(device + "1"):
+                        output = sh.run("dosfslabel", device + "1")
+                    else:
+                        output = sh.run("dosfslabel", device + "p1")
                     if output.strip() == "STRATODOK":
                         raise Exception(
                             "DOK was found on SDA. cannot continue: its likely the "
