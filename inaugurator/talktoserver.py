@@ -58,12 +58,12 @@ class TalkToServerSpooler(threading.Thread):
         logging.info("Declaring a RabbitMQ exchange %(exchange)s...", dict(exchange=self._statusExchange))
         self._channel.exchange_declare(exchange=self._statusExchange, exchange_type='fanout', auto_delete=True)
         logging.info("Declaring a RabbitMQ exchange %(exchange)s...", dict(exchange=self._labelExchange))
-        self._channel.exchange_declare(exchange=self._labelExchange, exchange_type='fanout', auto_delete=True)
+        self._channel.exchange_declare(exchange="inaugurator_labels", exchange_type='direct')
         logging.info("Declaring an exclusive RabbitMQ label queue...")
         frame = self._channel.queue_declare(exclusive=True)
         self._labelQueue = frame.method.queue
         logging.info("Binding label queue %(queue)s with labels exchange...", dict(queue=self._labelQueue))
-        self._channel.queue_bind(queue=self._labelQueue, exchange=self._labelExchange)
+        self._channel.queue_bind(queue=self._labelQueue, exchange="inaugurator_labels", routing_key=self._labelExchange)
         logging.info("Inaugurator Publish Spooler is connected to the RabbitMQ broker.")
 
     def _publishStatus(self, **status):
