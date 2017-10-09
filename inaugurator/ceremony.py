@@ -175,7 +175,7 @@ class Ceremony:
         with open("/proc/cmdline", "r") as cmdLineFile:
             cmdLine = cmdLineFile.read()
         args = cmdLine.split(" ")
-        keyValuePairs = [arg.split("=") for arg in args if "=" in arg]
+        keyValuePairs = [arg.split("=",1) for arg in args if "=" in arg]
         consoles = [value for key, value in keyValuePairs if key == "console"]
         return consoles
 
