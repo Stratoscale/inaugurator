@@ -23,7 +23,8 @@ class Osmose:
         elif localObjectStore is not None:
             localObjectStore = os.path.join(localObjectStore, "objectstore")
 
-        objectStores = localObjectStore + ("+" + objectStores if objectStores else "")
+        if localObjectStore is not None:
+            objectStores = localObjectStore + ("+" + objectStores if objectStores else "")
 
         extra = []
         if absoluteIgnoreDirs:
