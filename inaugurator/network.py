@@ -9,7 +9,7 @@ class Network:
     def __init__(self, macAddress, ipAddress, netmask, gateway):
         self._gateway = gateway
         interfacesTable = self._interfacesTable()
-        assert macAddress.lower() in interfacesTable
+        assert macAddress.lower() in interfacesTable, "macAddress %s interfacesTable %s" % (macAddress, interfacesTable)
         interfaceName = interfacesTable[macAddress.lower()]
         sh.run("/usr/sbin/ifconfig %s %s netmask %s" % (interfaceName, ipAddress, netmask))
         sh.run("busybox route add default gw %s" % self._gateway)
