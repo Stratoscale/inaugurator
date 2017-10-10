@@ -35,13 +35,18 @@ class Osmose:
             "/usr/bin/osmosis", "checkout", destination, '+', '--MD5', '--putIfMissing',
             '--removeUnknownFiles', '--objectStores', objectStores] + extra
         print "Running osmosis:\n%s" % " ".join(cmd)
-        self._popen = subprocess.Popen(cmd, close_fds=True, stdin=subprocess.PIPE)
+        self._popen = subprocess.Popen(cmd, close_fds=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     def tellLabel(self, label):
         self._popen.stdin.write(label + "\n")
         self._popen.stdin.close()
 
     def wait(self):
+        osmosis_output = []
+        for line in iter(self._popen.stdout.readline, b''):
+            print "Osmosis:>>> %s" % line.rstrip()
+            osmosis_output.append(line)
+        self._popen.stdout.close()
         result = self._popen.wait()
         if result != 0:
-            raise Exception("Osmosis failed")
+            raise Exception("Osmosis failed: return code %d output %s" % (result, '\n'.join(osmosis_output)))
