@@ -303,7 +303,16 @@ class Ceremony:
             append=self._args.inauguratorPassthrough)
 
     def _doOsmosisFromSource(self, destination):
-        osmosiscleanup.OsmosisCleanup(destination, objectStorePath=self._localObjectStore)
+        cleanup = osmosiscleanup.OsmosisCleanup(destination, objectStorePath=self._localObjectStore)
+        try:
+            self._doOsmosisFromSourceUnsafe(destination)
+        except Exception as e:
+            logging.exception("Failed to osmosis from source")
+            cleanup.eraseEverything()
+            self._talkToServer.progress(dict(state='warning', message=str(e)))
+            self._doOsmosisFromSourceUnsafe(destination)
+
+    def _doOsmosisFromSourceUnsafe(self, destination):
         if self._args.inauguratorSource == 'network':
             self._osmosFromNetwork(destination)
         elif self._args.inauguratorSource == 'DOK':
