@@ -18,7 +18,7 @@ class OsmosisCleanup:
             before=before, after=disk.dfPercent(objectStorePath)))
         if disk.dfPercent(objectStorePath) > self.ALLOWED_DISK_USAGE_PERCENT:
             logging.info("Erasing disk - osmosis cleanup did not help")
-            self._eraseEverything(objectStorePath)
+            self.eraseEverything()
 
     def _objectStoreExists(self):
         try:
@@ -34,5 +34,5 @@ class OsmosisCleanup:
         except cleanupremovelabelsuntildiskusage.ObjectStoreEmptyException:
             pass
 
-    def _eraseEverything(self, objectStorePath):
-        sh.run("busybox rm -fr %s/*" % objectStorePath)
+    def eraseEverything(self):
+        sh.run("busybox rm -fr %s/*" % self._objectStore.root())
