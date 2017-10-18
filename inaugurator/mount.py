@@ -63,7 +63,7 @@ class Mount:
 
     def _correctEXT4Errors(self, device):
         try:
-            sh.run("/bin/ln -s /proc/mounts /etc/mtab")
+            sh.run("/bin/ln -s /proc/mounts /etc/mtab || true")
             sh.run("/usr/sbin/fsck.ext4 -y -f %s" % device)
         except:
             logging.exception(
