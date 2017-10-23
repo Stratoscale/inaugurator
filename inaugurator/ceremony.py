@@ -310,7 +310,8 @@ class Ceremony:
             logging.exception("Failed to osmosis from source")
             cleanup.eraseEverything()
             sh.run("busybox rm -fr %s/*" % destination)
-            self._talkToServer.progress(dict(state='warning', message=str(e)))
+            if self._talkToServer:
+                self._talkToServer.progress(dict(state='warning', message=str(e)))
             self._doOsmosisFromSourceUnsafe(destination)
 
     def _doOsmosisFromSourceUnsafe(self, destination):
