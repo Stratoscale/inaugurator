@@ -1,4 +1,4 @@
-KERNEL_VERSION=4.12.14-200.fc25.x86_64
+KERNEL_VERSION=4.13.8-100.fc25.x86_64
 INAUGURATOR_VERSION=$(shell python setup.py --version)
 
 KERNEL_IMAGE_PATH=define_build_host_msg
