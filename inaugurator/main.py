@@ -43,7 +43,7 @@ parser.add_argument("--inauguratorWipeOldInauguratorInstallations", action="stor
 parser.add_argument("--inauguratorWipeOsmosisObjectStoreIfNeeded", action="store_true", default=False)
 parser.add_argument("--inauguratorTargetDeviceCandidate", nargs='+',
                     help="This parameter is mutually exclusive with inauguratorTargetDeviceLabel "
-                         "and inauguratorTargetDeviceType")
+                         "and inauguratorTargetDeviceType", default="/dev/sdb")
 parser.add_argument("--inauguratorTargetDeviceLabel", help="This parameter is mutually exclusive "
                     "with inauguratorTargetDeviceCandidate and inauguratorTargetDeviceType")
 parser.add_argument("--inauguratorTargetDeviceType", help="This parameter is mutually exclusive "
