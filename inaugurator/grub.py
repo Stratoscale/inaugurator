@@ -7,8 +7,9 @@ USER_SETTINGS_DIR = "etc/default"
 USER_SETTINGS_FILENAME = "grub"
 
 
-def modifyingGrubConf(userSettingsFileHandler, existingConfiguration, serialDevices):
+def modifyingGrubConf(userSettingsFileHandler, existingConfiguration, serialDevices, passThroughArgs):
     serialDevices = serialDevices or []
+    passThroughArgs = passThroughArgs or ""
     wasGrubCmdlineLinuxParameterWritten = False
     logging.info("Modifying GRUB2 user settings file...")
     for line in existingConfiguration.splitlines():
@@ -20,9 +21,10 @@ def modifyingGrubConf(userSettingsFileHandler, existingConfiguration, serialDevi
             argsWithoutConsole = [arg for arg in cmdline.split(" ") if not arg.startswith("console=")]
             configurationWithoutConsole = " ".join(argsWithoutConsole)
             consoleConfiguration = " ".join(["console=%s" % (device,) for device in serialDevices])
-            line = "GRUB_CMDLINE_LINUX=\"%(configurationWithoutConsole)s %(consoleConfiguration)s\"" % \
+            line = "GRUB_CMDLINE_LINUX=\"%(configurationWithoutConsole)s %(consoleConfiguration)s %(passThroughArgs)s\"" % \
                 dict(configurationWithoutConsole=configurationWithoutConsole,
-                     consoleConfiguration=consoleConfiguration)
+                     consoleConfiguration=consoleConfiguration,
+                     passThroughArgs=passThroughArgs)
         userSettingsFileHandler.write(line)
         userSettingsFileHandler.write(os.linesep)
     if not wasGrubCmdlineLinuxParameterWritten:
@@ -53,13 +55,14 @@ def getExistingConfiguration(destUserSettingsFilename):
     return existingConfiguration
 
 
-def updateGrubConf(serialDevices, destination):
+def updateGrubConf(serialDevices, destination, passThroughArgs):
     destUserSettingsFilename = getUserSettingFileName(destination)
     existingConfiguration = getExistingConfiguration(destUserSettingsFilename)
     with open(destUserSettingsFilename, 'wb') as default_grub:
         modifyingGrubConf(default_grub,
                           existingConfiguration,
-                          serialDevices)
+                          serialDevices,
+                          passThroughArgs)
 
 
 def grub_prefix(destination):
