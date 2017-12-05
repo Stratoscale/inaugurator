@@ -187,7 +187,7 @@ class Ceremony:
             if serialDevices:
                 logging.info("Overriding GRUB2 user settings to set serial devices to '%(devices)s'...",
                              dict(devices=serialDevices))
-                grub.setSerialDevices(serialDevices, destination)
+                grub.updateGrubConf(serialDevices, destination)
             else:
                 logging.warn("a 'console' argument was not given. Cannot tell which serial device to "
                              "redirect the console output to (default values in the label will be used).")
