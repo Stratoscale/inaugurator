@@ -5,14 +5,13 @@ from inaugurator import sh
 
 
 class LoadKernel:
-    def fromBootPartitionGrubConfig(self, grubConfig, bootPath, rootPartition, append):
+    def fromBootPartitionGrubConfig(self, grubConfig, bootPath, rootPartition):
         parser = grubconfparser.GrubConfParser(grubConfig)
-        sh.run("kexec --load %s --initrd=%s --append='root=%s %s %s'" % (
+        sh.run("kexec --load %s --initrd=%s --append='root=%s %s'" % (
             os.path.join(bootPath, parser.defaultKernelImage()),
             os.path.join(bootPath, parser.defaultInitrd()),
             rootPartition,
-            self._filterOutRootArgument(parser.defaultKernelCommandLine()),
-            append))
+            self._filterOutRootArgument(parser.defaultKernelCommandLine())))
 
     def execute(self):
         sh.run("kexec -e")

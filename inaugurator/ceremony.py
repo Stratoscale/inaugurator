@@ -299,8 +299,7 @@ class Ceremony:
         self._loadKernel = loadkernel.LoadKernel()
         self._loadKernel.fromBootPartitionGrubConfig(
             grubConfig=self._grubConfig,
-            bootPath=os.path.join(destination, "boot"), rootPartition=self._mountOp.rootPartition(),
-            append=self._args.inauguratorPassthrough)
+            bootPath=os.path.join(destination, "boot"), rootPartition=self._mountOp.rootPartition())
 
     def _doOsmosisFromSource(self, destination):
         cleanup = osmosiscleanup.OsmosisCleanup(destination, objectStorePath=self._localObjectStore)
