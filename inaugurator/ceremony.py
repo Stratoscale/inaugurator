@@ -187,10 +187,10 @@ class Ceremony:
             if serialDevices:
                 logging.info("Overriding GRUB2 user settings to set serial devices to '%(devices)s'...",
                              dict(devices=serialDevices))
-                grub.setSerialDevices(serialDevices, destination)
             else:
                 logging.warn("a 'console' argument was not given. Cannot tell which serial device to "
                              "redirect the console output to (default values in the label will be used).")
+            grub.updateGrubConf(serialDevices, destination, self._args.inauguratorPassthrough)
             logging.info("Installing GRUB2...")
             grub.install(self._targetDevice, destination)
             logging.info("Reading newly generated GRUB2 configuration file for later use...")
@@ -299,8 +299,7 @@ class Ceremony:
         self._loadKernel = loadkernel.LoadKernel()
         self._loadKernel.fromBootPartitionGrubConfig(
             grubConfig=self._grubConfig,
-            bootPath=os.path.join(destination, "boot"), rootPartition=self._mountOp.rootPartition(),
-            append=self._args.inauguratorPassthrough)
+            bootPath=os.path.join(destination, "boot"), rootPartition=self._mountOp.rootPartition())
 
     def _doOsmosisFromSource(self, destination):
         cleanup = osmosiscleanup.OsmosisCleanup(destination, objectStorePath=self._localObjectStore)
