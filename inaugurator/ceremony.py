@@ -71,6 +71,7 @@ class Ceremony:
                                                 manadtory).
         inauguratorUseNICWithMAC - use this specific NIC, with this specific MAC address
         inauguratorIPAddress - the IP address to configure to that NIC
+        inauguratorExtraDataToGrubCmdLine - data to be added to the grub command line
         inauguratorNetmask
         inauguratorGateway
         """
@@ -206,11 +207,13 @@ class Ceremony:
         with self._mountOp.mountBoot() as bootDestination:
             sh.run("rsync -rlpgDS --delete-before %s/boot/ %s/" % (destination, bootDestination))
         with self._mountOp.mountBootInsideRoot():
-            serialDevices = self._getSerialDevices()
+            if self._args.inauguratorExtraDataToGrubCmdLine:
+                grub.changeGrubConfiguration(destination, data=self._args.inauguratorExtraDataToGrubCmdLine)
             if serialDevices:
                 logging.info("Overriding GRUB2 user settings to set serial devices to '%(devices)s'...",
                              dict(devices=serialDevices))
-                grub.setSerialDevices(serialDevices, destination)
+                serialDevicesStr = " ".join([dev for dev in serialDevices])
+                grub.changeGrubConfiguration(destination, data=serialDevicesStr, parameter="console")
             else:
                 logging.warn("a 'console' argument was not given. Cannot tell which serial device to "
                              "redirect the console output to (default values in the label will be used).")
