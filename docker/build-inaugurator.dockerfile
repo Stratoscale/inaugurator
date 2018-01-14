@@ -21,7 +21,7 @@ RUN yum install -y \
     dosfstools \
     lvm2 \
     make \
-    kernel-KERNEL_VERSION \
+    http://yum-repo.dc1/repos/centos/Packages/kernel-3.10.0-514.el7.x86_64.rpm \
     rsync \
     smartmontools && \
     yum -y clean all
@@ -43,7 +43,7 @@ RUN pip install pep8 pika>=0.10.0
 RUN sed -i -e "s/Defaults    requiretty.*/ #Defaults    requiretty/g" /etc/sudoers
 
 # Install busybox with a Fedora RPM since there's no such package for Centos 7
-RUN curl ftp://195.220.108.108/linux/fedora/linux/releases/23/Everything/x86_64/os/Packages/b/busybox-1.22.1-4.fc23.x86_64.rpm -o temp && \
+RUN curl ftp://195.220.108.108/linux/fedora/linux/releases/25/Everything/x86_64/os/Packages/b/busybox-1.22.1-5.fc24.x86_64.rpm -o temp && \
     rpm -ivh temp && \
     rm temp
 
