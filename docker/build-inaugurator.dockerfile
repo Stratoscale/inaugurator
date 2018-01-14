@@ -9,6 +9,7 @@ RUN yum update -y && \
 
 RUN yum install -y \
     sudo \
+    wget \
     boost-devel \
     boost-static \
     openssl-devel \
@@ -21,10 +22,13 @@ RUN yum install -y \
     dosfstools \
     lvm2 \
     make \
-    http://yum-repo.dc1/repos/centos/Packages/kernel-3.10.0-514.el7.x86_64.rpm \
     rsync \
     smartmontools && \
     yum -y clean all
+
+
+RUN wget http://linuxsoft.cern.ch/cern/centos/7/updates/x86_64/Packages/kernel-3.10.0-514.6.1.el7.x86_64.rpm
+RUN yum install -y kernel-3.10.0-514.6.1.el7.x86_64.rpm
 
 # Install PIP (obtained from EPEL)
 RUN yum install -y epel-release && \
