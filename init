@@ -14,5 +14,5 @@ echo ifconfig -a:
 echo lsmod:
 /usr/sbin/busybox lsmod
 export PYUDEV_UDEV_LIBRARY_NAME=libudev.so.1
-export PYTHONPATH=$PYTHONPATH:/usr/lib/osmosis-1.0-py2.7.egg
+export PYTHONPATH=$PYTHONPATH:/usr/lib/osmosis-1.1.0_beta1-py2.7.egg
 exec /bin/python2.7 -m inaugurator.main
