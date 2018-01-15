@@ -7,7 +7,7 @@ USER_SETTINGS_DIR = "etc/default"
 USER_SETTINGS_FILENAME = "grub"
 
 
-def setSerialDevices(serialDevices, destination):
+def changeGrubConfiguration(destination, data, parameter=None):
     destUserSettingsDir = os.path.join(destination, USER_SETTINGS_DIR)
     existingConfiguration = ""
     if os.path.isfile(destUserSettingsDir):
@@ -27,7 +27,8 @@ def setSerialDevices(serialDevices, destination):
         return
     wasGrubCmdlineLinuxParameterWritten = False
     logging.info("Modifying GRUB2 user settings file...")
-    consoleConfiguration = " ".join(["console=%s" % (device,) for device in serialDevices])
+    if parameter:
+        newParameterConfiguration = "%s=%s" % (parameter, data)
     with open(destUserSettingsFilename, "wb") as userSettingsFile:
         for line in existingConfiguration.splitlines():
             line = line.strip()
@@ -35,11 +36,23 @@ def setSerialDevices(serialDevices, destination):
                 wasGrubCmdlineLinuxParameterWritten = True
                 maxSplit = 1
                 cmdline = line.split("=", maxSplit)[1].strip(" \"")
-                argsWithoutConsole = [arg for arg in cmdline.split(" ") if not arg.startswith("console=")]
-                configurationWithoutConsole = " ".join(argsWithoutConsole)
-                line = "GRUB_CMDLINE_LINUX=\"%(configurationWithoutConsole)s %(consoleConfiguration)s\"" % \
-                    dict(configurationWithoutConsole=configurationWithoutConsole,
-                         consoleConfiguration=consoleConfiguration)
+                if parameter:
+                    logging.info("Grub configuration: Overriding %s parameter with %s", parameter, data)
+                    argsWithoutParameter = [arg for arg in cmdline.split(" ") if not arg.startswith("%s=" % parameter)]
+                    configurationWithoutParameter = " ".join(argsWithoutParameter)
+                    if data:
+                        line = "GRUB_CMDLINE_LINUX=\"%(configurationWithoutParameter)s %(parameterconfiguration)s\"" % \
+                            dict(configurationWithoutParameter=configurationWithoutParameter,
+                                 parameterconfiguration=newParameterConfiguration)
+                    else:
+                        line = "GRUB_CMDLINE_LINUX=\"%(configurationWithoutParameter)s\"" % \
+                            dict(configurationWithoutParameter=configurationWithoutParameter)
+                else:
+                    line = "GRUB_CMDLINE_LINUX=\"%(newConfiguration)s %(oldConfiguration)s\"" % \
+                        dict(newConfiguration=data,
+                             oldConfiguration=cmdline)
+                logging.info("Grub configuration line is %s", line)
+
             userSettingsFile.write(line)
             userSettingsFile.write(os.linesep)
         if not wasGrubCmdlineLinuxParameterWritten:

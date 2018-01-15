@@ -71,6 +71,7 @@ class Ceremony:
                                                 manadtory).
         inauguratorUseNICWithMAC - use this specific NIC, with this specific MAC address
         inauguratorIPAddress - the IP address to configure to that NIC
+        inauguratorExtraDataToGrubCmdLine - data to be added to the grub command line
         inauguratorNetmask
         inauguratorGateway
         """
@@ -198,7 +199,7 @@ class Ceremony:
         with open("/proc/cmdline", "r") as cmdLineFile:
             cmdLine = cmdLineFile.read()
         args = cmdLine.split(" ")
-        keyValuePairs = [arg.split("=") for arg in args if "=" in arg]
+        keyValuePairs = [arg.split("=") for arg in args if arg.count("=") == 1]
         consoles = [value for key, value in keyValuePairs if key == "console"]
         return consoles
 
@@ -206,14 +207,21 @@ class Ceremony:
         with self._mountOp.mountBoot() as bootDestination:
             sh.run("rsync -rlpgDS --delete-before %s/boot/ %s/" % (destination, bootDestination))
         with self._mountOp.mountBootInsideRoot():
-            serialDevices = self._getSerialDevices()
-            if serialDevices:
-                logging.info("Overriding GRUB2 user settings to set serial devices to '%(devices)s'...",
-                             dict(devices=serialDevices))
-                grub.setSerialDevices(serialDevices, destination)
+            if self._args.inauguratorExtraDataToGrubCmdLine is not None:
+                grub.changeGrubConfiguration(destination, data=self._args.inauguratorExtraDataToGrubCmdLine)
+            if "rhgb silent" not in self._args.inauguratorExtraDataToGrubCmdLine:
+                serialDevices = self._getSerialDevices()
+                if serialDevices:
+                    logging.info("Overriding GRUB2 user settings to set serial devices to '%(devices)s'...",
+                                 dict(devices=serialDevices))
+                    serialDevicesStr = " ".join([dev for dev in serialDevices])
+                    grub.changeGrubConfiguration(destination, data=serialDevicesStr, parameter="console")
+                else:
+                    logging.warn("a 'console' argument was not given. Cannot tell which serial device to "
+                                 "redirect the console output to (default values in the label will be used).")
             else:
-                logging.warn("a 'console' argument was not given. Cannot tell which serial device to "
-                             "redirect the console output to (default values in the label will be used).")
+                logging.info("Removing all console parameters from command line")
+                grub.changeGrubConfiguration(destination, data=None, parameter="console")
             logging.info("Installing GRUB2...")
             grubConfigPath = grub.install(self._targetDevice, destination)
             logging.info("Reading newly generated GRUB2 configuration file for later use...")
