@@ -218,7 +218,7 @@ class Ceremony:
                     grub.changeGrubConfiguration(destination, data=serialDevicesStr, parameter="console")
                 else:
                     logging.warn("a 'console' argument was not given. Cannot tell which serial device to "
-                                 "redirect the console output to (default values in the label will be used).")
+                                 "redirect the console output to (default values in the label will be used)")
             else:
                 logging.info("Removing all console parameters from command line")
                 grub.changeGrubConfiguration(destination, data=None, parameter="console")
