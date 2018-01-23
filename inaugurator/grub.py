@@ -38,15 +38,16 @@ def changeGrubConfiguration(destination, data, parameter=None):
                 cmdline = line.split("=", maxSplit)[1].strip(" \"")
                 if parameter:
                     logging.info("Grub configuration: Overriding %s parameter with %s", parameter, data)
-                    argsWithoutParameter = [arg for arg in cmdline.split(" ") if not arg.startswith("%s=" % parameter)]
-                    configurationWithoutParameter = " ".join(argsWithoutParameter)
+                    argsWithoutParameter = [arg for arg in cmdline.split(" ")
+                                            if not arg.startswith("%s=" % parameter)]
+                    confNoParam = " ".join(argsWithoutParameter)
                     if data:
-                        line = "GRUB_CMDLINE_LINUX=\"%(configurationWithoutParameter)s %(parameterconfiguration)s\"" % \
-                            dict(configurationWithoutParameter=configurationWithoutParameter,
+                        line = "GRUB_CMDLINE_LINUX=\"%(confNoParam)s %(parameterconfiguration)s\"" % \
+                            dict(confNoParam=confNoParam,
                                  parameterconfiguration=newParameterConfiguration)
                     else:
-                        line = "GRUB_CMDLINE_LINUX=\"%(configurationWithoutParameter)s\"" % \
-                            dict(configurationWithoutParameter=configurationWithoutParameter)
+                        line = "GRUB_CMDLINE_LINUX=\"%(confNoParam)s\"" % \
+                            dict(confNoParam=confNoParam)
                 else:
                     line = "GRUB_CMDLINE_LINUX=\"%(newConfiguration)s %(oldConfiguration)s\"" % \
                         dict(newConfiguration=data,
