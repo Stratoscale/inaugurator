@@ -23,6 +23,7 @@ RUN yum install -y \
     lvm2 \
     make \
     rsync \
+    kmod-redhat-i40e \
     smartmontools && \
     yum -y clean all
 
