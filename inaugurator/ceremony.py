@@ -207,7 +207,7 @@ class Ceremony:
         with self._mountOp.mountBoot() as bootDestination:
             sh.run("rsync -rlpgDS --delete-before %s/boot/ %s/" % (destination, bootDestination))
         with self._mountOp.mountBootInsideRoot():
-            if self._args.inauguratorExtraDataToGrubCmdLine is not None:
+            if self._args.inauguratorExtraDataToGrubCmdLine:
                 grub.changeGrubConfiguration(destination, data=self._args.inauguratorExtraDataToGrubCmdLine)
             if "rhgb silent" not in self._args.inauguratorExtraDataToGrubCmdLine:
                 serialDevices = self._getSerialDevices()

@@ -41,7 +41,7 @@ parser.add_argument("--inauguratorDontFailOnFailedDisk", action="store_true", de
 parser.add_argument("--inauguratorCleanupUpperPercentageThreshold", type=int, default=65)
 parser.add_argument("--inauguratorWipeOldInauguratorInstallations", action="store_true", default=False)
 parser.add_argument("--inauguratorWipeOsmosisObjectStoreIfNeeded", action="store_true", default=False)
-parser.add_argument("--inauguratorExtraDataToGrubCmdLine", type=str, default=None)
+parser.add_argument("--inauguratorExtraDataToGrubCmdLine", type=str, default="")
 parser.add_argument("--inauguratorTargetDeviceCandidate", nargs='+',
                     help="This parameter is mutually exclusive with inauguratorTargetDeviceLabel "
                          "and inauguratorTargetDeviceType")
@@ -77,7 +77,6 @@ def main():
     if args.inauguratorSkipPdbOnError:
         global PDB_ON_ERROR
         PDB_ON_ERROR = False
-
     ceremonyInstance = ceremony.Ceremony(args)
     for stage in args.inauguratorStages.split(","):
         logging.info("Inaugurator stage: '%s'" % (stage,))
