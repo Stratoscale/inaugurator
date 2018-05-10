@@ -20,5 +20,4 @@ install_dir:
 checkin:
 	$(Q)component-tool checkin --repo=inaugurator --type=$(BUILD_TYPE) inaugurator
 
-
 .PHONY: install checkin clean build
