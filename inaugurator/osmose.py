@@ -4,6 +4,11 @@ import logging
 from inaugurator import reportthread
 
 
+class CorruptedObjectStore(Exception):
+    def __init__(self,*args,**kwargs):
+        Exception.__init__(self,*args,**kwargs)
+
+
 class Osmose:
     def __init__(self, destination, objectStores, withLocalObjectStore, ignoreDirs, talkToServer,
                  localObjectStore=None):
@@ -51,3 +56,4 @@ class Osmose:
         result = self._popen.wait()
         if result != 0:
             raise Exception("Osmosis failed: return code %d output %s" % (result, '\n'.join(osmosis_output)))
+
