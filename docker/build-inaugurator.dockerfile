@@ -1,5 +1,5 @@
-FROM fedora:25
-MAINTAINER eliran@stratoscale.com
+FROM fedora:27
+MAINTAINER ops@lightbitslabs.com
 
 # Install other tools
 RUN echo "fastmirror=True" >> /etc/dnf/dnf.conf
