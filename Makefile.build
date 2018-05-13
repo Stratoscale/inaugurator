@@ -22,7 +22,7 @@ define_build_host_msg:
 	$(error Please specify the environment variable 'BUILD_HOST', to indicate where to build, as either 'local' (build images locally) or 'docker', (build images inside a docker container, which is better if the host does not have all the necessary packages).)
 
 .PHONY: build
-build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img ${PYTHON_DIST_PATH}
+build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img ${PYTHON_DIST_PATH}
 
 .PHONY: build_python_dist_locally
 build_python_dist_locally:
