@@ -35,4 +35,12 @@ class OsmosisCleanup:
             pass
 
     def eraseEverything(self):
-        sh.run("busybox rm -fr %s/*" % self._objectStore.root())
+        try:
+            sh.run("busybox rm -fr %s/*" % self._objectStore.root())
+        except Exception as e:
+            try:
+                sh.run("busybox rm -fr %s/*" % self._objectStore.root())  # because - http://lists.busybox.net/pipermail/busybox/2015-August/083233.html
+            except:
+                pass
+            raise e
+
