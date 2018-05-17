@@ -210,6 +210,10 @@ class Ceremony:
             self._talkToServer = talktoserver.TalkToServer(
                 amqpURL=self._args.inauguratorServerAMQPURL, myID=self._args.inauguratorMyIDForServer)
             self._talkToServer.checkIn()
+            message = self._talkToServer.label()
+            self._label = json.loads(message)['rootfs']
+        else:
+            self._label = self._args.inauguratorNetworkLabel
         try:
             osmos = osmose.Osmose(
                 destination=destination,
@@ -218,11 +222,6 @@ class Ceremony:
                 localObjectStore=self._localObjectStore,
                 ignoreDirs=self._args.inauguratorIgnoreDirs,
                 talkToServer=self._talkToServer)
-            if self._args.inauguratorServerAMQPURL:
-                message = self._talkToServer.label()
-                self._label = json.loads(message)['rootfs']
-            else:
-                self._label = self._args.inauguratorNetworkLabel
             osmos.tellLabel(self._label)
             osmos.wait()
         except Exception as e:
