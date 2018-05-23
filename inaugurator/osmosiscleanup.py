@@ -39,7 +39,13 @@ class OsmosisCleanup:
             sh.run("busybox rm -fr %s/*" % self._objectStore.root())
         except Exception as e:
             try:
-                sh.run("busybox rm -fr %s/*" % self._objectStore.root())  # because - http://lists.busybox.net/pipermail/busybox/2015-August/083233.html
+                '''
+                running this command again some times helps to clean the disk.
+                for some reason busybox prompt of failure to remove some files,
+                its unclear why, seems like a bug in busybox:
+                http://lists.busybox.net/pipermail/busybox/2015-August/083233.html
+                '''
+                sh.run("busybox rm -fr %s/*" % self._objectStore.root())
             except:
                 pass
             raise e

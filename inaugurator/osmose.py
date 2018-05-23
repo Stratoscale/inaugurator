@@ -51,6 +51,10 @@ class Osmose:
         osmosis_output = []
         error_counter = 0
         TOO_MANY_OBJECT_STORE_ERRORS = 20
+        '''
+        osmosis - can identify bad hash and fix them.
+        the problem is that if he thinks that all the hashs are corrupted then this process will take a lot of time.
+        '''
         for line in iter(self._popen.stdout.readline, b''):
             print "Osmosis:>>> %s" % line.rstrip()
             osmosis_output.append(line)
