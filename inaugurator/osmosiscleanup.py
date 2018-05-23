@@ -35,4 +35,18 @@ class OsmosisCleanup:
             pass
 
     def eraseEverything(self):
-        sh.run("busybox rm -fr %s/*" % self._objectStore.root())
+        try:
+            sh.run("busybox rm -fr %s/*" % self._objectStore.root())
+        except Exception as e:
+            try:
+                '''
+                running this command again some times helps to clean the disk.
+                for some reason busybox prompt of failure to remove some files,
+                its unclear why, seems like a bug in busybox:
+                http://lists.busybox.net/pipermail/busybox/2015-August/083233.html
+                '''
+                sh.run("busybox rm -fr %s/*" % self._objectStore.root())
+            except:
+                pass
+            raise e
+

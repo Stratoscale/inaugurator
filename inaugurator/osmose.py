@@ -4,6 +4,11 @@ import logging
 from inaugurator import reportthread
 
 
+class CorruptedObjectStore(Exception):
+    def __init__(self,*args,**kwargs):
+        Exception.__init__(self,*args,**kwargs)
+
+
 class Osmose:
     def __init__(self, destination, objectStores, withLocalObjectStore, ignoreDirs, talkToServer,
                  localObjectStore=None):
@@ -42,12 +47,25 @@ class Osmose:
         self._popen.stdin.write(label + "\n")
         self._popen.stdin.close()
 
-    def wait(self):
+    def wait(self, inspect_erros=False):
         osmosis_output = []
+        error_counter = 0
+        TOO_MANY_OBJECT_STORE_ERRORS = 20
+        '''
+        osmosis - can identify bad hash and fix them.
+        the problem is that if he thinks that all the hashs are corrupted then this process will take a lot of time.
+        '''
         for line in iter(self._popen.stdout.readline, b''):
             print "Osmosis:>>> %s" % line.rstrip()
             osmosis_output.append(line)
+            if inspect_erros:
+                if "ERROR" in line:
+                    error_counter += 1
+                if error_counter > TOO_MANY_OBJECT_STORE_ERRORS:
+                    raise CorruptedObjectStore
         self._popen.stdout.close()
         result = self._popen.wait()
         if result != 0:
+            if inspect_erros:
+                raise CorruptedObjectStore
             raise Exception("Osmosis failed: return code %d output %s" % (result, '\n'.join(osmosis_output)))

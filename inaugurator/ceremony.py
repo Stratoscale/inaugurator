@@ -210,32 +210,60 @@ class Ceremony:
             self._talkToServer = talktoserver.TalkToServer(
                 amqpURL=self._args.inauguratorServerAMQPURL, myID=self._args.inauguratorMyIDForServer)
             self._talkToServer.checkIn()
-        try:
-            osmos = osmose.Osmose(
-                destination=destination,
-                objectStores=self._args.inauguratorOsmosisObjectStores,
-                withLocalObjectStore=self._args.inauguratorWithLocalObjectStore,
-                localObjectStore=self._localObjectStore,
-                ignoreDirs=self._args.inauguratorIgnoreDirs,
-                talkToServer=self._talkToServer)
-            if self._args.inauguratorServerAMQPURL:
-                message = self._talkToServer.label()
-                self._label = json.loads(message)['rootfs']
-            else:
-                self._label = self._args.inauguratorNetworkLabel
-            osmos.tellLabel(self._label)
-            osmos.wait()
-        except Exception as e:
-            if self._debugPort is not None and self._debugPort.wasRebootCalled():
-                logging.info("Waiting to be reboot (from outside)...")
-                blockForever = threading.Event()
-                blockForever.wait()
-            else:
+            message = self._talkToServer.label()
+            self._label = json.loads(message)['rootfs']
+        else:
+            self._label = self._args.inauguratorNetworkLabel
+        ATTEMPTS = 2
+        for attempt in range(ATTEMPTS):
+            try:
+                if attempt == 0:
+                    self._checkoutOsmosFromNetwork(destination,
+                                                   self._args.inauguratorOsmosisObjectStores,
+                                                   self._args.inauguratorWithLocalObjectStore,
+                                                   self._localObjectStore,
+                                                   self._args.inauguratorIgnoreDirs,
+                                                   self._talkToServer,
+                                                   inspectErrors=True)
+                else:
+                    self._checkoutOsmosFromNetwork(destination,
+                                                   self._args.inauguratorOsmosisObjectStores,
+                                                   self._args.inauguratorWithLocalObjectStore,
+                                                   self._localObjectStore,
+                                                   self._args.inauguratorIgnoreDirs,
+                                                   talkToServer=None,
+                                                   inspectErrors=False)
+                return
+            except osmose.CorruptedObjectStore:
+                logging.info("Found corrupted object store - purge osmosis!")
                 try:
-                    self._talkToServer.failed(message=str(e))
+                    objectStorePath = os.path.join(destination,"var", "lib", "osmosis", "objectstore")
+                    osmosiscleanup.OsmosisCleanup(destination, objectStorePath=objectStorePath).eraseEverything()
                 except:
                     pass
-            raise e
+            except Exception as e:
+                if self._debugPort is not None and self._debugPort.wasRebootCalled():
+                    logging.info("Waiting to be reboot (from outside)...")
+                    blockForever = threading.Event()
+                    blockForever.wait()
+                else:
+                    try:
+                        self._talkToServer.failed(message=str(e))
+                    except:
+                        pass
+                raise e
+
+    def _checkoutOsmosFromNetwork(self, destination, osmosisObjectStore, withLocalObjectStore, localOsmosisObjectStroe,
+                                  ignoreDir, talkToServer, inspectErrors=False):
+            osmos = osmose.Osmose(
+                destination=destination,
+                objectStores=osmosisObjectStore,
+                withLocalObjectStore=withLocalObjectStore,
+                localObjectStore=localOsmosisObjectStroe,
+                ignoreDirs=ignoreDir,
+                talkToServer=talkToServer)
+            osmos.tellLabel(self._label)
+            osmos.wait(inspect_erros=inspectErrors)
 
     def _osmosFromDOK(self, destination):
         dok = diskonkey.DiskOnKey(self._args.inauguratorExpectedLabel)
