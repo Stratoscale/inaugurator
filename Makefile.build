@@ -6,20 +6,21 @@ INITRD_IMAGE_PATH=define_build_host_msg
 PYTHON_DIST_FILENAME=inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
 PYTHON_DIST_LOCAL_PATH=dist/${PYTHON_DIST_FILENAME}
 ifeq ($(BUILD_HOST),local)
-	KERNEL_IMAGE_PATH=/boot/vmlinuz-$(KERNEL_VERSION)
-	INITRD_IMAGE_PATH=build/inaugurator.%.initrd.dir
-	PYTHON_DIST_RECIPE=build_python_dist_locally
+KERNEL_IMAGE_PATH=/boot/vmlinuz-$(KERNEL_VERSION)
+INITRD_IMAGE_PATH=build/inaugurator.%.initrd.dir
+PYTHON_DIST_RECIPE=build_python_dist_locally
 endif
 ifeq ($(BUILD_HOST),docker)
-	KERNEL_IMAGE_PATH=docker-build/inaugurator.vmlinuz
-	INITRD_IMAGE_PATH=docker-build/inaugurator.%.initrd.dir
-	PYTHON_DIST_RECIPE=docker-dist/${PYTHON_DIST_FILENAME}
+KERNEL_IMAGE_PATH=docker-build/inaugurator.vmlinuz
+INITRD_IMAGE_PATH=docker-build/inaugurator.%.initrd.dir
+PYTHON_DIST_RECIPE=docker-dist/${PYTHON_DIST_FILENAME}
 endif
 DOCKER_RUN_CMD=
 
 .PHONY: define_build_host_msg
 define_build_host_msg:
 	$(error Please specify the environment variable 'BUILD_HOST', to indicate where to build, as either 'local' (build images locally) or 'docker', (build images inside a docker container, which is better if the host does not have all the necessary packages).)
+
 
 .PHONY: build
 build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img ${PYTHON_DIST_PATH}
@@ -41,6 +42,7 @@ docker-dist/${PYTHON_DIST_FILENAME}:
 	$(MAKE) build_container
 	sudo docker run --rm -v `pwd`:/root/inaugurator -v $(PWD)/docker-build:/root/inaugurator/build -v `pwd`/../osmosis:/root/osmosis -v $(PWD)/docker-dist:/root/inaugurator/dist build-inaugurator:$(INAUGURATOR_VERSION) dist/$(@F)
 	$(MAKE) chown_stuff
+
 
 build/inaugurator.vmlinuz: $(KERNEL_IMAGE_PATH)
 	-@mkdir $(@D)
@@ -66,7 +68,7 @@ build/inaugurator.%.initrd.img: $(INITRD_IMAGE_PATH)
 
 build/osmosis-1.0.linux-x86_64.tar.gz:
 	(cd ../osmosis/ && $(MAKE) clean && $(MAKE) build && $(MAKE) egg)
-	cp ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz $@
+	 cp ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz $@
 
 build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} build/osmosis-1.0.linux-x86_64.tar.gz
 	-@mkdir build
@@ -155,9 +157,9 @@ build/build-inaugurator.dockerfile:
 
 .PHONY: build_container
 build_container: build/build-inaugurator.dockerfile
-	ifeq ($(BUILD_HOST),docker)
-		ifeq ($(shell sudo docker images | egrep -Ec "^build-inaugurator[ ]+$(INAUGURATOR_VERSION)" | xargs echo -n),0)
-			$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was not built. Trying to build it....)
-			sudo docker build -f build/build-inaugurator.dockerfile -t build-inaugurator:$(INAUGURATOR_VERSION) build
-		endif
-	endif
+ifeq ($(BUILD_HOST),docker)
+ifeq ($(shell sudo docker images | egrep -Ec "^build-inaugurator[ ]+$(INAUGURATOR_VERSION)" | xargs echo -n),0)
+	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was not built. Trying to build it....)
+	sudo docker build -f build/build-inaugurator.dockerfile -t build-inaugurator:$(INAUGURATOR_VERSION) build
+endif
+endif
