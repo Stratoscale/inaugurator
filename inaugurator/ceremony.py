@@ -181,6 +181,7 @@ class Ceremony:
 
     def _createBootAndInstallGrub(self, destination):
         with self._mountOp.mountBoot() as bootDestination:
+            sh.run("rm -rf %s/*; sync" % bootDestination) # LBM1-4920
             sh.run("rsync -rlpgDS --delete-before %s/boot/ %s/" % (destination, bootDestination))
         with self._mountOp.mountBootInsideRoot():
             serialDevices = self._getSerialDevices()
