@@ -11,6 +11,7 @@ class Network:
         interfacesTable = self._interfacesTable()
         assert macAddress.lower() in interfacesTable, "macAddress %s interfacesTable %s" % (macAddress, interfacesTable)
         interfaceName = interfacesTable[macAddress.lower()]
+        sh.run("/usr/sbin/ifconfig lo 127.0.0.1")
         sh.run("/usr/sbin/ifconfig %s %s netmask %s" % (interfaceName, ipAddress, netmask))
         sh.run("busybox route add default gw %s" % self._gateway)
         self._validateLinkIsUp()
