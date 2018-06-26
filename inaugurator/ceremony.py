@@ -61,7 +61,7 @@ class Ceremony:
         inauguratorTargetDeviceCandidate - a list of devices (['/dev/vda', '/dev/sda']) to use as the
                                            inauguration target
         inauguratorStages - A comma-seperated list of stages to perform by order. Available stages:
-                            'ceremony','kexec','reboot'.
+                            'ceremony','kexec','reboot', 'shutdown'.
         inauguratorExpectedLabel - A label that identifies the source device, when using either a CDROM or
                                    a Diskonkey (in --inauguratorSource). If not used, then the first device
                                    of that kind that was found will be used.
@@ -122,6 +122,11 @@ class Ceremony:
         self._sync()
         self._verify()
         sh.run("reboot -f")
+
+    def shutdown(self):
+        self._sync()
+        self._verify()
+        sh.run("poweroff -f")
 
     def _initializeNetworkIfNeeded(self):
         if self._args.inauguratorSource == 'network' and \
@@ -207,7 +212,7 @@ class Ceremony:
         with self._mountOp.mountBoot() as bootDestination:
             sh.run("rsync -rlpgDS --delete-before %s/boot/ %s/" % (destination, bootDestination))
         with self._mountOp.mountBootInsideRoot():
-            if self._args.inauguratorExtraDataToGrubCmdLine is not None:
+            if self._args.inauguratorExtraDataToGrubCmdLine != "":
                 grub.changeGrubConfiguration(destination, data=self._args.inauguratorExtraDataToGrubCmdLine)
             if "rhgb silent" not in self._args.inauguratorExtraDataToGrubCmdLine:
                 serialDevices = self._getSerialDevices()
