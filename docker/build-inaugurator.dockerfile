@@ -1,6 +1,6 @@
 define(`KERNEL_VERSION', esyscmd(`printf \`\`%s\'\' "$KERNEL_VERSION"'))
 
-FROM centos:7.3.1611
+FROM centos:7.5.1804
 MAINTAINER korabel@stratoscale.com
 
 # Install other tools
@@ -26,9 +26,6 @@ RUN yum install -y \
     smartmontools && \
     yum -y clean all
 
-
-RUN wget http://linuxsoft.cern.ch/cern/centos/7/updates/x86_64/Packages/kernel-3.10.0-514.6.1.el7.x86_64.rpm
-RUN yum install -y kernel-3.10.0-514.6.1.el7.x86_64.rpm
 
 # Install PIP (obtained from EPEL)
 RUN yum install -y epel-release && \
