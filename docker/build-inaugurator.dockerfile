@@ -44,7 +44,7 @@ RUN pip install pep8 pika>=0.10.0
 RUN sed -i -e "s/Defaults    requiretty.*/ #Defaults    requiretty/g" /etc/sudoers
 
 # Install busybox with a Fedora RPM since there's no such package for Centos 7
-RUN curl ftp://195.220.108.108/linux/fedora/linux/releases/25/Everything/x86_64/os/Packages/b/busybox-1.22.1-5.fc24.x86_64.rpm -o temp && \
+RUN curl ftp://195.220.108.108/linux/fedora/linux/releases/28/Everything/x86_64/os/Packages/b/busybox-1.26.2-3.fc27.x86_64.rpm -o temp && \
     rpm -ivh temp && \
     rm temp
 
