@@ -3,11 +3,19 @@ define(`KERNEL_VERSION', esyscmd(`printf \`\`%s\'\' "$KERNEL_VERSION"'))
 FROM centos:7.5.1804
 MAINTAINER korabel@stratoscale.com
 
+RUN rm -rf /etc/yum.repos.d
+
+COPY yum_repos /etc/yum.repos.d
+
+RUN yum-config-manager --enable centos7.5
+ 
 # Install other tools
 RUN yum update -y && \
     yum -y clean all
 
 RUN yum install -y \
+    kernel-headers \
+    kernel \
     sudo \
     wget \
     boost-devel \

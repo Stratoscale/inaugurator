@@ -1,0 +1,11 @@
+[CentOS7.5]
+name=CentOS-7.5 - CentOS
+baseurl=http://yum-repo.dc1.strato/repos/centos-7.5
+gpgcheck=0
+enabled=0
+
+[CentOSUpdates7.5]
+name=CentOS-7.5 - CentOSUpdates
+baseurl=http://yum-repo.dc1.strato/repos/updates-7.5
+gpgcheck=0
+enabled=0

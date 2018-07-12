@@ -112,6 +112,7 @@ build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 build/build-inaugurator.dockerfile: docker/build-inaugurator.dockerfile
 	@-mkdir build
 	KERNEL_VERSION=$(KERNEL_VERSION) m4 $< > $@
+	cp -fr docker/yum_repos build/
 
 build/osmosis: ../osmosis
 	@-mkdir build
