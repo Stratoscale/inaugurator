@@ -120,9 +120,9 @@ class TalkToServer:
         self._myID = myID
         self._spooler = TalkToServerSpooler(amqpURL, statusExchange, labelExchange)
 
-    def checkIn(self):
-        logging.info("talking to server: checkin")
-        self._spooler.publishStatus(status="checkin", id=self._myID)
+    def checkIn(self, hwinfo):
+        logging.info("talking to server: checkin hwinfo=%s", hwinfo)
+        self._spooler.publishStatus(status="checkin", id=self._myID, hwinfo=hwinfo)
 
     def progress(self, progress):
         self._spooler.publishStatus(status="progress", progress=progress, id=self._myID)
