@@ -5,7 +5,7 @@ MY_COMPONENT_PATH := $(shell component-tool localpath --repo=inaugurator --type=
 
 all: build
 
-build:
+build docker-shell:
 	$(Q)$(MAKE) -f $(inaugurator_makefile_dir)/Makefile $@ BUILD_HOST=docker
 
 clean:

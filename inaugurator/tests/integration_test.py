@@ -313,7 +313,7 @@ class Test(unittest.TestCase):
 
     def sendCheckIn(self, id):
         talk = self.generateTalkToServer(id)
-        talk.checkIn()
+        talk.checkIn(hwinfo={})
 
     def sendProgress(self, id, message):
         talk = self.generateTalkToServer(id)

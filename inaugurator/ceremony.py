@@ -210,7 +210,8 @@ class Ceremony:
         if self._args.inauguratorServerAMQPURL:
             self._talkToServer = talktoserver.TalkToServer(
                 amqpURL=self._args.inauguratorServerAMQPURL, myID=self._args.inauguratorMyIDForServer)
-            self._talkToServer.checkIn()
+            hwinfo = {'net' : network.list_devices_info()}
+            self._talkToServer.checkIn(hwinfo=hwinfo)
             message = self._talkToServer.label()
             self._label = json.loads(message)['rootfs']
         else:
