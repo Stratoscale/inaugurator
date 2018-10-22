@@ -10,14 +10,16 @@ class CannotReuseTalkToServerAfterDone(Exception):
 
 
 class TalkToServerSpooler(threading.Thread):
-    def __init__(self, amqpURL, statusExchange, labelExchange):
+    def __init__(self, amqpURL, statusExchange, labelExchange, newStatusExchange, statusRoutingKey):
         super(TalkToServerSpooler, self).__init__()
         self.daemon = True
         self._statusExchange = statusExchange
+        self._newStatusExchange = newStatusExchange
         self._labelExchange = labelExchange
         self._labelQueue = None
         self._queue = Queue.Queue()
         self._isFinished = False
+        self._statusRoutingKey = statusRoutingKey
         self._connect(amqpURL)
         threading.Thread.start(self)
 
@@ -57,6 +59,8 @@ class TalkToServerSpooler(threading.Thread):
         self._channel = self._connection.channel()
         logging.info("Declaring a RabbitMQ exchange %(exchange)s...", dict(exchange=self._statusExchange))
         self._channel.exchange_declare(exchange=self._statusExchange, exchange_type='fanout', auto_delete=True)
+        logging.info("Declaring a RabbitMQ exchange %(exchange)s...", dict(exchange=self._newStatusExchange))
+        self._channel.exchange_declare(exchange=self._newStatusExchange, exchange_type='topic')
         logging.info("Declaring a RabbitMQ exchange %(exchange)s...", dict(exchange=self._labelExchange))
         self._channel.exchange_declare(exchange="inaugurator_labels", exchange_type='direct')
         logging.info("Declaring an exclusive RabbitMQ label queue...")
@@ -69,6 +73,7 @@ class TalkToServerSpooler(threading.Thread):
     def _publishStatus(self, **status):
         body = json.dumps(status)
         self._channel.basic_publish(exchange=self._statusExchange, routing_key='', body=body)
+        self._channel.basic_publish(exchange=self._newStatusExchange, routing_key=self._statusRoutingKey, body=body)
 
     def _labelCallback(self, channel, method, properties, body):
         logging.info("Received message %(message)s",dict(message=body))
@@ -117,8 +122,9 @@ class TalkToServer:
     def __init__(self, amqpURL, myID):
         statusExchange = "inaugurator_status__%s" % myID
         labelExchange = "inaugurator_label__%s" % myID
+        newStatusExchange = "inaugurator_status"
         self._myID = myID
-        self._spooler = TalkToServerSpooler(amqpURL, statusExchange, labelExchange)
+        self._spooler = TalkToServerSpooler(amqpURL, statusExchange, labelExchange, newStatusExchange, myID)
 
     def checkIn(self, hwinfo):
         logging.info("talking to server: checkin hwinfo=%s", hwinfo)
