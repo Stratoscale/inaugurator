@@ -18,12 +18,14 @@ from inaugurator import etclabelfile
 from inaugurator import lvmetad
 from inaugurator import verify
 from inaugurator import debugthread
+from inaugurator import hwinfo as selfTest
 import os
 import re
 import time
 import logging
 import threading
 import json
+import socket
 
 
 class Ceremony:
@@ -207,6 +209,7 @@ class Ceremony:
                 macAddress=self._args.inauguratorUseNICWithMAC, ipAddress=self._args.inauguratorIPAddress,
                 netmask=self._args.inauguratorNetmask, gateway=self._args.inauguratorGateway)
         self._debugPort = debugthread.DebugThread()
+        self.send_hwinfo('192.168.66.70', 50007)  # address of labgw self-test server
         if self._args.inauguratorServerAMQPURL:
             self._talkToServer = talktoserver.TalkToServer(
                 amqpURL=self._args.inauguratorServerAMQPURL, myID=self._args.inauguratorMyIDForServer)
@@ -391,3 +394,19 @@ class Ceremony:
                 print sh.run('busybox cat {}'.format(queueDepthPath))
             except Exception, ex:
                 print ex.message
+
+    def send_hwinfo(self, address, port):
+        try:
+            self_test_data = selfTest.HWinfo().run()
+
+            msg = dict(info=self_test_data,
+                       macAddress=self._args.inauguratorUseNICWithMAC,
+                       ipAddress=self._args.inauguratorIPAddress,
+                       serverid=self._args.inauguratorMyIDForServer
+                       )
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((address, port))
+            s.sendall(json.dumps(msg))
+            s.close()
+        except Exception as e:
+            logging.info("self test failed... %(type), %(msg)s", dict(type=type(e), msg=e.message))
