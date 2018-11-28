@@ -23,6 +23,7 @@ RUN dnf install -y \
     make \
     kernel \
     lshw \
+    pciutils \
     rsync \
     nvme-cli \
     busybox && \

@@ -115,6 +115,7 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} build/osmosis-1.0.l
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/bin/rsync
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/nvme
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/lshw
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/lspci
 	DEST=$@.tmp sh/create_busybox_links.sh /usr/sbin/busybox
 	cp -a ../osmosis/build/cpp/osmosis.bin $@.tmp/usr/bin/osmosis
 	DEST=$@.tmp sh/relative_copy_executable_dependencies.sh $@.tmp/usr/bin/osmosis
