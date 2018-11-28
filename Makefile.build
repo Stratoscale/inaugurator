@@ -93,6 +93,8 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} build/osmosis-1.0.l
 	echo "Copying pika:"
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib/python2.7/site-packages/pika/*.py
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib/python2.7/site-packages/pika/adapters/*.py
+	rsync -avzh /usr/lib64/python2.7/ build/inaugurator.thin.initrd.dir.tmp/usr/lib64/python2.7/
+	rsync -avzh /usr/lib/python2.7/ build/inaugurator.thin.initrd.dir.tmp/usr/lib/python2.7/
 	echo "Copying executables"
 	DEST=$@.tmp sh/relative_copy_executable.sh /bin/bash
 	DEST=$@.tmp sh/relative_copy_executable.sh /bin/sh
