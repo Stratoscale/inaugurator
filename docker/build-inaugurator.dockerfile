@@ -24,6 +24,7 @@ RUN dnf install -y \
     kernel \
     lshw \
     rsync \
+    nvme-cli \
     busybox && \
     dnf -y clean all
 
