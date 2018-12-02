@@ -93,6 +93,8 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} build/osmosis-1.0.l
 	echo "Copying pika:"
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib/python2.7/site-packages/pika/*.py
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib/python2.7/site-packages/pika/adapters/*.py
+	rsync -avzh /usr/lib64/python2.7/ build/inaugurator.thin.initrd.dir.tmp/usr/lib64/python2.7/
+	rsync -avzh /usr/lib/python2.7/ build/inaugurator.thin.initrd.dir.tmp/usr/lib/python2.7/
 	echo "Copying executables"
 	DEST=$@.tmp sh/relative_copy_executable.sh /bin/bash
 	DEST=$@.tmp sh/relative_copy_executable.sh /bin/sh
@@ -113,12 +115,15 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} build/osmosis-1.0.l
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/lvmetad
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/fsck.ext4
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/bin/rsync
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/nvme
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/lshw
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/lspci
 	DEST=$@.tmp sh/create_busybox_links.sh /usr/sbin/busybox
 	cp -a ../osmosis/build/cpp/osmosis.bin $@.tmp/usr/bin/osmosis
 	DEST=$@.tmp sh/relative_copy_executable_dependencies.sh $@.tmp/usr/bin/osmosis
 	echo "Copying drivers"
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh ixgbe
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh nvme
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh virtio_blk
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh virtio_net
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh bnx2x
