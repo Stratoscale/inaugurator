@@ -18,13 +18,14 @@ from inaugurator import etclabelfile
 from inaugurator import lvmetad
 from inaugurator import verify
 from inaugurator import debugthread
+from inaugurator import hwinfo as selfTest
 import os
 import re
 import time
 import logging
 import threading
 import json
-
+import requests
 
 class Ceremony:
 
@@ -73,6 +74,7 @@ class Ceremony:
         inauguratorIPAddress - the IP address to configure to that NIC
         inauguratorNetmask
         inauguratorGateway
+        inauguratorSelfTestServerUrl - the url (ip+port) for self test server example: 192.168.70.66:50007
         """
         self._args = args
         self._talkToServer = None
@@ -207,6 +209,7 @@ class Ceremony:
                 macAddress=self._args.inauguratorUseNICWithMAC, ipAddress=self._args.inauguratorIPAddress,
                 netmask=self._args.inauguratorNetmask, gateway=self._args.inauguratorGateway)
         self._debugPort = debugthread.DebugThread()
+        self.send_hwinfo(self._args.inauguratorSelfTestServerUrl)
         if self._args.inauguratorServerAMQPURL:
             self._talkToServer = talktoserver.TalkToServer(
                 amqpURL=self._args.inauguratorServerAMQPURL, myID=self._args.inauguratorMyIDForServer)
@@ -391,3 +394,18 @@ class Ceremony:
                 print sh.run('busybox cat {}'.format(queueDepthPath))
             except Exception, ex:
                 print ex.message
+
+    def send_hwinfo(self, url):
+        try:
+            self_test_data = selfTest.HWinfo().run()
+
+            msg = dict(info=self_test_data,
+                       mac=self._args.inauguratorUseNICWithMAC,
+                       ip=self._args.inauguratorIPAddress,
+                       id=self._args.inauguratorMyIDForServer
+                       )
+            url = "http://{}/{}/".format(url, msg['id'])
+            logging.info("send HW info to self test in url: %(url)s", dict(url=url))
+            requests.post(url, json=msg)
+        except Exception as e:
+            logging.info("self test failed... %(type)s, %(msg)s", dict(type=type(e), msg=e.message))
