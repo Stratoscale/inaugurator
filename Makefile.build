@@ -98,6 +98,7 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} build/osmosis-1.0.l
 	echo "Copying executables"
 	DEST=$@.tmp sh/relative_copy_executable.sh /bin/bash
 	DEST=$@.tmp sh/relative_copy_executable.sh /bin/sh
+	DEST=$@.tmp sh/relative_copy_executable.sh /bin/lsblk
 	DEST=$@.tmp sh/relative_copy_executable.sh /bin/python2.7
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/busybox
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/kexec
