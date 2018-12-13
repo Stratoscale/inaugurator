@@ -31,6 +31,12 @@ def get_ssds():
     except Exception as e:
         return {'output': r, 'error': e.message}
 
+def get_nvme():
+    try:
+        r = sh.run("nvme list -o json")
+        return json.loads(r)
+    except Exception as e:
+        return {'output': r, 'error': e.message}
 
 def get_memory():
     '''
@@ -66,6 +72,7 @@ class HWinfo:
         data = {"network": get_network(),
                 "cpu": get_cpus(),
                 "ssd": get_ssds(),
-                "memory": get_memory()
+                "memory": get_memory(),
+                "nvme": get_nvme()
                 }
         return data
