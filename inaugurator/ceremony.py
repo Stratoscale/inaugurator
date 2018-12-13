@@ -209,11 +209,11 @@ class Ceremony:
                 macAddress=self._args.inauguratorUseNICWithMAC, ipAddress=self._args.inauguratorIPAddress,
                 netmask=self._args.inauguratorNetmask, gateway=self._args.inauguratorGateway)
         self._debugPort = debugthread.DebugThread()
-        self.send_hwinfo(self._args.inauguratorSelfTestServerUrl)
         if self._args.inauguratorServerAMQPURL:
             self._talkToServer = talktoserver.TalkToServer(
                 amqpURL=self._args.inauguratorServerAMQPURL, myID=self._args.inauguratorMyIDForServer)
             hwinfo = {'net' : network.list_devices_info()}
+            self.send_hwinfo(self._args.inauguratorSelfTestServerUrl)
             self._talkToServer.checkIn(hwinfo=hwinfo)
             message = self._talkToServer.label()
             self._label = json.loads(message)['rootfs']
