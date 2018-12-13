@@ -15,10 +15,10 @@ class PartitionTable:
         createRoot=10)
     VOLUME_GROUP = "inaugurator"
     LAYOUT_SCHEMES = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, set_flags="bios_grub", flags="bios_grub"),
-                                                   boot=dict(sizeMB=256, fs="ext4", flags="boot, esp", set_flags="boot"),
+                                                   boot=dict(sizeMB=1024, fs="ext4", flags="boot, esp", set_flags="boot"),
                                                    lvm=dict(set_flags="lvm", flags="lvm", sizeMB="fillUp")),
                                    order=("bios_boot", "boot", "lvm")),
-                          MBR=dict(partitions=dict(boot=dict(sizeMB=256, fs="ext4", set_flags="boot", flags="boot"),
+                          MBR=dict(partitions=dict(boot=dict(sizeMB=1024, fs="ext4", set_flags="boot", flags="boot"),
                                                    lvm=dict(set_flags="lvm", flags="lvm", sizeMB="fillUp")),
                                    order=("boot", "lvm")))
 
