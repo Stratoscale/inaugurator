@@ -38,6 +38,13 @@ def get_nvme_list():
     except Exception as e:
         return {'output': r, 'error': e.message}
 
+def get_loaded_nvme_devices():
+    try:
+        r = sh.run("ls /dev | grep nvme")
+        return r.split("\n")[:-1]
+    except Exception as e:
+        return {'output': r, 'error': e.message}
+
 def get_memory():
     '''
     result in Megabytes
@@ -74,5 +81,6 @@ class HWinfo:
                 "ssd": get_ssds(),
                 "memory": get_memory(),
                 "nvme_list": get_nvme_list(),
+                "loaded_nvme_dev": get_loaded_nvme_devices()
                 }
         return data
