@@ -31,7 +31,7 @@ def get_ssds():
     except Exception as e:
         return {'output': r, 'error': e.message}
 
-def get_nvme():
+def get_nvme_list():
     try:
         r = sh.run("nvme list -o json")
         return json.loads(r)
@@ -73,6 +73,6 @@ class HWinfo:
                 "cpu": get_cpus(),
                 "ssd": get_ssds(),
                 "memory": get_memory(),
-                "nvme": get_nvme()
+                "nvme_list": get_nvme_list(),
                 }
         return data
