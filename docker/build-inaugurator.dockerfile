@@ -25,7 +25,6 @@ RUN dnf install -y \
     lshw \
     pciutils \
     rsync \
-    nvme-cli \
     busybox && \
     dnf -y clean all
 
@@ -38,6 +37,8 @@ WORKDIR /root
 
 CMD make -C osmosis build -j 10 && \
     make -C osmosis egg
+
+RUN rpm -i https://rpmfind.net/linux/fedora/linux/releases/29/Everything/x86_64/os/Packages/n/nvme-cli-1.6-1.fc29.x86_64.rpm
 
 WORKDIR /root/inaugurator
 ENV BUILD_HOST local
