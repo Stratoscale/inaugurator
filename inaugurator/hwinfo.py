@@ -31,10 +31,17 @@ def get_ssds():
     except Exception as e:
         return {'output': r, 'error': e.message}
 
-def get_nvme():
+def get_nvme_list():
     try:
         r = sh.run("nvme list -o json")
         return json.loads(r)
+    except Exception as e:
+        return {'output': r, 'error': e.message}
+
+def get_loaded_nvme_devices():
+    try:
+        r = sh.run("ls /dev | grep nvme")
+        return r.split("\n")[:-1]
     except Exception as e:
         return {'output': r, 'error': e.message}
 
@@ -73,6 +80,7 @@ class HWinfo:
                 "cpu": get_cpus(),
                 "ssd": get_ssds(),
                 "memory": get_memory(),
-                "nvme": get_nvme()
+                "nvme_list": get_nvme_list(),
+                "loaded_nvme_dev": get_loaded_nvme_devices()
                 }
         return data
