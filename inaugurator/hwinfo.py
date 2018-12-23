@@ -9,7 +9,7 @@ def get_network():
         return _lshw_json_fix(r)
 
     except Exception as e:
-        return {'output': r, 'error': e.message}
+        return {'error': e.message}
 
 
 def get_cpus():
@@ -29,21 +29,21 @@ def get_ssds():
         r = sh.run("lshw -c storage -json")
         return _lshw_json_fix(r)
     except Exception as e:
-        return {'output': r, 'error': e.message}
+        return {'error': e.message}
 
 def get_nvme_list():
     try:
         r = sh.run("nvme list -o json")
         return json.loads(r)
     except Exception as e:
-        return {'output': r, 'error': e.message}
+        return {'error': e.message}
 
 def get_loaded_nvme_devices():
     try:
         r = sh.run("ls /dev | grep nvme")
         return r.split("\n")[:-1]
     except Exception as e:
-        return {'output': r, 'error': e.message}
+        return {'error': e.message}
 
 def get_memory():
     '''
@@ -61,7 +61,7 @@ def get_memory():
 
         return memory
     except Exception as e:
-        return {'output': r, 'error': e.message}
+        return {'error': e.message}
 
 
 def _lshw_json_fix(output):
