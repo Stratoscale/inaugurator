@@ -7,7 +7,7 @@ import thread
 
 class Network:
     _CONFIG_SCRIPT_PATH = "/etc/udhcp_script.sh"
-    _NR_PING_ATTEMPTS = 20
+    _NR_PING_ATTEMPTS = 40
 
     def __init__(self, macAddress, ipAddress, netmask, gateway):
         self._gateway = gateway
