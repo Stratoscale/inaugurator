@@ -27,6 +27,7 @@ import threading
 import json
 import requests
 
+
 class Ceremony:
 
     def __init__(self, args):
@@ -177,13 +178,13 @@ class Ceremony:
         with open("/proc/cmdline", "r") as cmdLineFile:
             cmdLine = cmdLineFile.read()
         args = cmdLine.split(" ")
-        keyValuePairs = [arg.split("=",1) for arg in args if "=" in arg]
+        keyValuePairs = [arg.split("=", 1) for arg in args if "=" in arg]
         consoles = [value for key, value in keyValuePairs if key == "console"]
         return consoles
 
     def _createBootAndInstallGrub(self, destination):
         with self._mountOp.mountBoot() as bootDestination:
-            sh.run("rm -rf %s/*; sync" % bootDestination) # LBM1-4920
+            sh.run("rm -rf %s/*; sync" % bootDestination)  # LBM1-4920
             sh.run("rsync -rlpgDS --delete-before %s/boot/ %s/" % (destination, bootDestination))
         with self._mountOp.mountBootInsideRoot():
             serialDevices = self._getSerialDevices()
@@ -212,7 +213,7 @@ class Ceremony:
         if self._args.inauguratorServerAMQPURL:
             self._talkToServer = talktoserver.TalkToServer(
                 amqpURL=self._args.inauguratorServerAMQPURL, myID=self._args.inauguratorMyIDForServer)
-            hwinfo = {'net' : network.list_devices_info()}
+            hwinfo = {'net': network.list_devices_info()}
             self.send_hwinfo(self._args.inauguratorSelfTestServerUrl)
             self._talkToServer.checkIn(hwinfo=hwinfo)
             message = self._talkToServer.label()
@@ -242,7 +243,7 @@ class Ceremony:
             except osmose.CorruptedObjectStore:
                 logging.info("Found corrupted object store - purge osmosis!")
                 try:
-                    objectStorePath = os.path.join(destination,"var", "lib", "osmosis", "objectstore")
+                    objectStorePath = os.path.join(destination, "var", "lib", "osmosis", "objectstore")
                     osmosiscleanup.OsmosisCleanup(destination, objectStorePath=objectStorePath).eraseEverything()
                 except:
                     pass

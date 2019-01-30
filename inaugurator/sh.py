@@ -27,6 +27,7 @@ def run(* args, ** kwargs):
         raise ex
     return output
 
+
 def has_tool(rootPath, tool):
     try:
         run("/usr/sbin/busybox chroot %s sh -c 'which %s'" % (rootPath, tool))

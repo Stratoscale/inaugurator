@@ -46,6 +46,7 @@ install_nodeps:
 	sudo python setup.py install
 	sudo cp $(IMAGES) /usr/share/inaugurator
 	sudo chmod 644 /usr/share/inaugurator/*
+	sudo chmod a+x /usr/share/inaugurator/execs/*
 
 prepareForCleanBuild:
 	sudo pip install pika
