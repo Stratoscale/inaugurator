@@ -24,6 +24,12 @@ def get_cpus():
     except Exception as e:
         return {'error': e.message}
 
+def get_dimm():
+    try:
+        r = sh.run('lshw -c memory -json')
+        return _lshw_json_fix(r)
+    except Exception as e:
+        return {'error': e.message}
 
 def get_ssds():
     try:
@@ -126,7 +132,7 @@ class HWinfo:
         data = {"network": get_network(),
                 "cpu": get_cpus(),
                 "ssd": get_ssds(),
-                "memory": get_memory(),
+                "memory": get_dimm(),
                 "nvme_list": get_nvme_list(),
                 "loaded_nvme_dev": get_loaded_nvme_devices(),
                 "lightfield": {
