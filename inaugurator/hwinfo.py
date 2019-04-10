@@ -39,13 +39,20 @@ def get_ssds():
         return {'error': e.message}
 
 
-def get_nvme_list():
-    try:
-        r = sh.run("nvme list -o json")
-        return json.loads(r)
-    except Exception as e:
-        return {'error': e.message}
-
+def get_nvme_list(index_list):
+    if not index_list or 'error' in index_list:
+        return {}
+    nvme_list = dict()
+    for nvme_device in index_list:
+        try:
+            nvme_list[nvme_device] = {}
+            for filename in ['serial', 'model', 'firmware_rev']:
+                r = sh.run("cat /sys/class/nvme/%s/%s" % (nvme_device, filename))
+                if r:
+                    nvme_list[nvme_device][filename] = r.strip()
+        except Exception as e:
+            nvme_list[nvme_device] = str(e)
+    return nvme_list
 
 def get_loaded_nvme_devices():
     try:
@@ -129,12 +136,13 @@ class HWinfo:
         self.data = None
 
     def run(self):
+        loaded_nvme_list = get_loaded_nvme_devices()
         data = {"network": get_network(),
                 "cpu": get_cpus(),
                 "ssd": get_ssds(),
                 "memory": get_dimm(),
-                "nvme_list": get_nvme_list(),
-                "loaded_nvme_dev": get_loaded_nvme_devices(),
+                "nvme_list": get_nvme_list(loaded_nvme_list),
+                "loaded_nvme_dev": loaded_nvme_list,
                 "lightfield": {
                     "numa0": get_lightfield(0),
                     "numa1": get_lightfield(1),
