@@ -31,6 +31,7 @@ def get_dimm():
     except Exception as e:
         return {'error': e.message}
 
+
 def get_ssds():
     try:
         r = sh.run("lshw -c storage -json")
@@ -40,7 +41,10 @@ def get_ssds():
 
 
 def get_nvme_list():
+    def load_nvme_devices():
+        sh.run("mdev -s")
     try:
+        load_nvme_devices()
         r = sh.run("nvme list -o json")
         return json.loads(r)
     except Exception as e:
