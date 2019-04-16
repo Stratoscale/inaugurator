@@ -56,7 +56,7 @@ def get_loaded_nvme_devices():
         r = sh.run("ls /dev | grep nvme")
         return r.split("\n")[:-1]
     except Exception as e:
-        return {'error': e.message}
+        return []
 
 
 def get_memory():
