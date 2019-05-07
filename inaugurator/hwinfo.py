@@ -31,6 +31,13 @@ def get_dimm():
     except Exception as e:
         return {'error': e.message}
 
+def get_nvdimm():
+    try:
+        r = sh.run('ndctl list')
+        return json.loads(r)
+    except Exception as e:
+        return {}
+
 
 def get_ssds():
     try:
@@ -137,6 +144,7 @@ class HWinfo:
                 "cpu": get_cpus(),
                 "ssd": get_ssds(),
                 "memory": get_dimm(),
+                "nvdimm": get_nvdimm(),
                 "nvme_list": get_nvme_list(),
                 "loaded_nvme_dev": get_loaded_nvme_devices(),
                 "lightfield": {
