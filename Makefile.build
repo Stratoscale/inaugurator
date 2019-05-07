@@ -115,6 +115,7 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} build/osmosis-1.0.l
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/lvm
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/lvmetad
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/fsck.ext4
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/bin/ndctl
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/bin/rsync
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/nvme
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/lshw
@@ -140,6 +141,10 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} build/osmosis-1.0.l
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh mlx5_core
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh i40e
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh sfc
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh nd_pmem
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh dax_pmem
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh nd_e820
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh nd_blk
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.order
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.builtin
 	depmod --basedir=$@.tmp $(KERNEL_VERSION)

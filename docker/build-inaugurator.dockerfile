@@ -25,6 +25,7 @@ RUN dnf install -y \
     lshw \
     pciutils \
     rsync \
+    ndctl \
     busybox && \
     dnf -y clean all
 
