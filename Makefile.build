@@ -145,6 +145,7 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} build/osmosis-1.0.l
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh dax_pmem
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh nd_e820
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh nd_blk
+	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh nfit
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.order
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib/modules/$(KERNEL_VERSION)/modules.builtin
 	depmod --basedir=$@.tmp $(KERNEL_VERSION)
