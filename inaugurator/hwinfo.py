@@ -143,9 +143,9 @@ class HWinfo:
         data = {"network": get_network(),
                 "cpu": get_cpus(),
                 "ssd": get_ssds(),
+                "nvme_list": get_nvme_list(),  # runs mdev -s
                 "memory": get_dimm(),
                 "nvdimm": get_nvdimm(),
-                "nvme_list": get_nvme_list(),
                 "loaded_nvme_dev": get_loaded_nvme_devices(),
                 "lightfield": {
                     "numa0": get_lightfield(0),
