@@ -168,27 +168,19 @@ class HWinfo:
 
 if __name__ == '__main__':
     import requests
-    import argparse
 
     with open('/destRoot/hwinfo_defaults', 'r') as f:
         defaults = json.load(f)
-
-    parser = argparse.ArgumentParser(description='Selftest rerun')
-    parser.add_argument('-m', '--mac', help='Server mac address', required=False, dest='inauguratorUseNICWithMAC', default=defaults['mac'])
-    parser.add_argument('-i', '--ip', help='Server IP address', required=False, dest='inauguratorIPAddress', default=defaults['ip'])
-    parser.add_argument('-h', '--host', help='Server hostname', required=False, dest='inauguratorMyIDForServer', default=defaults['id'])
-    parser.add_argument('-u', '--url', help='SelfTest server URL', required=False, dest='url', default=defaults['url'])
-    args = parser.parse_args()
 
     try:
         self_test_data = HWinfo().run()
 
         msg = dict(info=self_test_data,
-                   mac=args.inauguratorUseNICWithMAC,
-                   ip=args.inauguratorIPAddress,
-                   id=args.inauguratorMyIDForServer
+                   mac=defaults['mac'],
+                   ip=defaults['ip'],
+                   id=defaults['id']
                    )
-        url = "http://{}/{}/".format(args.url, msg['id'])
+        url = "http://{}/{}/".format(defaults['url'], msg['id'])
 
         requests.post(url, json=msg)
     except Exception as e:
