@@ -31,6 +31,15 @@ def get_dimm():
     except Exception as e:
         return {'error': e.message}
 
+
+def get_disk():
+    try:
+        r = sh.run('lshw -c disk -json')
+        return _lshw_json_fix(r)
+    except Exception as e:
+        return []
+
+
 def get_nvdimm():
     try:
         r = sh.run('ndctl list')
@@ -145,6 +154,7 @@ class HWinfo:
                 "ssd": get_ssds(),
                 "nvme_list": get_nvme_list(),  # runs mdev -s
                 "memory": get_dimm(),
+                "disk": get_disk(),
                 "nvdimm": get_nvdimm(),
                 "loaded_nvme_dev": get_loaded_nvme_devices(),
                 "lightfield": {
