@@ -136,6 +136,14 @@ def get_lightfield(numa):
     except Exception as e:
         return {'error': e.message}
 
+def programtool_output(numa_idx):
+    try:
+        r = sh.run("/root/inaugurator/inaugurator/execs/program_tool read_version -n %d" % int(numa_idx))
+        if not r:
+            return {}
+        return json.loads(r)
+    except Exception as ex:
+        return {'error': str(ex)}
 
 def _lshw_json_fix(output):
     edited = re.sub("}\s*{", "},{", str(output))
@@ -161,6 +169,7 @@ class HWinfo:
                     "numa0": get_lightfield(0),
                     "numa1": get_lightfield(1),
                     "lspci": get_lspci_lf(),
+                    "programtool": {"numa0": programtool_output(0), "numa1": programtool_output(1)}
                     },
                 }
         return data
