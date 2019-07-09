@@ -17,10 +17,10 @@ def get_cpus():
 
 def get_nvdimm():
     try:
-        r = sh.run('ndctl list')
+        r = sh.run('ndctl list -vv')
         return json.loads(r)
     except Exception as e:
-        return {}
+        return []
 
 
 def get_nvme_list():
