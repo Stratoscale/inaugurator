@@ -141,8 +141,8 @@ def programtool_output(numa_idx):
         if not r:
             return {}
         return json.loads(r)
-    except Exception as ex:
-        return {'error': str(ex)}
+    except:
+        return {}
 
 
 class HWinfo:
