@@ -55,6 +55,8 @@ def get_lspci_lf():
             lf_pci_lst[str(port).strip()] = val[2:]
         return lf_pci_lst
     except CalledProcessError as e:
+        if e.returncode == 1:  # found no device
+            return {}
         return {'errcode': e.returncode, 'error': e.output}
     except Exception as e:
         return {'error': e.message}
