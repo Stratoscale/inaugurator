@@ -1,16 +1,6 @@
 from inaugurator import sh
 import json
-import re
 from subprocess import CalledProcessError
-
-
-def get_network():
-    try:
-        r = sh.run('lshw -c network -json')
-        return _lshw_json_fix(r)
-
-    except Exception as e:
-        return {'error': e.message}
 
 
 def get_cpus():
@@ -24,21 +14,6 @@ def get_cpus():
     except Exception as e:
         return {'error': e.message}
 
-def get_dimm():
-    try:
-        r = sh.run('lshw -c memory -json')
-        return _lshw_json_fix(r)
-    except Exception as e:
-        return {'error': e.message}
-
-
-def get_disk():
-    try:
-        r = sh.run('lshw -c disk -json')
-        return _lshw_json_fix(r)
-    except Exception as e:
-        return []
-
 
 def get_nvdimm():
     try:
@@ -46,14 +21,6 @@ def get_nvdimm():
         return json.loads(r)
     except Exception as e:
         return {}
-
-
-def get_ssds():
-    try:
-        r = sh.run("lshw -c storage -json")
-        return _lshw_json_fix(r)
-    except Exception as e:
-        return {'error': e.message}
 
 
 def get_nvme_list():
@@ -75,25 +42,6 @@ def get_loaded_nvme_devices():
         return []
 
 
-def get_memory():
-    '''
-    result in Megabytes
-    '''
-    try:
-        r = sh.run("free -m")
-        memory = dict()
-        lines = r.split('\n')
-        if len(lines) > 0:
-            keys = [i.strip() for i in lines[0].split()]
-            values = [i.strip() for i in lines[1].split()[1:]]
-            for i in range(len(keys)):
-                memory[keys[i]] = values[i]
-
-        return memory
-    except Exception as e:
-        return {'error': e.message}
-
-
 def get_lspci_lf():
     '''
     lspci indicate if exist and if lightfield is overpassed
@@ -110,6 +58,14 @@ def get_lspci_lf():
         return {'errcode': e.returncode, 'error': e.output}
     except Exception as e:
         return {'error': e.message}
+
+
+def get_lshw():
+    try:
+        r = sh.run("lshw -json")
+        return json.loads(r)
+    except Exception as e:
+        return {}
 
 
 def get_lightfield(numa):
@@ -145,24 +101,16 @@ def programtool_output(numa_idx):
     except Exception as ex:
         return {'error': str(ex)}
 
-def _lshw_json_fix(output):
-    edited = re.sub("}\s*{", "},{", str(output))
-    edited = edited.strip().strip(',')
-    edited = "[" + edited + "]"
-    return json.loads(edited)
-
 
 class HWinfo:
     def __init__(self):
         self.data = None
 
     def run(self):
-        data = {"network": get_network(),
+        data = {
                 "cpu": get_cpus(),
-                "ssd": get_ssds(),
                 "nvme_list": get_nvme_list(),  # runs mdev -s
-                "memory": get_dimm(),
-                "disk": get_disk(),
+                "lshw": get_lshw(),
                 "nvdimm": get_nvdimm(),
                 "loaded_nvme_dev": get_loaded_nvme_devices(),
                 "lightfield": {
