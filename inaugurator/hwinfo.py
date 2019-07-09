@@ -68,6 +68,46 @@ def get_lshw():
         return {}
 
 
+def numa_mem():
+    '''
+    output for reference:
+    available: 2 nodes (0-1)
+    node 0 cpus: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 28 29 30 31 32 33 34 35 36 37 38 39 40 41
+    node 0 size: 96521 MB
+    node 0 free: 19207 MB
+    node 1 cpus: 14 15 16 17 18 19 20 21 22 23 24 25 26 27 42 43 44 45 46 47 48 49 50 51 52 53 54 55
+    node 1 size: 96740 MB
+    node 1 free: 95273 MB
+    node distances:
+    node   0   1
+      0:  10  21
+      1:  21  10
+    '''
+    try:
+        def parse_numactl(output):
+            ret = dict(numa0={}, numa1={})
+            output = output.split('\n')
+            for line in output:
+                if 'cpus' in line:
+                    if 'node 0' in line:
+                        line = line.split(':')[1]
+                        ret['numa0']['cpu_num'] = len(line.split())
+                    if 'node 1' in line:
+                        line = line.split(':')[1]
+                        ret['numa1']['cpu_num'] = len(line.split())
+                if 'size' in line:
+                    if 'node 0' in line:
+                        ret['numa0']['mem_size'] = line.split(':', 1)[-1].strip()
+                    if 'node 1' in line:
+                        ret['numa1']['mem_size'] = line.split(':', 1)[-1].strip()
+            return ret
+
+        r = sh.run("numactl -H")
+        return parse_numactl(r)
+    except Exception as e:
+        return {}
+
+
 def get_lightfield(numa):
     '''
     VPD output
@@ -92,6 +132,7 @@ def get_lightfield(numa):
     except Exception as e:
         return {'error': e.message}
 
+
 def programtool_output(numa_idx):
     try:
         r = sh.run("/root/inaugurator/inaugurator/execs/program_tool read_version -n %d" % int(numa_idx))
@@ -113,6 +154,7 @@ class HWinfo:
                 "lshw": get_lshw(),
                 "nvdimm": get_nvdimm(),
                 "loaded_nvme_dev": get_loaded_nvme_devices(),
+                "numactl": numa_mem(),
                 "lightfield": {
                     "numa0": get_lightfield(0),
                     "numa1": get_lightfield(1),

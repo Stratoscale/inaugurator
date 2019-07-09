@@ -116,6 +116,7 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} build/osmosis-1.0.l
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/lvmetad
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/fsck.ext4
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/bin/ndctl
+	DEST=$@.tmp sh/relative_copy_executable.sh /usr/bin/numactl
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/bin/rsync
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/nvme
 	DEST=$@.tmp sh/relative_copy_executable.sh /usr/sbin/lshw

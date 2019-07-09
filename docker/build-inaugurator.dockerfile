@@ -26,6 +26,7 @@ RUN dnf install -y \
     pciutils \
     rsync \
     ndctl \
+    numactl \
     busybox && \
     dnf -y clean all
 
