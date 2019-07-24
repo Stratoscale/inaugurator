@@ -34,6 +34,15 @@ def get_nvme_list():
         return {'error': e.message}
 
 
+def get_ssd_per_numa():
+    try:
+        ssd_raw = sh.run("cat /sys/class/nvme/nvme*/device/numa_node")
+        ssd_per_numa = {'numa0': list(ssd_raw).count('0'), 'numa1': list(ssd_raw).count('1')}
+        return ssd_per_numa
+    except Exception as e:
+        return {}
+
+
 def get_loaded_nvme_devices():
     try:
         r = sh.run("ls /dev | grep nvme")
@@ -154,6 +163,7 @@ class HWinfo:
                 "cpu": get_cpus(),
                 "nvme_list": get_nvme_list(),  # runs mdev -s
                 "lshw": get_lshw(),
+                "ssd_per_numa": get_ssd_per_numa(),
                 "nvdimm": get_nvdimm(),
                 "loaded_nvme_dev": get_loaded_nvme_devices(),
                 "numactl": numa_mem(),
