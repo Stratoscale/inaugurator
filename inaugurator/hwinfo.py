@@ -175,3 +175,23 @@ class HWinfo:
                     },
                 }
         return data
+
+if __name__ == '__main__':
+    import requests
+
+    with open('/destRoot/hwinfo_defaults', 'r') as f:
+        defaults = json.load(f)
+
+    try:
+        self_test_data = HWinfo().run()
+
+        msg = dict(info=self_test_data,
+                   mac=defaults['mac'],
+                   ip=defaults['ip'],
+                   id=defaults['id']
+                   )
+        url = "http://{}/{}/".format(defaults['url'], msg['id'])
+
+        requests.post(url, json=msg)
+    except Exception as e:
+        print("error")

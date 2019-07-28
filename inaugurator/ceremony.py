@@ -397,6 +397,9 @@ class Ceremony:
                 print ex.message
 
     def send_hwinfo(self, url):
+        with open('/destRoot/hwinfo_defaults', 'w') as f:
+            json.dump({'mac': self._args.inauguratorUseNICWithMAC, 'ip': self._args.inauguratorIPAddress,
+                       'id': self._args.inauguratorMyIDForServer, 'url': url}, f)
         try:
             self_test_data = selfTest.HWinfo().run()
 
