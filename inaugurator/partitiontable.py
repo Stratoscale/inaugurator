@@ -74,7 +74,7 @@ class PartitionTable:
         sh.run("lvm lvcreate --zero n --name osmosis-cache --size %dG %s" %
                (osmosisCacheSizeGB, self.VOLUME_GROUP))
 
-        rootSize = "--extents 100%FREE"
+        rootSize = "--extents 80%FREE"
 
         sh.run("lvm lvcreate --zero n --name root %s %s" % (rootSize, self.VOLUME_GROUP))
         sh.run("lvm vgscan --mknodes")
