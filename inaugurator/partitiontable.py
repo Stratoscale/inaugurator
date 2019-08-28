@@ -13,7 +13,7 @@ class PartitionTable:
         bigOsmosisCache=30,
         minimumRoot=7,
         createRoot=10)
-    VOLUME_GROUP = "inaugurator"
+    VOLUME_GROUP = "inaugurator_v2"
     LAYOUT_SCHEMES = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, set_flags="bios_grub", flags="bios_grub"),
                                                    boot=dict(sizeMB=1024, fs="ext4", flags="boot, esp", set_flags="boot"),
                                                    lvm=dict(set_flags="lvm", flags="lvm", sizeMB="fillUp")),
@@ -74,7 +74,7 @@ class PartitionTable:
         sh.run("lvm lvcreate --zero n --name osmosis-cache --size %dG %s" %
                (osmosisCacheSizeGB, self.VOLUME_GROUP))
 
-        rootSize = "--extents 100%FREE"
+        rootSize = "--extents 80%FREE"
 
         sh.run("lvm lvcreate --zero n --name root %s %s" % (rootSize, self.VOLUME_GROUP))
         sh.run("lvm vgscan --mknodes")
