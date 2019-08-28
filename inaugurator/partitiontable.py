@@ -13,7 +13,7 @@ class PartitionTable:
         bigOsmosisCache=30,
         minimumRoot=7,
         createRoot=10)
-    VOLUME_GROUP = "inaugurator_v2"
+    VOLUME_GROUP = "inaugurator-v2"
     LAYOUT_SCHEMES = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, set_flags="bios_grub", flags="bios_grub"),
                                                    boot=dict(sizeMB=1024, fs="ext4", flags="boot, esp", set_flags="boot"),
                                                    lvm=dict(set_flags="lvm", flags="lvm", sizeMB="fillUp")),
