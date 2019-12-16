@@ -37,7 +37,9 @@ def get_nvme_list():
 def get_ssd_per_numa():
     try:
         ssd_raw = sh.run("cat /sys/class/nvme/nvme*/device/numa_node")
-        ssd_per_numa = {'numa0': list(ssd_raw).count('0'), 'numa1': list(ssd_raw).count('1')}
+
+        ssd_per_numa = {'numa0': list(ssd_raw).count('0') + list(ssd_raw).count('3'), 'numa1': list(ssd_raw).count('1') + list(ssd_raw).count('2')}
+
         return ssd_per_numa
     except Exception as e:
         return {}
