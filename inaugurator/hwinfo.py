@@ -22,6 +22,13 @@ def get_nvdimm():
     except Exception as e:
         return []
 
+def get_fio():
+    try:
+        r = sh.run('fio --name=randwrite --ioengine=libaio --iodepth=1 --rw=randwrite --bs=4k --direct=1 --numjobs=1 --size=10m --time_base=1 --runtime=10 --group_reporting --filename=/destRoot/fio_test --output-format=json')
+        return json.loads(r)
+    except Exception as e:
+        {'error': e.message, 'command': sh.run('fio --name=randwrite --ioengine=libaio --iodepth=1 --rw=randwrite --bs=4k --direct=1 --numjobs=1 --size=10m --time_base=1 --runtime=10 --group_reporting --filename=/destRoot/fio_test --output-format=json')}
+
 
 def get_nvme_list():
     def load_nvme_devices():
@@ -163,6 +170,7 @@ class HWinfo:
     def run(self):
         data = {
                 "cpu": get_cpus(),
+                "fio": get_fio(),
                 "nvme_list": get_nvme_list(),  # runs mdev -s
                 "lshw": get_lshw(),
                 "ssd_per_numa": get_ssd_per_numa(),

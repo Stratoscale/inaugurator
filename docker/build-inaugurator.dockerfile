@@ -25,6 +25,7 @@ RUN dnf install -y \
     lshw \
     pciutils \
     rsync \
+    fio \
     ndctl \
     numactl \
     busybox && \
