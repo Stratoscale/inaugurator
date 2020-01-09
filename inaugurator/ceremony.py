@@ -76,6 +76,7 @@ class Ceremony:
         inauguratorNetmask
         inauguratorGateway
         inauguratorSelfTestServerUrl - the url (ip+port) for self test server example: 192.168.70.66:50007
+        hypervisor - most of disk size will be under inaugurator--v%d-root
         """
         self._args = args
         self._talkToServer = None
@@ -157,7 +158,7 @@ class Ceremony:
         logging.info("Target device is %(device)s layout=%(layout)s",
                      dict(device=self._targetDevice, layout=self._args.inauguratorPartitionLayout))
         partitionTable = partitiontable.PartitionTable(self._targetDevice,
-                                                       layoutScheme=self._args.inauguratorPartitionLayout)
+                                                       layoutScheme=self._args.inauguratorPartitionLayout, hypervisor=self._args.hypervisor)
         if self._args.inauguratorClearDisk:
             partitionTable.clear()
         partitionTable.verify()
