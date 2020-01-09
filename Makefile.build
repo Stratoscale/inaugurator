@@ -67,9 +67,10 @@ build/inaugurator.%.initrd.img: $(INITRD_IMAGE_PATH)
 	mv $@.tmp $@
 
 build/osmosis-1.0.linux-x86_64.tar.gz:
-	(cd ../osmosis/ && $(MAKE) clean && $(MAKE) build && $(MAKE) egg)
-	 cp ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz $@
-
+	if  test ! -f ../osmosis/build/cpp/osmosis.bin ; then\
+		(cd ../osmosis/ && $(MAKE) clean && $(MAKE) build && $(MAKE) egg);\
+	fi
+	cp ../osmosis/dist/osmosis-1.0.linux-x86_64.tar.gz $@;
 build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_LOCAL_PATH} build/osmosis-1.0.linux-x86_64.tar.gz
 	-@mkdir build
 	-rm -fr $@.tmp $@
