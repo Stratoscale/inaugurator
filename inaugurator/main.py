@@ -38,6 +38,7 @@ parser.add_argument("--inauguratorExpectedLabel")
 parser.add_argument("--inauguratorPdbOnError", action="store_true", default=False)
 parser.add_argument("--inauguratorPartitionLayout", default="GPT")
 parser.add_argument("--inauguratorSelfTestServerUrl", default="192.168.66.70:50007")
+parser.add_argument("--hypervisor", action="store_true", default=False)
 
 
 def getArgsSource():

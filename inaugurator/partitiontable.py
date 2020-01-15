@@ -22,9 +22,12 @@ class PartitionTable:
                                                    lvm=dict(set_flags="lvm", flags="lvm", sizeMB="fillUp")),
                                    order=("boot", "lvm")))
 
-    def __init__(self, device, sizesGB=dict(), layoutScheme="GPT"):
+    def __init__(self, device, sizesGB=dict(), layoutScheme="GPT", hypervisor=False):
         self._sizesGB = dict(self._DEFAULT_SIZES_GB)
         self._sizesGB.update(sizesGB)
+        self._hypervisor = hypervisor
+        if hypervisor:
+            self._set_hyperviosr()
         self._device = device
         self._cachedDiskSize = None
         self._created = False
@@ -34,6 +37,13 @@ class PartitionTable:
         self._layoutScheme = layoutScheme
         self._physicalPartitions = self.LAYOUT_SCHEMES[layoutScheme]["partitions"]
         self._physicalPartitionsOrder = self.LAYOUT_SCHEMES[layoutScheme]["order"]
+
+    def _set_hyperviosr(self):
+        PartitionTable.VOLUME_GROUP = "hypervisor"
+        self._sizesGB['smallSwap'] = 1
+        self._sizesGB['bigSwap'] = 1
+        self._sizesGB['smallOsmosisCache'] = 1
+        self._sizesGB['bigOsmosisCache'] = 1
 
     def created(self):
         return self._created
@@ -75,6 +85,8 @@ class PartitionTable:
                (osmosisCacheSizeGB, self.VOLUME_GROUP))
 
         rootSize = "--extents 80%FREE"
+        if self._hypervisor:
+            rootSize = "--extents 100%FREE"
 
         sh.run("lvm lvcreate --zero n --name root %s %s" % (rootSize, self.VOLUME_GROUP))
         sh.run("lvm vgscan --mknodes")
