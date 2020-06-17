@@ -20,6 +20,24 @@ def deviceSizeGB(device):
     return int(sh.run("sfdisk -s %s" % device)) / 1024 / 1024
 
 
+def transferOsmosisLabelWithRetry(label, mountPoint, retry=5, sleep=5):
+
+    success = False
+    failed_count = 0
+
+    while not success:
+        try:
+            transferOsmosisLabel(label, mountPoint)
+            success = True
+        except Exception as e:
+            failed_count += 1
+            if failed_count > retry:
+                logging.error("Failed to transfer label %s after %s times" % (label, failed_count))
+                raise e
+            time.sleep(sleep)
+            logging.info("Failed to transfer label %s, going to retry" % label)
+
+
 def transferOsmosisLabel(label, mountPoint):
     objectStores = sh.run("solvent printobjectstores").strip()
     sh.run(
@@ -79,7 +97,7 @@ try:
         logging.info("Installing inaugurator")
         installInaugurator(args.device, mountPoint)
         logging.info("Transferring Osmosis Label %s" % args.label)
-        transferOsmosisLabel(args.label, mountPoint)
+        transferOsmosisLabelWithRetry(args.label, mountPoint)
     finally:
         logging.info("Unmounting DOK")
         sh.run("umount %s" % mountPoint)
