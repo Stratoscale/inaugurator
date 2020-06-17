@@ -75,6 +75,24 @@ elif args.editReserved:
     sys.exit(0)
 
 
+def transferOsmosisLabelWithRetry(label, mountPoint, retry=5, sleep=5):
+
+    success = False
+    failed_count = 0
+
+    while not success:
+        try:
+            transferOsmosisLabel(label, mountPoint)
+            success = True
+        except Exception as e:
+            failed_count += 1
+            if failed_count > retry:
+                logging.error("Failed to transfer label %s after %s times" % (label, failed_count))
+                raise e
+            time.sleep(sleep)
+            logging.info("Failed to transfer label %s, going to retry" % label)
+
+
 def transferOsmosisLabel(label, mountPoint):
     objectStores = sh.run("solvent printobjectstores").strip()
     sh.run(
@@ -89,7 +107,7 @@ try:
     with open(os.path.join(temp, "inaugurate_label.txt"), "w") as f:
         f.write(args.label)
     logging.info("Transferring label")
-    transferOsmosisLabel(args.label, temp)
+    transferOsmosisLabelWithRetry(args.label, temp)
     logging.info("Done Transferring label")
     os.makedirs(os.path.join(temp, "isolinux"))
     shutil.copy("resources/isolinux.bin", os.path.join(temp, "isolinux"))
