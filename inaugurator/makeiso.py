@@ -5,6 +5,7 @@ import tempfile
 import os
 import shutil
 import sys
+import time
 from inaugurator import sh
 
 logging.basicConfig(level=logging.INFO)
@@ -75,6 +76,25 @@ elif args.editReserved:
     sys.exit(0)
 
 
+def waitForEmptyDir(directory, retry=12, interval=10):
+    is_empty = False
+    attempts = 0
+
+    while not is_empty and attempts < retry:
+        files = subprocess.check_output(['ls', '-l', directory]).split('\n')[1:-1]
+
+        if len(files) == 0:
+            is_empty = True
+        else:
+            logging.info("directory %s is not empty" % directory)
+            attempts = attempts + 1
+            time.sleep(interval)
+
+    if not is_empty:
+        logging.error("directory %s is not empty, failed to wait for process" % directory)
+        raise Exception("%s directory is not empty - fix or rerun" % directory)
+
+
 def transferOsmosisLabelWithRetry(label, mountPoint, retry=5, sleep=5):
 
     success = False
@@ -137,6 +157,7 @@ label Inaugurator
         data = (size / len(fill)) * fill
         with open(os.path.join(temp, filename), "wb") as f:
             f.write(data)
+    waitForEmptyDir(os.path.join(temp, "osmosisobjectstore", "osmosisDrafts"))
     logging.info("Creating ISO")
     subprocess.check_call([
         "mkisofs", "-allow-limited-size", "-r", "-V", args.ISOlabel, "-cache-inodes", "-J", "-R", "-l",
