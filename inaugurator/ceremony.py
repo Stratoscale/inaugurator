@@ -418,4 +418,5 @@ class Ceremony:
         if not self._args.inauguratorDontReadSmartData:
             self._storageDevices.readSmartDataFromAllDevices(
                 talkToServer=self._talkToServer,
-                failOnFailedHealthTest=not self._args.inauguratorDontFailOnFailedDisk)
+                failOnFailedHealthTest=not self._args.inauguratorDontFailOnFailedDisk,
+                failOnDevices=self._args.inauguratorTargetDeviceCandidate)
