@@ -43,7 +43,7 @@ class StorageDevices:
         return devicePath
 
     @classmethod
-    def readSmartDataFromAllDevices(cls, talkToServer=None, failOnFailedHealthTest=False):
+    def readSmartDataFromAllDevices(cls, talkToServer=None, failOnFailedHealthTest=False, failOnDevices=[]):
         devices = cls._getSSDDeviceNames() + cls._getHDDDeviceNames()
         if devices:
             logging.info("Reading SMART data...")
@@ -54,7 +54,16 @@ class StorageDevices:
                     if failOnFailedHealthTest:
                         if talkToServer is not None:
                             talkToServer.healthTestFailed(device)
-                        raise ex
+
+                        # search if device is in failOnDevices by looping on the failOnDevices and
+                        # for each device searching for match sd/vd string - 'sda' in ['/dev/sda']
+                        if any([(device in cur_dev) for cur_dev in failOnDevices]):
+                            logging.error("SMART failure detected on device %s,"
+                                          " this device is the installation target device" % device)
+                            raise ex
+                        else:
+                            logging.warning("SMART failure detected on device %s,"
+                                            " this device is not the installation target device" % device)
         else:
             logging.warning("No storage devices were found to read SMART data from.")
 
