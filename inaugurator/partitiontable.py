@@ -390,7 +390,11 @@ class PartitionTable:
     def _getPartitionPath(self, partitionPurpose):
         partitionIdx = self._physicalPartitionsOrder.index(partitionPurpose)
         partitionNr = partitionIdx + 1
-        return "%(device)s%(partitionNr)s" % dict(device=self._device, partitionNr=partitionNr)
+
+        if "nvme" in self._device:
+            return "%(device)sp%(partitionNr)s" % dict(device=self._device, partitionNr=partitionNr)
+        else:
+            return "%(device)s%(partitionNr)s" % dict(device=self._device, partitionNr=partitionNr)
 
     def getBootPartitionPath(self):
         return self._getPartitionPath("boot")
