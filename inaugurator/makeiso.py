@@ -147,7 +147,7 @@ default Inaugurator
 
 label Inaugurator
     kernel /inaugurator.vmlinuz
-    append initrd=/inaugurator.fat.initrd.img %s
+    append console=ttyS1,115200n8 initrd=/inaugurator.fat.initrd.img %s
 """ % INAUGURATOR_ARGUMENTS)
     for opt in args.reserveFile:
         sizeKBText, filename, fill = opt.split(":")
