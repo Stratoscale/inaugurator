@@ -1,4 +1,4 @@
-KERNEL_VERSION = 3.10.0-1127.8.2.el7.x86_64
+KERNEL_VERSION = 3.10.0-1127.19.1.el7.x86_64
 INAUGURATOR_VERSION=$(shell python setup.py --version)
 PYTHON_DIST_FILENAME=dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
 KERNEL_IMAGE_PATH=/boot/vmlinuz-$(KERNEL_VERSION)
