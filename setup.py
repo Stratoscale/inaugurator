@@ -7,9 +7,9 @@ def read(fname):
 
 setup(
     name="inaugurator",
-    version="1.5.4",
-    author="Shlomo Matichin",
-    author_email="shlomomatichin@gmail.com",
+    version="1.5.8",
+    author="Guy Menahem",
+    author_email="guymenahem@neokarm.com",
     description=(
         "Osmos complete rootfs images by booting this initrd,"
         "from the network or a DOK"),
