@@ -4,4 +4,5 @@
 build
 remote
 dist
+.idea
 inaugurator.egg-info
