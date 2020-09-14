@@ -21,6 +21,7 @@ RUN yum install -y \
     lvm2 \
     make \
     rsync \
+    ipmitool \
     smartmontools && \
     yum -y clean all
 
