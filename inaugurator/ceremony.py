@@ -74,6 +74,12 @@ class Ceremony:
         inauguratorExtraDataToGrubCmdLine - data to be added to the grub command line
         inauguratorNetmask
         inauguratorGateway
+
+        --inauguratorIPMIUsername - IPMI Username to change password
+        --inauguratorIPMIPassword - IPMI password to set for Username
+        --inauguratorIPMIAddress - IPMI IPv4 address to set
+        --inauguratorIPMINetmask - IPMI netmask to set
+        --inauguratorIPMIGateway - IPMI Default Gateway to set
         """
         self._args = args
         self._talkToServer = None

@@ -49,6 +49,12 @@ parser.add_argument("--inauguratorTargetDeviceLabel", help="This parameter is mu
                     "with inauguratorTargetDeviceCandidate and inauguratorTargetDeviceType")
 parser.add_argument("--inauguratorTargetDeviceType", help="This parameter is mutually exclusive "
                     "with inauguratorTargetDeviceCandidate and inauguratorTargetDeviceLabel")
+parser.add_argument("--inauguratorIPMIUsername")
+parser.add_argument("--inauguratorIPMIPassword")
+parser.add_argument("--inauguratorIPMIAddress")
+parser.add_argument("--inauguratorIPMINetmask")
+parser.add_argument("--inauguratorIPMIGateway")
+parser.add_argument("--inauguratorIPMIChannel")
 
 
 def getArgsSource():
