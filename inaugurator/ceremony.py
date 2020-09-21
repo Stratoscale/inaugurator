@@ -21,6 +21,7 @@ from inaugurator import debugthread
 from inaugurator import storagedevices
 from inaugurator import consts
 from inaugurator import log
+from inaugurator import IPMIController
 import os
 import re
 import time
@@ -92,6 +93,13 @@ class Ceremony:
         self._wereDriversLoaded = False
         self._storageDevices = storagedevices.StorageDevices()
         self._fileHandler = None
+        self.ipmiController = IPMIController.IPMIController(ipmidriver=None,
+                                                            username=args.inauguratorIPMIUsername,
+                                                            password=args.inauguratorIPMIPassword,
+                                                            ipAddress=args.inauguratorIPMIAddress,
+                                                            netmask=args.inauguratorIPMINetmask,
+                                                            gateway=args.inauguratorIPMIGateway,
+                                                            channel=args.inauguratorIPMIChannel)
 
     def ceremony(self):
         self._loadAllDriversIfNeeded()
@@ -100,6 +108,7 @@ class Ceremony:
             self._copyInauguratorLog(destination)
             self._changeLogFileHandler(destination)
             self._initializeNetworkIfNeeded()
+            self.ipmiController.configureIPMIIfNeeded()
             self._disableNCQIfNeeded()
             self._readSmartDataIfNeeded()
             self._etcLabelFile = etclabelfile.EtcLabelFile(destination)
