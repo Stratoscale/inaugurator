@@ -159,3 +159,7 @@ class IPMIDriver():
         sh.run("ipmitool lan set %s defgw ipaddr %s" % (self.channel, gateway))
         sh.run("ipmitool lan set %s access on" % self.channel)
         logging.info("IPMI network configuration done successfully")
+
+    def restartIPMI(self):
+        logging.info("IPMI - restarting IPMI management controller using cold mode")
+        sh.run("ipmitool mc reset cold")

@@ -55,6 +55,7 @@ parser.add_argument("--inauguratorIPMIAddress")
 parser.add_argument("--inauguratorIPMINetmask")
 parser.add_argument("--inauguratorIPMIGateway")
 parser.add_argument("--inauguratorIPMIChannel")
+parser.add_argument("--inauguratorIPMIRestart")
 
 
 def getArgsSource():

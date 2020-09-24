@@ -81,6 +81,7 @@ class Ceremony:
         --inauguratorIPMIAddress - IPMI IPv4 address to set
         --inauguratorIPMINetmask - IPMI netmask to set
         --inauguratorIPMIGateway - IPMI Default Gateway to set
+        --inauguratorIPMRestart - IPMI restart BMC after configuration - "True" / "False"
         """
         self._args = args
         self._talkToServer = None
@@ -99,7 +100,8 @@ class Ceremony:
                                                             ipAddress=args.inauguratorIPMIAddress,
                                                             netmask=args.inauguratorIPMINetmask,
                                                             gateway=args.inauguratorIPMIGateway,
-                                                            channel=args.inauguratorIPMIChannel)
+                                                            channel=args.inauguratorIPMIChannel,
+                                                            restart=args.inauguratorIPMIRestart)
 
     def ceremony(self):
         self._loadAllDriversIfNeeded()

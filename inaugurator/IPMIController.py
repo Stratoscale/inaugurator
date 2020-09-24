@@ -11,7 +11,8 @@ class IPMIController():
                  ipAddress=None,
                  netmask=None,
                  gateway=None,
-                 channel=None):
+                 channel=None,
+                 restart=None):
         self.ipmidriver = ipmidriver if ipmidriver is not None else IPMIDriver.IPMIDriver()
         self.username = username
         self.password = password
@@ -19,6 +20,7 @@ class IPMIController():
         self.netmask = netmask
         self.gateway = gateway
         self.channel = channel
+        self.restart = self._convertStringToBool(restart)
 
     def _checkIfIPMIConfigurationNeeded(self):
         if any([self.username, self.password, self.ip, self.netmask, self.gateway]):
@@ -52,3 +54,14 @@ class IPMIController():
             logging.info("IPMI parameters [ip, netmask, gateway] - at least one of them not provided."
                          " Parameters found - ip: %s netmask: %s gateway: %s . Skip configuration"
                          % (self.ip, self.netmask, self.gateway))
+
+        if self.restart:
+            self.ipmidriver.restartIPMI()
+
+    def _convertStringToBool(self, str):
+        if str is None:
+            return False
+        if str in ["True", "true"]:
+            return True
+        else:
+            return False
