@@ -19,13 +19,13 @@ $(PYTHON_DIST_FILENAME): inaugurator setup.py
 	python setup.py bdist
 	python setup.py bdist_egg
 
-build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} build/osmosis/dist/osmosis-1.1.0_beta1-py2.7.egg build/osmosis/build/cpp/osmosis.bin
+build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} build/osmosis/dist/osmosis-1.1.0b1-py2.7.egg build/osmosis/build/cpp/osmosis.bin
 	-@mkdir build
 	-rm -fr $@.tmp $@
 	mkdir $@.tmp
 	echo "Installing Inaugurator"
 	tar -xf $< --directory $@.tmp
-	cp build/osmosis/dist/osmosis-1.1.0_beta1-py2.7.egg $@.tmp/usr/lib/
+	cp build/osmosis/dist/osmosis-1.1.0b1-py2.7.egg $@.tmp/usr/lib/
 	echo "Copying libraries"
 	DEST=$@.tmp sh/relative_copy_glob.sh /lib64/ld*
 	DEST=$@.tmp sh/relative_copy_glob.sh /usr/lib64/python2.7/*
@@ -125,7 +125,7 @@ build/osmosis: ../osmosis
 	cp -rf ../osmosis build/
 	$(MAKE) -C build/osmosis clean
 
-build/osmosis/dist/osmosis-1.1.0_beta1-py2.7.egg: build/osmosis
+build/osmosis/dist/osmosis-1.1.0b1-py2.7.egg: build/osmosis
 	$(MAKE) -C build/osmosis egg
 
 build/osmosis/build/cpp/osmosis.bin: build/osmosis

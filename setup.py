@@ -7,7 +7,7 @@ def read(fname):
 
 setup(
     name="inaugurator",
-    version="1.5.8",
+    version="1.6.0",
     author="Guy Menahem",
     author_email="guymenahem@neokarm.com",
     description=(
@@ -21,5 +21,5 @@ setup(
         "Development Status :: 4 - Beta",
         "Topic :: Utilities",
     ],
-    requires=['pyudev'],
+    requires=['pyudev','mock'],
 )

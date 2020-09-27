@@ -37,7 +37,7 @@ RUN rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
     yum install -y kmod-cciss && \
     yum -y clean all
 
-RUN pip install pep8 pika==0.11.2
+RUN pip2 install --upgrade setuptools==41.2.0 &&  pip2 install pep8 pika==0.11.2 mock==3.0.5 simplejson
 
 # Edit sudoers file to avoid error: sudo: sorry, you must have a tty to run sudo
 RUN sed -i -e "s/Defaults    requiretty.*/ #Defaults    requiretty/g" /etc/sudoers
