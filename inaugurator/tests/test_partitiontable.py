@@ -34,6 +34,9 @@ class Test(unittest.TestCase):
         self.fakeExistingPaths = set()
         inaugurator.partitiontable.open = self._readSizeMock
 
+    def tearDown(self):
+        sh.run = inaugurator.sh.run
+
     def _readSizeMock(self, name, *args, **kwargs):
         sizeInBlocks = int(float(self.diskSizeGB) * self._NR_BYTES_IN_GB / self._BLOCK_SIZE)
 
