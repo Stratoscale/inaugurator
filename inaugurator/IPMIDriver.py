@@ -3,6 +3,9 @@ from inaugurator import sh
 
 
 class IPMIDriver():
+    """
+    IPMIDriver is a driver that able to configure through IPMI protocol
+    """
 
     IPMI_KERNEL_MODULES = ["ipmi_msghandler", "ipmi_devintf", "ipmi_si"]
 
@@ -10,16 +13,32 @@ class IPMIDriver():
         self.channel = 3
 
     def _loadModule(self, module):
+        """
+        load kernel module
+        @param module: module name
+        @type module: string
+        """
         logging.debug("going to load kernel module for IPMI - module %s" % module)
         sh.run("modprobe %s" % module)
         logging.debug("Kernel module for IPMI load successfully- module %s" % module)
 
     def _removeModule(self, module):
+        """
+        remove/unload kernel module
+        @param module: module name
+        @type module: string
+        """
         logging.debug("going to remove kernel module for IPMI - module %s" % module)
         sh.run("modprobe -r %s" % module)
         logging.debug("Kernel module for IPMI removed successfully- module %s" % module)
 
     def _verifyModuleLoaded(self, module):
+        """
+        verify kernel module is loaded. if not - raises exception.
+        @param module: module name
+        @type module: string
+        @return: None - raise exception if kernel module not loaded
+        """
         output = sh.run("lsmod | awk '{print $1}' | grep %s | wc -l" % module)
 
         if int(output) > 1:
@@ -31,34 +50,69 @@ class IPMIDriver():
                             % (module, self._getAllLoadedIPMIModules()))
 
     def _getAllLoadedIPMIModules(self):
+        """
+        get all ipmi kernel modules loaded
+        @return: ipmitool kernel modules names
+        @rtype: list of strings
+        """
         return sh.run("lsmod | grep ipmi | awk '{print $1}'").split('\n')
 
     def _loadAllModules(self):
+        """
+        load all ipmi kernel modules
+        @return: None
+        """
         for mod in self.IPMI_KERNEL_MODULES:
             self._loadModule(mod)
 
     def _removeAllModules(self):
+        """
+        remove/unload all ipmi kernel modules
+        @return: None
+        """
         for mod in reversed(self.IPMI_KERNEL_MODULES):
             self._removeModule(mod)
 
     def _verifyAllModulesLoaded(self):
+        """
+        verify all kernel modules loaded
+        if not - raise Exception
+        @return: None / raise Exception
+        """
         for mod in self.IPMI_KERNEL_MODULES:
             self._verifyModuleLoaded(mod)
 
     def _createIPMIDevice(self):
+        """
+        create ipmitool device for communicate with ipmi device (for example - BMC)
+        @return: None / raises Exception if device can't be created
+        """
         logging.debug("going to create /dev/ipmi0 for ipmitool")
         ipmiMinorNodeID = sh.run("cat /proc/devices | grep ipmidev |cut -d \" \" -f 1").split('\n')[0]
         sh.run("mknod /dev/ipmi0 c %s 0" % ipmiMinorNodeID)
 
     def _verifyIPMITool(self):
+        """
+        verify ipmitool is avilable and can be used
+        @return: None / raises Exception is ipmitool is not ready
+        """
         logging.debug("going to verify ipmitool is working using ipmitool command")
         ipmiOutput = sh.run("ipmitool lan print 1")
 
         if ipmiOutput < 1:
             raise Exception("Cannot use ipmitool")
 
-    def _setAvailableChannel(self, channel):
-
+    def _setAvailableChannel(self, channel=None):
+        """
+        set IPMIDriver channel.
+        if input is None, this function will discover an available channel.
+        if got channel, verify this channcel can be used.
+        discovery is tring to use channel 3 if available,
+        if channel 3 isn't available fallback to channel 1.
+        @param channel: channel to use / None
+        @type channel: string
+        @return: None / raise Exception if channel isn't available
+        """
         if channel is None:
             # try to use channel 3 and fallback to 1
             try:
@@ -75,6 +129,13 @@ class IPMIDriver():
         logging.info("IPMI channel assigned - %s" % self.channel)
 
     def _getUsernameID(self, username):
+        """
+        get user ID by user name
+        @param username: user name
+        @type username:string
+        @return: user id / None if user name not found
+        @rtype: string
+        """
         try:
             userid = sh.run("ipmitool user list %s | grep %s" % (self.channel, username)).split(' ')[0]
             return userid
@@ -82,12 +143,27 @@ class IPMIDriver():
             return None
 
     def _changePassword(self, userid, username, password):
+        """
+        change user password on ipmi user table
+        @param userid: user id
+        @type userid: string
+        @param username: user name
+        @type username: string
+        @param password: password
+        @type password: string
+        @return: None
+        """
         logging.info("IPMI - going to change password for user - %s id - %s"
                      % (username, userid))
         sh.run("ipmitool user set password %s %s" % (userid, password))
         logging.info("IPMI - password changed successfully for user - %s" % username)
 
     def _getFreeUserID(self):
+        """
+        get free user ID from ipmi user table
+        @return: free user id / raise Exception if no user available
+        @rtype: string
+        """
         users_output = sh.run("ipmitool user list 1")
 
         # remove space from output
@@ -121,6 +197,14 @@ class IPMIDriver():
         raise Exception("IPMI - can't find free user ID to create a new user")
 
     def _createNewUser(self, username, password):
+        """
+        create new user on ipmi user table
+        @param username: user name
+        @type username: string
+        @param password: password
+        @type password: string
+        @return: None
+        """
         logging.info("IPMI - going to create user as administrator, username: %s" % username)
         userid = self._getFreeUserID()
         sh.run("ipmitool user set name %s %s" % (userid, username))
@@ -131,7 +215,13 @@ class IPMIDriver():
         sh.run("ipmitool user enable %s" % userid)
         logging.info("IPMI - user created successfully, username: %s" % username)
 
-    def setupIPMIDriver(self, channel):
+    def setupIPMIDriver(self, channel=None):
+        """
+        setup IPMIDriver and verify it can be work properly
+        @param channel: channel to use
+        @type channel: string
+        @return: None
+        """
         logging.info("Setting up IPMI driver")
         self._removeAllModules()
         self._loadAllModules()
@@ -142,6 +232,15 @@ class IPMIDriver():
         logging.info("IPMI driver setup done")
 
     def configureIPMIUsernameANDPassword(self, username, password):
+        """
+        configure user on ipmi user table.
+        if user already exist - change password
+        if user not exist - create a new user
+        @param username: user name
+        @type username: string
+        @param password: password
+        @type password: string
+        """
         userid = self._getUsernameID(username)
 
         if userid is None:
@@ -150,6 +249,16 @@ class IPMIDriver():
             self._changePassword(userid, username, password)
 
     def configureIPMINetwork(self, ip, netmask, gateway):
+        """
+        configure ipmi networking
+        @param ip: ip address
+        @type ip: string
+        @param netmask: netmask
+        @type netmask: string
+        @param gateway: default gateway
+        @type gateway: string
+        @return: None
+        """
         logging.info("IPMI going to set network configuration on channel %s,"
                      " ip address: %s, netmask: %s, default gateway: %s" %
                      (self.channel, ip, netmask, gateway))
@@ -161,5 +270,9 @@ class IPMIDriver():
         logging.info("IPMI network configuration done successfully")
 
     def restartIPMI(self):
+        """
+        restart ipmi
+        @return: None
+        """
         logging.info("IPMI - restarting IPMI management controller using cold mode")
         sh.run("ipmitool mc reset cold")
