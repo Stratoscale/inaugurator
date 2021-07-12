@@ -102,6 +102,7 @@ class Ceremony:
                                                             gateway=args.inauguratorIPMIGateway,
                                                             channel=args.inauguratorIPMIChannel,
                                                             restart=args.inauguratorIPMIRestart)
+        self._installerName = args.inauguratorInstallerName
 
     def ceremony(self):
         self._loadAllDriversIfNeeded()
@@ -119,6 +120,9 @@ class Ceremony:
             self._createBootAndInstallGrub(destination)
             logging.info("Boot sync complete")
             self._configureETC(destination)
+            if self._installerName:
+                command = 'echo %s >> %s\installer.log' % self._installerName, destination
+                sh.run(command)
             self._loadKernelForKexecing(destination)
             logging.info("kernel loaded")
             self._additionalDownload(destination)
