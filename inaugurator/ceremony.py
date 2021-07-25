@@ -121,7 +121,7 @@ class Ceremony:
             logging.info("Boot sync complete")
             self._configureETC(destination)
             if self._installerName:
-                command = 'echo %s >> %s\installer.log' % self._installerName, destination
+                command = 'echo %s >> %s\installer.log' % (self._installerName, destination)
                 sh.run(command)
             self._loadKernelForKexecing(destination)
             logging.info("kernel loaded")
