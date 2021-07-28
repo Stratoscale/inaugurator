@@ -27,7 +27,7 @@ import logging
 import threading
 import json
 import requests
-
+import signal
 
 DIR_THRESHOLD = 0.7
 
@@ -347,17 +347,24 @@ class Ceremony:
             grubConfig=self._grubConfig,
             bootPath=os.path.join(destination, "boot"), rootPartition=self._mountOp.rootPartition())
 
-    def _doOsmosisFromSource(self, destination):
+    def _doOsmosisFromSource(self, destination, timeout_after = 20*60): #20 mins timeout
         cleanup = osmosiscleanup.OsmosisCleanup(destination, objectStorePath=self._localObjectStore)
+        signal.signal(signal.SIGALRM, self._raise_timeout_exception)
+        signal.alarm(timeout_after)
         try:
             self._doOsmosisFromSourceUnsafe(destination)
         except Exception as e:
-            logging.exception("Failed to osmosis from source")
+            logging.exception("Failed to osmosis from source. %(type)s, %(msg)s", dict(type=type(e), msg=e.message))
             cleanup.eraseEverything()
             sh.run("busybox rm -fr %s/*" % destination)
             if self._talkToServer:
                 self._talkToServer.progress(dict(state='warning', message=str(e)))
             self._doOsmosisFromSourceUnsafe(destination)
+        finally:
+            signal.alarm(0)
+
+    def _raise_timeout_exception(signum, frame, args = None):
+        raise Exception('Timeout')
 
     def _doOsmosisFromSourceUnsafe(self, destination):
         if self._args.inauguratorSource == 'network':
