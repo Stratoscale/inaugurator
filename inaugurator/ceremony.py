@@ -19,6 +19,7 @@ from inaugurator import lvmetad
 from inaugurator import verify
 from inaugurator import debugthread
 from inaugurator import hwinfo as selfTest
+from inaugurator import dirsize
 import os
 import re
 import time
@@ -26,6 +27,9 @@ import logging
 import threading
 import json
 import requests
+
+
+DIR_THRESHOLD = 0.7
 
 
 class Ceremony:
@@ -216,6 +220,9 @@ class Ceremony:
                 amqpURL=self._args.inauguratorServerAMQPURL, myID=self._args.inauguratorMyIDForServer)
             hwinfo = {'net': network.list_devices_info()}
             self.send_hwinfo(self._args.inauguratorSelfTestServerUrl)
+            if dirsize.check_storage_size_over_threshold(destination, DIR_THRESHOLD):
+                logging.info("dir: %s is over threshold: %s - cleaning osmosis" % (destination, str(DIR_THRESHOLD)))
+                self.try_to_remove_osmosis(destination)
             self._talkToServer.checkIn(hwinfo=hwinfo)
             message = self._talkToServer.label()
             self._label = json.loads(message)['rootfs']
@@ -243,11 +250,7 @@ class Ceremony:
                 return
             except osmose.CorruptedObjectStore:
                 logging.info("Found corrupted object store - purge osmosis!")
-                try:
-                    objectStorePath = os.path.join(destination, "var", "lib", "osmosis", "objectstore")
-                    osmosiscleanup.OsmosisCleanup(destination, objectStorePath=objectStorePath).eraseEverything()
-                except:
-                    pass
+                self.try_to_remove_osmosis(destination)
             except Exception as e:
                 if self._debugPort is not None and self._debugPort.wasRebootCalled():
                     logging.info("Waiting to be reboot (from outside)...")
@@ -259,6 +262,14 @@ class Ceremony:
                     except:
                         pass
                 raise e
+
+    def try_to_remove_osmosis(self, destination):
+        try:
+            objectStorePath = os.path.join(destination, "var", "lib", "osmosis", "objectstore")
+            osmosiscleanup.OsmosisCleanup(destination, objectStorePath=objectStorePath).eraseEverything()
+        except:
+            pass
+
 
     def _checkoutOsmosFromNetwork(self, destination, osmosisObjectStore, withLocalObjectStore, localOsmosisObjectStroe,
                                   ignoreDir, talkToServer, inspectErrors=False):
