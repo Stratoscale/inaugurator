@@ -32,6 +32,10 @@ import signal
 DIR_THRESHOLD = 0.7
 
 
+class OsmosisTimeoutException(Exception):
+    pass
+
+
 class Ceremony:
 
     def __init__(self, args):
@@ -254,7 +258,7 @@ class Ceremony:
                 except osmose.CorruptedObjectStore:
                     logging.info("Found corrupted object store - purge osmosis!")
                     self.try_to_remove_osmosis(destination)
-                except TimeoutError as e:
+                except OsmosisTimeoutException as e:
                     logging.info("Failed _osmosFromNetwork due to Timeout. attempt #%d" % attempt)
                     self.try_to_remove_osmosis(destination)
                 except Exception as e:
@@ -370,7 +374,7 @@ class Ceremony:
                 self._talkToServer.progress(dict(state='warning', message=str(e)))
 
     def _raise_timeout_exception(signum, frame, args = None):
-        raise TimeoutError("SIGALRM Timeout was triggered")
+        raise OsmosisTimeoutException("SIGALRM Timeout was triggered")
 
     def _doOsmosisFromSourceUnsafe(self, destination):
         if self._args.inauguratorSource == 'network':
