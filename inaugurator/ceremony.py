@@ -213,7 +213,7 @@ class Ceremony:
             with open(grubConfigFilename, "r") as grubConfigFile:
                 self._grubConfig = grubConfigFile.read()
 
-    def _osmosFromNetwork(self, destination, timeout_after = 20*60): #20min
+    def _osmosFromNetwork(self, destination, timeout_after=20*60): #20min
         if not self._args.inauguratorIsNetworkAlreadyConfigured:
             network.Network(
                 macAddress=self._args.inauguratorUseNICWithMAC, ipAddress=self._args.inauguratorIPAddress,
@@ -272,6 +272,8 @@ class Ceremony:
                         except:
                             pass
                     raise e
+                finally:
+                    signal.alarm(0)
         except Exception:
             raise e
         finally:
