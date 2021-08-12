@@ -259,26 +259,30 @@ class Ceremony:
                     logging.info("Found corrupted object store - purge osmosis!")
                     self.try_to_remove_osmosis(destination)
                 except OsmosisTimeoutException as e:
-                    logging.info("Failed _osmosFromNetwork due to Timeout. attempt #%d" % attempt)
+                    failed_msg = "Failed _osmosFromNetwork due to Timeout. attempt #%d" % attempt
+                    logging.info(failed_msg)
                     self.try_to_remove_osmosis(destination)
+                    self._talk_to_server_falied_safe(failed_msg)
+                    signal.alarm(0)
+                    raise e
                 except Exception as e:
                     if self._debugPort is not None and self._debugPort.wasRebootCalled():
                         logging.info("Waiting to be reboot (from outside)...")
                         blockForever = threading.Event()
                         blockForever.wait()
                     else:
-                        try:
-                            self._talkToServer.failed(message=str(e))
-                        except:
-                            pass
+                        self._talk_to_server_falied_safe(e)
                     raise e
-                finally:
-                    signal.alarm(0)
         except Exception:
             raise e
         finally:
             signal.alarm(0)
 
+    def _talk_to_server_falied_safe(self, exception):
+        try:
+            self._talkToServer.failed(message=str(exception))
+        except:
+            pass
 
     def try_to_remove_osmosis(self, destination):
         try:
