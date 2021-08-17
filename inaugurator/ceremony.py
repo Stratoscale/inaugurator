@@ -32,6 +32,10 @@ import signal
 DIR_THRESHOLD = 0.7
 
 
+class OsmosisTimeoutException(Exception):
+    pass
+
+
 class Ceremony:
 
     def __init__(self, args):
@@ -209,7 +213,7 @@ class Ceremony:
             with open(grubConfigFilename, "r") as grubConfigFile:
                 self._grubConfig = grubConfigFile.read()
 
-    def _osmosFromNetwork(self, destination):
+    def _osmosFromNetwork(self, destination, timeout_after=20*60): #20min
         if not self._args.inauguratorIsNetworkAlreadyConfigured:
             network.Network(
                 macAddress=self._args.inauguratorUseNICWithMAC, ipAddress=self._args.inauguratorIPAddress,
@@ -229,39 +233,56 @@ class Ceremony:
         else:
             self._label = self._args.inauguratorNetworkLabel
         ATTEMPTS = 2
-        for attempt in range(ATTEMPTS):
-            try:
-                if attempt == 0:
-                    self._checkoutOsmosFromNetwork(destination,
-                                                   self._args.inauguratorOsmosisObjectStores,
-                                                   self._args.inauguratorWithLocalObjectStore,
-                                                   self._localObjectStore,
-                                                   self._args.inauguratorIgnoreDirs,
-                                                   self._talkToServer,
-                                                   inspectErrors=True)
-                else:
-                    self._checkoutOsmosFromNetwork(destination,
-                                                   self._args.inauguratorOsmosisObjectStores,
-                                                   self._args.inauguratorWithLocalObjectStore,
-                                                   self._localObjectStore,
-                                                   self._args.inauguratorIgnoreDirs,
-                                                   talkToServer=None,
-                                                   inspectErrors=False)
-                return
-            except osmose.CorruptedObjectStore:
-                logging.info("Found corrupted object store - purge osmosis!")
-                self.try_to_remove_osmosis(destination)
-            except Exception as e:
-                if self._debugPort is not None and self._debugPort.wasRebootCalled():
-                    logging.info("Waiting to be reboot (from outside)...")
-                    blockForever = threading.Event()
-                    blockForever.wait()
-                else:
-                    try:
-                        self._talkToServer.failed(message=str(e))
-                    except:
-                        pass
-                raise e
+        signal.signal(signal.SIGALRM, self._raise_timeout_exception)
+        signal.alarm(timeout_after)
+        try:
+            for attempt in range(ATTEMPTS):
+                try:
+                    if attempt == 0:
+                        self._checkoutOsmosFromNetwork(destination,
+                                                       self._args.inauguratorOsmosisObjectStores,
+                                                       self._args.inauguratorWithLocalObjectStore,
+                                                       self._localObjectStore,
+                                                       self._args.inauguratorIgnoreDirs,
+                                                       self._talkToServer,
+                                                       inspectErrors=True)
+                    else:
+                        self._checkoutOsmosFromNetwork(destination,
+                                                       self._args.inauguratorOsmosisObjectStores,
+                                                       self._args.inauguratorWithLocalObjectStore,
+                                                       self._localObjectStore,
+                                                       self._args.inauguratorIgnoreDirs,
+                                                       talkToServer=None,
+                                                       inspectErrors=False)
+                    return
+                except osmose.CorruptedObjectStore:
+                    logging.info("Found corrupted object store - purge osmosis!")
+                    self.try_to_remove_osmosis(destination)
+                except OsmosisTimeoutException as e:
+                    failed_msg = "Failed _osmosFromNetwork due to Timeout. attempt #%d" % attempt
+                    logging.info(failed_msg)
+                    self.try_to_remove_osmosis(destination)
+                    self._talk_to_server_falied_safe(failed_msg)
+                    signal.alarm(0)
+                    raise e
+                except Exception as e:
+                    if self._debugPort is not None and self._debugPort.wasRebootCalled():
+                        logging.info("Waiting to be reboot (from outside)...")
+                        blockForever = threading.Event()
+                        blockForever.wait()
+                    else:
+                        self._talk_to_server_falied_safe(e)
+                    raise e
+        except Exception:
+            raise e
+        finally:
+            signal.alarm(0)
+
+    def _talk_to_server_falied_safe(self, exception):
+        try:
+            self._talkToServer.failed(message=str(exception))
+        except:
+            pass
 
     def try_to_remove_osmosis(self, destination):
         try:
@@ -347,10 +368,8 @@ class Ceremony:
             grubConfig=self._grubConfig,
             bootPath=os.path.join(destination, "boot"), rootPartition=self._mountOp.rootPartition())
 
-    def _doOsmosisFromSource(self, destination, timeout_after = 20*60): #20 mins timeout
+    def _doOsmosisFromSource(self, destination):
         cleanup = osmosiscleanup.OsmosisCleanup(destination, objectStorePath=self._localObjectStore)
-        signal.signal(signal.SIGALRM, self._raise_timeout_exception)
-        signal.alarm(timeout_after)
         try:
             self._doOsmosisFromSourceUnsafe(destination)
         except Exception as e:
@@ -359,12 +378,9 @@ class Ceremony:
             sh.run("busybox rm -fr %s/*" % destination)
             if self._talkToServer:
                 self._talkToServer.progress(dict(state='warning', message=str(e)))
-            self._doOsmosisFromSourceUnsafe(destination)
-        finally:
-            signal.alarm(0)
 
     def _raise_timeout_exception(signum, frame, args = None):
-        raise Exception('Timeout')
+        raise OsmosisTimeoutException("SIGALRM Timeout was triggered")
 
     def _doOsmosisFromSourceUnsafe(self, destination):
         if self._args.inauguratorSource == 'network':
