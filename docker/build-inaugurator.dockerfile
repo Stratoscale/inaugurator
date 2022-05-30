@@ -1,4 +1,4 @@
-FROM fedora:27
+FROM fedora:28
 MAINTAINER ops@lightbitslabs.com
 
 # Install other tools
@@ -28,6 +28,7 @@ RUN dnf install -y \
     fio \
     ndctl \
     numactl \
+    grubby \
     busybox && \
     dnf -y clean all
 
