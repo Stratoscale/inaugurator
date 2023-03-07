@@ -1,1 +1,6 @@
-write me
+# Inaugurator - The product installion codebase
+
+## Build
+```bash
+make
+```

@@ -1,8 +1,9 @@
-FROM centos:7.8.2003
-MAINTAINER guymenahem@neokarm.com
+FROM centos:7.9.2009
+MAINTAINER ilia.feldgun@zadara.com
 
 # Install other tools
-RUN yum update -y && \
+RUN yum install -y yum-plugin-fastestmirror \
+    yum update -y && \
     yum -y clean all
 
 RUN yum install -y \
@@ -25,19 +26,18 @@ RUN yum install -y \
     smartmontools && \
     yum -y clean all
 
-
-# Install PIP (obtained from EPEL)
-RUN yum install -y epel-release && \
-    yum install -y python-pip && \
-    yum -y clean all
-
 # Add the Elrepo repository and install the CCISS driver
 RUN rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
-    rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-2.el7.elrepo.noarch.rpm && \
+    rpm -Uvh https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm && \
     yum install -y kmod-cciss && \
     yum -y clean all
 
-RUN pip2 install --upgrade setuptools==41.2.0 &&  pip2 install pep8 pika==0.11.2 mock==3.0.5 simplejson
+RUN curl 'https://bootstrap.pypa.io/pip/2.7/get-pip.py' -o /tmp/get-pip.py && \
+    python2 /tmp/get-pip.py && \
+    rm -fr /tmp/get-pip.py
+
+COPY dev-requirements.txt /tmp/dev-requirements.txt
+RUN python2 -m pip install -r /tmp/dev-requirements.txt
 
 # Edit sudoers file to avoid error: sudo: sorry, you must have a tty to run sudo
 RUN sed -i -e "s/Defaults    requiretty.*/ #Defaults    requiretty/g" /etc/sudoers

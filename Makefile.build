@@ -1,7 +1,9 @@
-KERNEL_VERSION = 3.10.0-1127.19.1.el7.x86_64
+KERNEL_VERSION = 3.10.0-1160.76.1.el7.x86_64
 INAUGURATOR_VERSION=$(shell python setup.py --version)
+KERNEL_DIR=build/kernel
 PYTHON_DIST_FILENAME=dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
-KERNEL_IMAGE_PATH=/boot/vmlinuz-$(KERNEL_VERSION)
+KERNEL_IMAGE_PATH=$(KERNEL_DIR)/boot/vmlinuz-$(KERNEL_VERSION)
+
 
 .PHONY: build
 build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img ${PYTHON_DIST_FILENAME}
@@ -9,6 +11,17 @@ build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugur
 build/inaugurator.vmlinuz: $(KERNEL_IMAGE_PATH)
 	-@mkdir $(@D)
 	cp $(KERNEL_IMAGE_PATH) $@
+
+$(KERNEL_IMAGE_PATH): extract_kernel_rpm
+
+.PHONY: extract_kernel_rpm
+extract_kernel_rpm: $(KERNEL_DIR)/kernel-$(KERNEL_VERSION).rpm
+	cd $(KERNEL_DIR) && rpm2cpio kernel-$(KERNEL_VERSION).rpm | cpio -idmv
+
+$(KERNEL_DIR)/kernel-$(KERNEL_VERSION).rpm:
+	-@mkdir build
+	-@mkdir $(KERNEL_DIR)
+	cd $(KERNEL_DIR) && yumdownloader --downloadonly kernel-$(KERNEL_VERSION)
 
 build/inaugurator.%.initrd.img: build/inaugurator.%.initrd.dir
 	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
