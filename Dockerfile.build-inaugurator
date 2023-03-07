@@ -1,6 +1,9 @@
 FROM centos:7.9.2009
 MAINTAINER ilia.feldgun@zadara.com
 
+RUN rm -rf /etc/yum.repos.d/*
+COPY yum_repos/*.repo /etc/yum.repos.d/
+
 # Install other tools
 RUN yum install -y yum-plugin-fastestmirror \
     yum update -y && \

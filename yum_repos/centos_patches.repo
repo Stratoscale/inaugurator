@@ -1,0 +1,11 @@
+[22.02.0-patches]
+name=v22.02.0-patches
+baseurl=http://yum-repo.dc1.strato/repos/v22.02.0-patches
+gpgcheck=0
+enabled=1
+
+[22.09.0-patches]
+name=v22.09.0-patches
+baseurl=http://yum-repo.dc1.strato/repos/v22.09.0-patches
+gpgcheck=0
+enabled=1
