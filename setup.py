@@ -21,5 +21,5 @@ setup(
         "Development Status :: 4 - Beta",
         "Topic :: Utilities",
     ],
-    requires=['pyudev','mock'],
+    requires=['pyudev','mock', 'rpdb'],
 )
