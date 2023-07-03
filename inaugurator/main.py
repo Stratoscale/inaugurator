@@ -1,7 +1,7 @@
 from inaugurator import ceremony
 import argparse
 import traceback
-import pdb
+import rpdb
 import logging
 import sys
 from inaugurator import packagesvalidation
@@ -110,4 +110,4 @@ if __name__ == "__main__":
         raise e
     finally:
         if PDB_ON_ERROR:
-            pdb.set_trace()
+            rpdb.set_trace()
