@@ -124,6 +124,7 @@ build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 	cp -a $< $@.tmp
 	echo "Copying drivers"
 	set -e; for driver in `sh/list_storage_and_network_driver_names.sh $(KERNEL_VERSION)`; do echo "Copying $$driver"; DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh $$driver; done
+	echo "Done copying drivers"
 	depmod --basedir=$@.tmp $(KERNEL_VERSION)
 	cp -a lib $@.tmp/
 	mv $@.tmp $@
