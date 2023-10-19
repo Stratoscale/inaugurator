@@ -133,9 +133,9 @@ build/build-inaugurator.dockerfile: docker/build-inaugurator.dockerfile
 	@-mkdir build
 	KERNEL_VERSION=$(KERNEL_VERSION) m4 $< > $@
 
-build/osmosis: ../osmosis
+build/osmosis:
 	@-mkdir build
-	cp -rf ../osmosis build/
+	[ -d build/osmosis ] || cd build && git clone https://github.com/Stratoscale/osmosis.git --branch NK-2701
 	$(MAKE) -C build/osmosis clean
 
 build/osmosis/dist/osmosis-1.1.0b1-py2.7.egg: build/osmosis
