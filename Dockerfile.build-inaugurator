@@ -43,8 +43,6 @@ RUN python2 -m pip install -r /tmp/dev-requirements.txt
 RUN sed -i -e "s/Defaults    requiretty.*/ #Defaults    requiretty/g" /etc/sudoers
 
 # Install busybox with a Fedora RPM since there's no such package for Centos 7
-RUN curl http://yum-repo.dc1.strato/repos/busybox/busybox-1.30.1-2.fc31.x86_64.rpm -o temp && \
-    rpm -ivh temp && \
-    rm temp
+RUN curl http://yum-repo.dc1.strato/repos/busybox/busybox-1.30.1-2.fc31.x86_64.rpm | rpm -ivh
 
 WORKDIR /root/inaugurator

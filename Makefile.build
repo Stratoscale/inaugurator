@@ -32,7 +32,7 @@ $(PYTHON_DIST_FILENAME): inaugurator setup.py
 	python setup.py bdist
 	python setup.py bdist_egg
 
-build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} build/osmosis/dist/osmosis-1.1.0b1-py2.7.egg build/osmosis/build/cpp/osmosis.bin
+build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} build/osmosis/dist/osmosis-1.1.0b1-py2.7.egg build/osmosis/build/cpp/osmosis.bin /usr/sbin/busybox /usr/bin/ipmitool /usr/sbin/smartctl
 	-@mkdir build
 	-rm -fr $@.tmp $@
 	mkdir $@.tmp
@@ -142,6 +142,7 @@ build/osmosis/dist/osmosis-1.1.0b1-py2.7.egg: build/osmosis
 	$(MAKE) -C build/osmosis egg
 
 build/osmosis/build/cpp/osmosis.bin: build/osmosis
+	sudo yum install -y boost boost-devel boost-static gcc-c++
 	$(MAKE) -j 4 -C build/osmosis build
 
 .PHONY: build_container
@@ -151,3 +152,15 @@ build_container: build/build-inaugurator.dockerfile setup.py
 
 /usr/bin/yumdownloader:
 	sudo yum install -y yum-utils
+
+/usr/sbin/busybox: /tmp/busybox.rpm
+	rpm -ivhF $<
+
+/tmp/busybox.rpm:
+	curl -o $@ http://yum-repo.dc1.strato/repos/busybox/busybox-1.30.1-2.fc31.x86_64.rpm
+
+/usr/bin/ipmitool:
+	sudo yum install -y ipmitool
+
+/usr/sbin/smartctl:
+	sudo yum install -y smartmontools
