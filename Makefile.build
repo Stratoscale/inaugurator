@@ -18,10 +18,10 @@ $(KERNEL_IMAGE_PATH): extract_kernel_rpm
 extract_kernel_rpm: $(KERNEL_DIR)/kernel-$(KERNEL_VERSION).rpm
 	cd $(KERNEL_DIR) && rpm2cpio kernel-$(KERNEL_VERSION).rpm | cpio -idmv
 
-$(KERNEL_DIR)/kernel-$(KERNEL_VERSION).rpm:
+$(KERNEL_DIR)/kernel-$(KERNEL_VERSION).rpm: /usr/bin/yumdownloader
 	-@mkdir build
 	-@mkdir $(KERNEL_DIR)
-	cd $(KERNEL_DIR) && yumdownloader --downloadonly kernel-$(KERNEL_VERSION)
+	yumdownloader --downloadonly kernel-$(KERNEL_VERSION) --destdir $(KERNEL_DIR)
 
 build/inaugurator.%.initrd.img: build/inaugurator.%.initrd.dir
 	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
@@ -148,3 +148,6 @@ build/osmosis/build/cpp/osmosis.bin: build/osmosis
 build_container: build/build-inaugurator.dockerfile setup.py
 	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was not built. Trying to build it...)
 	sudo docker build -f build/build-inaugurator.dockerfile -t build-inaugurator:$(INAUGURATOR_VERSION) build
+
+/usr/bin/yumdownloader:
+	sudo yum install -y yum-utils
