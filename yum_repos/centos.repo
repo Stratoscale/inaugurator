@@ -1,0 +1,14 @@
+[CentOS]
+name=CentOS-7.9 - CentOS
+baseurl=http://yum-repo.dc1.strato/repos/centos-7.9
+gpgcheck=0
+
+[CentOSUpdates]
+name=CentOS-7.9 - CentOSUpdates
+baseurl=http://yum-repo.dc1.strato/repos/updates-7.9
+gpgcheck=0
+
+[CentOSExtras]
+name=CentOS-7.9 - CentOSExtras
+baseurl=http://yum-repo.dc1.strato/repos/extras-7.9
+gpgcheck=0
