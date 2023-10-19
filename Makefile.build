@@ -1,4 +1,4 @@
-KERNEL_VERSION = 3.10.0-1160.76.1.el7.x86_64
+KERNEL_VERSION = 3.10.0-1160.45.1.el7.x86_64
 INAUGURATOR_VERSION=$(shell python setup.py --version)
 KERNEL_DIR=build/kernel
 PYTHON_DIST_FILENAME=dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
