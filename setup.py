@@ -5,9 +5,9 @@ from setuptools import setup
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-setup(
+setup_kwargs = dict(
     name="inaugurator",
-    version="1.6.0",
+    version="1.6.1",
     author="Guy Menahem",
     author_email="guymenahem@neokarm.com",
     description=(
@@ -23,3 +23,5 @@ setup(
     ],
     requires=['pyudev','mock'],
 )
+
+setup(**setup_kwargs)

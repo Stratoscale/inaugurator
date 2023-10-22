@@ -1,7 +1,9 @@
 KERNEL_VERSION = 3.10.0-1127.19.1.el7.x86_64
 INAUGURATOR_VERSION=$(shell python setup.py --version)
+KERNEL_DIR=build/kernel
 PYTHON_DIST_FILENAME=dist/inaugurator-${INAUGURATOR_VERSION}.linux-x86_64.tar.gz
-KERNEL_IMAGE_PATH=/boot/vmlinuz-$(KERNEL_VERSION)
+KERNEL_IMAGE_PATH=$(KERNEL_DIR)/boot/vmlinuz-$(KERNEL_VERSION)
+INAUGURATOR_YUM_REPO = http://yum-repo.dc1.strato/repos/inaugurator/packages/
 
 .PHONY: build
 build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img ${PYTHON_DIST_FILENAME}
@@ -10,16 +12,27 @@ build/inaugurator.vmlinuz: $(KERNEL_IMAGE_PATH)
 	-@mkdir $(@D)
 	cp $(KERNEL_IMAGE_PATH) $@
 
+$(KERNEL_IMAGE_PATH): extract_kernel_rpm
+
+.PHONY: extract_kernel_rpm
+extract_kernel_rpm: $(KERNEL_DIR)/kernel-$(KERNEL_VERSION).rpm
+	cd $(KERNEL_DIR) && rpm2cpio kernel-$(KERNEL_VERSION).rpm | cpio -idmv
+
+$(KERNEL_DIR)/kernel-$(KERNEL_VERSION).rpm: /usr/bin/yumdownloader
+	-@mkdir build
+	-@mkdir $(KERNEL_DIR)
+	yumdownloader --downloadonly --resolve kernel-$(KERNEL_VERSION) --destdir $(KERNEL_DIR)
+
 build/inaugurator.%.initrd.img: build/inaugurator.%.initrd.dir
 	( cd $< ; find . | cpio -o -H newc ) | gzip -9 > $@.tmp
 	cp -rf $@.tmp $@
 
-$(PYTHON_DIST_FILENAME): inaugurator setup.py
+$(PYTHON_DIST_FILENAME): inaugurator setup.py /usr/sbin/busybox
 	python setup.py build
 	python setup.py bdist
 	python setup.py bdist_egg
 
-build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} build/osmosis/dist/osmosis-1.1.0b1-py2.7.egg build/osmosis/build/cpp/osmosis.bin
+build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} build/osmosis/dist/osmosis-1.1.0b1-py2.7.egg build/osmosis/build/cpp/osmosis.bin /usr/bin/ipmitool /usr/sbin/smartctl
 	-@mkdir build
 	-rm -fr $@.tmp $@
 	mkdir $@.tmp
@@ -85,7 +98,6 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} build/osmosis/dist/os
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh ahci
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh isofs
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh ata_piix
-	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh cciss
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh ipmi_msghandler
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh ipmi_si
 	DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh ipmi_devintf
@@ -112,6 +124,7 @@ build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 	cp -a $< $@.tmp
 	echo "Copying drivers"
 	set -e; for driver in `sh/list_storage_and_network_driver_names.sh $(KERNEL_VERSION)`; do echo "Copying $$driver"; DEST=$@.tmp KERNEL_UNAME_R=$(KERNEL_VERSION) sh/relative_copy_driver.sh $$driver; done
+	echo "Done copying drivers"
 	depmod --basedir=$@.tmp $(KERNEL_VERSION)
 	cp -a lib $@.tmp/
 	mv $@.tmp $@
@@ -120,9 +133,10 @@ build/build-inaugurator.dockerfile: docker/build-inaugurator.dockerfile
 	@-mkdir build
 	KERNEL_VERSION=$(KERNEL_VERSION) m4 $< > $@
 
-build/osmosis: ../osmosis
+build/osmosis:
 	@-mkdir build
-	cp -rf ../osmosis build/
+	[ -d build/osmosis ] || cd build && git clone https://github.com/Stratoscale/osmosis.git --branch NK-2701
+	$(MAKE) -C build/osmosis centos_cpp_deps
 	$(MAKE) -C build/osmosis clean
 
 build/osmosis/dist/osmosis-1.1.0b1-py2.7.egg: build/osmosis
@@ -135,3 +149,12 @@ build/osmosis/build/cpp/osmosis.bin: build/osmosis
 build_container: build/build-inaugurator.dockerfile setup.py
 	$(info It seems that a build-inaugurator image for version $(INAUGURATOR_VERSION) of Inaugurator was not built. Trying to build it...)
 	sudo docker build -f build/build-inaugurator.dockerfile -t build-inaugurator:$(INAUGURATOR_VERSION) build
+
+/usr/bin/yumdownloader:
+	sudo yum install -y yum-utils
+
+/usr/bin/ipmitool:
+	sudo yum install -y ipmitool
+
+/usr/sbin/smartctl:
+	sudo yum install -y smartmontools
