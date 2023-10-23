@@ -7,7 +7,6 @@ import os
 import functools
 import threading
 import mock
-import patchsyspath
 import logging
 import pika
 from inaugurator.server import server
@@ -15,7 +14,6 @@ from inaugurator.server import rabbitmqwrapper
 from inaugurator.server import config
 from inaugurator import talktoserver
 
-patchsyspath.validatePaths()
 config.PORT = 2018
 config.AMQP_URL = "amqp://guest:guest@localhost:%d/%%2F" % config.PORT
 
@@ -264,7 +262,7 @@ class Test(unittest.TestCase):
         self.validateStatusMessageArrival("progress", id, extraArgs=(message,))
 
     def validateInaugurationFailed(self, id, message):
-        self.validateStatusMessageArrival("failed", id, extraArgs=(dict(message=message),))
+        self.validateStatusMessageArrival("failed", id, extraArgs=(message,))
 
     def validateDone(self, id):
         self.validateStatusMessageArrival("done", id)
@@ -306,7 +304,6 @@ class Test(unittest.TestCase):
             raise Exception("Ignore me")
 
     def failedCallback(self, *args):
-        message = args[1]
         self.failedCallbackArguments.append(args)
         if self.doServerCallbackCauseErrors:
             raise Exception("Ignore me")
@@ -349,6 +346,7 @@ class Test(unittest.TestCase):
         self.talkToServerInstances.add(talkToServer)
         return talkToServer
 
+
 if __name__ == '__main__':
     logLevels = {0: {"": logging.CRITICAL, "inaugurator.server": logging.CRITICAL, "pika": logging.ERROR},
                  1: {"": logging.CRITICAL, "inaugurator.server": logging.CRITICAL, "pika": logging.ERROR},
@@ -359,8 +357,8 @@ if __name__ == '__main__':
                  6: {"": logging.DEBUG, "inaugurator.server": logging.DEBUG, "pika": logging.DEBUG}}
     maxVerbosity = max(logLevels.keys())
     if "VERBOSITY" not in os.environ:
-        print "Note: For different verbosity levels, run with VERBOSITY=(number from 0 to " \
-              "%(maxVerbosity)s)." % dict(maxVerbosity=maxVerbosity)
+        print("Note: For different verbosity levels, run with VERBOSITY=(number from 0 to "
+              "%(maxVerbosity)s)." % dict(maxVerbosity=maxVerbosity))
     verbosity = int(os.getenv("VERBOSITY", 0))
     loggerNames = list(set(logLevels[0].keys()))
     logLevels = logLevels[verbosity]
