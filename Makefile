@@ -28,7 +28,7 @@ integration_test:
 include Makefile.build
 
 uninstall:
-	-sudo mkdir /usr/share/inaugurator
+	sudo mkdir -p /usr/share/inaugurator
 	-yes | sudo pip uninstall inaugurator
 
 remote/%:
@@ -44,7 +44,7 @@ submitclean:
 	SOLVENT_CLEAN=1 solvent approve
 
 install_nodeps:
-	-sudo mkdir /usr/share/inaugurator
+	sudo mkdir -p /usr/share/inaugurator
 	-yes | sudo pip uninstall inaugurator
 	python setup.py bdist
 	sudo python setup.py install

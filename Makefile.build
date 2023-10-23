@@ -9,7 +9,7 @@ INAUGURATOR_YUM_REPO = http://yum-repo.dc1.strato/repos/inaugurator/packages/
 build: build/inaugurator.vmlinuz build/inaugurator.thin.initrd.img build/inaugurator.fat.initrd.img ${PYTHON_DIST_FILENAME}
 
 build/inaugurator.vmlinuz: $(KERNEL_IMAGE_PATH)
-	-@mkdir $(@D)
+	mkdir -p $(@D)
 	cp $(KERNEL_IMAGE_PATH) $@
 
 $(KERNEL_IMAGE_PATH): extract_kernel_rpm
@@ -19,8 +19,8 @@ extract_kernel_rpm: $(KERNEL_DIR)/kernel-$(KERNEL_VERSION).rpm
 	cd $(KERNEL_DIR) && rpm2cpio kernel-$(KERNEL_VERSION).rpm | cpio -idmv
 
 $(KERNEL_DIR)/kernel-$(KERNEL_VERSION).rpm: /usr/bin/yumdownloader
-	-@mkdir build
-	-@mkdir $(KERNEL_DIR)
+	mkdir -p build
+	mkdir -p $(KERNEL_DIR)
 	yumdownloader --downloadonly --resolve kernel-$(KERNEL_VERSION) --destdir $(KERNEL_DIR)
 
 build/inaugurator.%.initrd.img: build/inaugurator.%.initrd.dir
@@ -33,9 +33,9 @@ $(PYTHON_DIST_FILENAME): inaugurator setup.py /usr/sbin/busybox
 	python setup.py bdist_egg
 
 build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} build/osmosis/dist/osmosis-1.1.0b1-py2.7.egg build/osmosis/build/cpp/osmosis.bin /usr/bin/ipmitool /usr/sbin/smartctl
-	-@mkdir build
+	mkdir -p build
 	-rm -fr $@.tmp $@
-	mkdir $@.tmp
+	mkdir -p $@.tmp
 	echo "Installing Inaugurator"
 	tar -xf $< --directory $@.tmp
 	cp build/osmosis/dist/osmosis-1.1.0b1-py2.7.egg $@.tmp/usr/lib/
@@ -114,8 +114,8 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} build/osmosis/dist/os
 	DEST=$@.tmp sh/relative_copy_glob.sh init
 	mkdir -p $@.tmp/run/udev
 	mkdir -p $@.tmp/run/lvm
-	mkdir $@.tmp/proc
-	mkdir $@.tmp/sys
+	mkdir -p $@.tmp/proc
+	mkdir -p $@.tmp/sys
 	find $@.tmp -name "*.pyo" | xargs rm -f
 	mv $@.tmp $@
 
@@ -130,11 +130,11 @@ build/inaugurator.fat.initrd.dir: build/inaugurator.thin.initrd.dir
 	mv $@.tmp $@
 
 build/build-inaugurator.dockerfile: docker/build-inaugurator.dockerfile
-	@-mkdir build
+	mkdir -p build
 	KERNEL_VERSION=$(KERNEL_VERSION) m4 $< > $@
 
 build/osmosis:
-	@-mkdir build
+	mkdir -p build
 	[ -d build/osmosis ] || cd build && git clone https://github.com/Stratoscale/osmosis.git --branch NK-2701
 	$(MAKE) -C build/osmosis centos_cpp_deps
 	$(MAKE) -C build/osmosis clean
