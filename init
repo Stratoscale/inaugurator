@@ -1,4 +1,5 @@
 #!/bin/sh
+echo "Zadara inaugurator"
 export PATH=/bin:/usr/bin:/sbin:/usr/sbin
 /usr/sbin/busybox mount -t proc proc /proc
 /usr/sbin/busybox mount -t sysfs sys /sys
