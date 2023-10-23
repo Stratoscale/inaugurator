@@ -23,7 +23,7 @@ unittest:
 
 integration_test:
 	$(info Note: For specific tests, run with TESTS=(Space seperated test names).)
-	@PYTHONPATH=inaugurator python inaugurator/tests/integration_test.py $(TESTS)
+	@PYTHONPATH=. python inaugurator/tests/integration_test.py $(TESTS)
 
 include Makefile.build
 
