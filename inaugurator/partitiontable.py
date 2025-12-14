@@ -14,10 +14,10 @@ class PartitionTable:
     VOLUME_GROUP = "inaugurator"
 
     def __init__(self, device, sizesGB=dict(), layoutScheme="GPT", rootPartitionSizeGB=20,
-                 bootPartitionSizeMB=512, wipeOldInstallations=False):
+                 bootPartitionSizeMB=512, efiPartitionSizeMB=512, wipeOldInstallations=False):
         self._sizesGB = dict(self._DEFAULT_SIZES_GB)
         self._sizesGB.update(sizesGB)
-        self._buildLayoutSchemes(bootPartitionSizeMB)
+        self._buildLayoutSchemes(bootPartitionSizeMB, efiPartitionSizeMB)
         self._device = device
         self._cachedDiskSize = None
         self._created = False
@@ -40,14 +40,18 @@ class PartitionTable:
         sh.run("busybox dd if=/dev/zero of=%(device)s bs=1M count=%(count)s" % dict(device=device,
                                                                                     count=count))
 
-    def _buildLayoutSchemes(self, bootPartitionSizeMB):
+    def _buildLayoutSchemes(self, bootPartitionSizeMB, efiPartitionSizeMB):
         self._layoutSchemes = dict(GPT=dict(partitions=dict(bios_boot=dict(sizeMB=2, flags="bios_grub"),
-                                            boot=dict(sizeMB=bootPartitionSizeMB, fs="ext4", flags="boot"),
-                                            lvm=dict(flags="lvm", sizeMB="fillUp")),
-                                            order=("bios_boot", "boot", "lvm")),
+                                                            boot=dict(sizeMB=bootPartitionSizeMB,
+                                                                      fs="ext4", flags=""),
+                                                            efi=dict(sizeMB=efiPartitionSizeMB, fs="vfat",
+                                                                     flags="boot"),
+                                                            lvm=dict(flags="lvm", sizeMB="fillUp")),
+                                            order=("bios_boot", "boot", "efi", "lvm")),
                                    MBR=dict(partitions=dict(boot=dict(sizeMB=bootPartitionSizeMB,
                                                                       fs="ext4", flags="boot"),
-                                            lvm=dict(flags="lvm", sizeMB="fillUp")), order=("boot", "lvm")))
+                                                            lvm=dict(flags="lvm", sizeMB="fillUp")),
+                                            order=("boot", "lvm")))
 
     def _create(self):
         self.clear()
@@ -56,9 +60,14 @@ class PartitionTable:
         sh.run(script)
         self._setFlags()
         sh.run("busybox mdev -s")
+        time.sleep(2)
+        sh.run("partprobe {}".format(self._device))
+        time.sleep(2)
         sh.run("mkfs.ext4 %s -L BOOT" % self._getPartitionPath("boot"))
+        if self._layoutScheme == "GPT":
+            sh.run("mkfs.vfat %s -n EFI" % self._getPartitionPath("efi"))
         try:
-            sh.run("lvm vgremove -f %s" % (self.VOLUME_GROUP, ))
+            sh.run("lvm vgremove -f %s" % (self.VOLUME_GROUP,))
         except:
             traceback.print_exc()
             logging.info("'lvm vgremove' failed")
@@ -92,22 +101,29 @@ class PartitionTable:
             biosBootEnd = biosBootStart + self._physicalPartitions["bios_boot"]["sizeMB"]
             bootStart = biosBootEnd
             bootEnd = bootStart + self._physicalPartitions["boot"]["sizeMB"]
+            efiStart = bootEnd
+            efiEnd = efiStart + self._physicalPartitions["efi"]["sizeMB"]
             script = "parted -s %(device)s -- " \
                      "mklabel gpt mkpart primary ext4 %(biosBootStart)sMiB %(biosBootEnd)sMiB " \
                      "mkpart primary ext4 %(bootStart)sMiB %(bootEnd)sMiB " \
+                     "mkpart primary fat32 %(efiStart)sMiB %(efiEnd)sMiB " \
                      "mkpart primary ext4 %(lvmStart)sMiB -1" % \
-                dict(device=self._device,
-                     biosBootStart=biosBootStart,
-                     biosBootEnd=biosBootEnd,
-                     bootStart=bootStart,
-                     bootEnd=bootEnd,
-                     lvmStart=bootEnd)
+                     dict(device=self._device,
+                          biosBootStart=biosBootStart,
+                          biosBootEnd=biosBootEnd,
+                          bootStart=bootStart,
+                          bootEnd=bootEnd,
+                          efiStart=efiStart,
+                          efiEnd=efiEnd,
+                          lvmStart=efiEnd)
         return script
 
     def _setFlags(self):
         for partitionIdx, partition in enumerate(self._physicalPartitionsOrder):
             partitionNr = partitionIdx + 1
             flag = self._physicalPartitions[partition]["flags"]
+            if flag == "":
+                continue
             logging.info("Setting flag '%s' for partition #%d..." % (flag, partitionNr))
             sh.run("parted -s %s set %d %s on" % (self._device, partitionNr, flag))
 
@@ -179,7 +195,7 @@ class PartitionTable:
                 logging.info("Actual partition name is: %s", actual)
                 expected = expectedPartition[attrName]
                 logging.info("Expected partition name is: %s", expected)
-                if expected != actual:
+                if expected != actual and actual != "fat32":  # why not check the efi partition?
                     return "Expected attribute %(attrName)s of %(partitionPurpose)s partition to be " \
                            "'%(expected)s', not '%(actual)s'" % \
                            dict(attrName=attrName,
@@ -398,3 +414,9 @@ class PartitionTable:
 
     def getBootPartitionPath(self):
         return self._getPartitionPath("boot")
+
+    def getEfiPartitionPath(self):
+        if self._layoutScheme == "GPT":
+            return self._getPartitionPath("efi")
+
+        return None

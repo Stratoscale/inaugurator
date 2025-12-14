@@ -89,6 +89,7 @@ class Ceremony:
         self._debugPort = None
         self._isExpectingReboot = False
         self._grubConfig = None
+        self._efiPartitionPath = None
         self._before = time.time()
         self._bootPartitionPath = None
         self._wereDriversLoaded = False
@@ -205,6 +206,7 @@ class Ceremony:
             partitionTable.clear()
         partitionTable.verify()
         self._bootPartitionPath = partitionTable.getBootPartitionPath()
+        self._efiPartitionPath = partitionTable.getEfiPartitionPath()
 
     def _configureETC(self, destination):
         self._etcLabelFile.write(self._label)
@@ -349,6 +351,8 @@ class Ceremony:
         self._mountOp = mount.Mount()
         assert self._bootPartitionPath is not None, "Please initialize boot partition path first"
         self._mountOp.setBootPartitionPath(self._bootPartitionPath)
+        if self._efiPartitionPath:
+            self._mountOp.setEfiPartitionPath(self._efiPartitionPath)
 
     def _setTargetDevice(self):
         if self._args.inauguratorTargetDeviceCandidate is not None:

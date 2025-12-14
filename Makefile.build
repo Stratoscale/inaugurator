@@ -104,6 +104,8 @@ build/inaugurator.thin.initrd.dir: ${PYTHON_DIST_FILENAME} build/osmosis/dist/os
 	mkdir -p $@.tmp/run/lvm
 	mkdir $@.tmp/proc
 	mkdir $@.tmp/sys
+	mkdir $@.tmp/packages
+	curl http://yum-repo.dc1.strato/repos/freezed-updates-7.9/Packages/grub2-efi-x64-modules-2.02-0.87.0.2.el7.centos.14.noarch.rpm -o $@.tmp/packages/grub2-efi-x64-modules-2.02-0.87.0.2.el7.centos.14.noarch.rpm
 	find $@.tmp -name "*.pyo" | xargs rm -f
 	mv $@.tmp $@
 
