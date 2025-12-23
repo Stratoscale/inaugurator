@@ -8,7 +8,7 @@
 FIRMWARE_BLACKLIST="-e ql2600_fw.bin -e ql2700_fw.bin -e ql8300_fw.bin"
 
 set -e
-for ko in `modprobe --show-depends $1 --set-version=$KERNEL_UNAME_R | sed 's/insmod //'`; do
+for ko in `modprobe --show-depends $1 --set-version=$KERNEL_UNAME_R | sed 's/insmod //' | sed 's/install .*$//'` ; do
     sh/relative_copy_glob.sh $ko
 done
 modinfo --field firmware $1 --set-version=$KERNEL_UNAME_R >& /dev/null
