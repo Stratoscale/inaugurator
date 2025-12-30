@@ -67,15 +67,6 @@ def install(targetDevice, destination):
         grubCfgPath = "/boot/grub2/grub.cfg"
         if os.path.exists("/sys/firmware/efi"):
             grubArgs = "--target x86_64-efi --efi-directory=/boot/efi"
-            sh.run(
-                "/usr/sbin/busybox cp "
-                "/packages/grub2-efi-x64-modules-2.02-0.87.el7.centos.7.noarch.rpm %s/root" % destination
-            )
-            sh.run(
-                "/usr/sbin/busybox chroot %s sh -c "
-                "'/usr/bin/rpm -Uvh "
-                "/root/grub2-efi-x64-modules-2.02-0.87.el7.centos.7.noarch.rpm'" % destination
-            )
         chrootScript = 'grub2-install %s %s && grub2-mkconfig > %s' % (grubArgs, targetDevice, grubCfgPath)
         sh.run("/usr/sbin/busybox chroot %s sh -c '%s'" % (destination, chrootScript))
         return grubCfgPath
